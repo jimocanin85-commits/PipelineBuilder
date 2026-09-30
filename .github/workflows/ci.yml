@@ -6,6 +6,9 @@ on:
   pull_request:
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
   build-and-test:
     runs-on: ubuntu-latest
@@ -17,13 +20,24 @@ jobs:
           global-json-file: global.json
 
       - name: Restore
-        run: dotnet restore SimlifiezYaml.sln
+        run: |
+          set -o pipefail
+          # Surface NuGet errors (e.g. vulnerable or missing packages) as annotations on the run.
+          dotnet restore SimlifiezYaml.sln 2>&1 | tee restore.log || {
+            grep -E "error|warning" restore.log | sort -u | head -20 | while read -r line; do echo "::error title=Restore::$line"; done
+            exit 1
+          }
 
+      # Warnings are errors (Directory.Build.props), so this step fails on any new warning.
       - name: Build
         run: dotnet build SimlifiezYaml.sln --configuration Release --no-restore
 
       - name: Test
-        run: dotnet test SimlifiezYaml.sln --configuration Release --no-build --logger "console;verbosity=normal" --logger GitHubActions --logger "trx;LogFileName=results.trx" --results-directory TestResults
+        run: >-
+          dotnet test SimlifiezYaml.sln --configuration Release --no-build
+          --logger "console;verbosity=normal" --logger GitHubActions
+          --logger "trx;LogFileName=results.trx" --results-directory TestResults
+          --collect:"XPlat Code Coverage"
 
       - name: Test summary
         if: always()
@@ -33,3 +47,25 @@ jobs:
             c=$(grep -o "<Counters [^>]*>" "$f")
             echo "::notice title=Test results::$c"
           done
+
+      - name: Coverage report
+        if: always()
+        run: |
+          shopt -s nullglob globstar
+          reports=(TestResults/**/coverage.cobertura.xml)
+          if [ ${#reports[@]} -eq 0 ]; then echo "No coverage data"; exit 0; fi
+          dotnet tool install --global dotnet-reportgenerator-globaltool --version 5.5.11
+          reportgenerator -reports:"TestResults/**/coverage.cobertura.xml" -targetdir:coverage \
+            -reporttypes:"Html;MarkdownSummaryGithub;TextSummary" -assemblyfilters:"-*.Tests"
+          cat coverage/SummaryGithub.md >> "$GITHUB_STEP_SUMMARY"
+          line=$(grep -m1 "Line coverage" coverage/Summary.txt | sed 's/^ *//')
+          branch=$(grep -m1 "Branch coverage" coverage/Summary.txt | sed 's/^ *//')
+          echo "::notice title=Coverage::$line, $branch"
+
+      - name: Upload coverage report
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: coverage-report
+          path: coverage
+          if-no-files-found: ignore
