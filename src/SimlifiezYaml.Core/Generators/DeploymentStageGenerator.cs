@@ -57,7 +57,7 @@ public sealed class DeploymentStageGenerator
     public string Generate(PipelineDefinition definition)
     {
         var sb = new StringBuilder();
-        var previousStage = "Artifact";
+        var previousStage = "Build";
         foreach (var env in definition.Environments)
         {
             var envId = YamlBuilder.ToIdentifier(env);

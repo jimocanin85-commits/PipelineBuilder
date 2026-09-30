@@ -26,4 +26,13 @@ public static class PoolConfigurationHelper
         // Default to Microsoft-hosted Windows image
         return "vmImage: 'windows-latest'";
     }
+
+    /// <summary>
+    /// Pool for the Build stage. Microsoft-hosted builds use Linux, which starts and builds faster;
+    /// self-hosted builds use the chosen pool.
+    /// </summary>
+    public static string GenerateBuildPoolConfiguration(BuildAgentType buildAgent, string? poolName) =>
+        buildAgent == BuildAgentType.SelfHosted
+            ? GeneratePoolConfiguration(buildAgent, poolName)
+            : "vmImage: 'ubuntu-latest'";
 }

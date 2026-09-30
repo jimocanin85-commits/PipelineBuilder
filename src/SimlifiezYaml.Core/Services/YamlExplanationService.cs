@@ -14,7 +14,6 @@ public sealed class YamlExplanationService : IYamlExplanationService
         ["AzureAppServiceManage@0"] = "AzureAppServiceManage@0 manages Azure App Service including start, stop, and slot swap operations.",
         ["TerraformTaskV4@4"] = "TerraformTaskV4@4 executes Terraform init, plan, or apply using the configured Azure backend and service connection.",
         ["Docker@2"] = "Docker@2 builds and optionally pushes container images to a container registry.",
-        ["NuGetCommand@2"] = "NuGetCommand@2 restores, packs, or pushes NuGet packages.",
         ["ArchiveFiles@2"] = "ArchiveFiles@2 compresses build output into a zip package for deployment.",
         ["PublishBuildArtifacts@1"] = "PublishBuildArtifacts@1 publishes build output to Azure DevOps build artifacts (classic).",
         ["DownloadBuildArtifacts@1"] = "DownloadBuildArtifacts@1 downloads build artifacts from the current or specified build.",
