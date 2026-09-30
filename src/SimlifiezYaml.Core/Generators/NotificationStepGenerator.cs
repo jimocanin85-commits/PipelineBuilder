@@ -3,15 +3,11 @@ using SimlifiezYaml.Core.Models;
 
 namespace SimlifiezYaml.Core.Generators;
 
-public sealed class NotificationStepGenerator : IStepGenerator
+public sealed class NotificationStepGenerator
 {
     private readonly INotificationYamlService _notificationService;
 
     public NotificationStepGenerator(INotificationYamlService notificationService) => _notificationService = notificationService;
-
-    /// <summary>Returns every notification step (success and failure).</summary>
-    public IReadOnlyList<string> GenerateSteps(PipelineDefinition definition, string? environment = null) =>
-        GenerateSteps(definition, succeeded: true).Concat(GenerateSteps(definition, succeeded: false)).ToList();
 
     /// <summary>Returns the steps to run when the pipeline succeeded or failed.</summary>
     public IReadOnlyList<string> GenerateSteps(PipelineDefinition definition, bool succeeded) =>

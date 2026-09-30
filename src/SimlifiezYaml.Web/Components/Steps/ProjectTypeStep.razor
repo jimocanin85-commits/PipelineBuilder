@@ -19,7 +19,7 @@
     <p class="hint">Leave as <code>**/*.csproj</code> to publish all web projects, or point to one project, e.g. <code>src/MyApp/MyApp.csproj</code>.</p>
 
     <label for="test-path">Test projects</label>
-    <InputText id="test-path" @bind-Value="Wizard.Definition.SolutionPath" class="form-control" placeholder="**/*Tests*.csproj" />
+    <InputText id="test-path" @bind-Value="Wizard.Definition.TestProjectPath" class="form-control" placeholder="**/*Tests*.csproj" />
 }
 else
 {

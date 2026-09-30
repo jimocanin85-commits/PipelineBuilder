@@ -6,10 +6,8 @@ using SimlifiezYaml.Core.Yaml;
 
 namespace SimlifiezYaml.Core.Generators;
 
-public sealed class TestStageGenerator : IStageGenerator
+public sealed class TestStageGenerator
 {
-    public string StageName => "Test";
-
     public string Generate(PipelineDefinition definition)
     {
         var pool = PoolConfigurationHelper.GeneratePoolConfiguration(definition.BuildAgent, definition.PoolName);
@@ -20,7 +18,7 @@ public sealed class TestStageGenerator : IStageGenerator
             steps.AppendLine(YamlBuilder.Task("DotNetCoreCLI@2", new Dictionary<string, string>
             {
                 ["command"] = "test",
-                ["projects"] = definition.SolutionPath ?? "**/*Tests*.csproj",
+                ["projects"] = definition.TestProjectPath ?? "**/*Tests*.csproj",
                 ["arguments"] = "--configuration $(BuildConfiguration) --collect:\"XPlat Code Coverage\""
             }, "Run unit tests"));
         }

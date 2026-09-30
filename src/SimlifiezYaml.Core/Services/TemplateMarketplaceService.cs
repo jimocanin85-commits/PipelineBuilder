@@ -26,9 +26,6 @@ public sealed class TemplateMarketplaceService : ITemplateMarketplaceService
 
     public IReadOnlyList<PipelineTemplate> GetAllTemplates() => Templates;
 
-    public IReadOnlyList<PipelineTemplate> GetByCategory(TemplateCategory category) =>
-        Templates.Where(t => t.Category == category).ToList();
-
     public PipelineTemplate? GetById(string id) =>
         Templates.FirstOrDefault(t => t.Id.Equals(id, StringComparison.OrdinalIgnoreCase));
 

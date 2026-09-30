@@ -2,22 +2,6 @@ using SimlifiezYaml.Core.Enums;
 
 namespace SimlifiezYaml.Core.Models;
 
-public sealed class PipelineEnvironment
-{
-    public string Name { get; set; } = string.Empty;
-    public bool RequiresApproval { get; set; }
-    public IReadOnlyList<VariableGroupConfig> VariableGroups { get; set; } = Array.Empty<VariableGroupConfig>();
-}
-
-public sealed class StageDependency
-{
-    public string StageName { get; set; } = string.Empty;
-    public IReadOnlyList<string> DependsOn { get; set; } = Array.Empty<string>();
-    public string? Condition { get; set; }
-    public bool IsParallel { get; set; }
-    public bool ManualPromotion { get; set; }
-}
-
 public sealed class PipelineTemplate
 {
     public string Id { get; set; } = string.Empty;
@@ -66,9 +50,9 @@ public sealed class PipelineDefinition
     public DeploymentStrategyConfig DeploymentStrategy { get; set; } = new();
     public GovernancePolicyConfig Governance { get; set; } = new();
     public AgentDiagnosticConfig? AgentDiagnostics { get; set; }
-    public IReadOnlyList<StageDependency> StageDependencies { get; set; } = Array.Empty<StageDependency>();
     public string? DotNetProjectPath { get; set; }
-    public string? SolutionPath { get; set; }
+    /// <summary>Test projects to run in the Test stage (glob).</summary>
+    public string? TestProjectPath { get; set; }
 }
 
 public sealed class GeneratedPipeline

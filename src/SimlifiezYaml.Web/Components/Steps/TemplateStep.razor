@@ -12,10 +12,6 @@
 @if (Wizard.ScanResult is { } scan)
 {
     <div class="card scan-result">
-        @if (scan.ScanError != null)
-        {
-            <p class="severity-error">@scan.ScanError</p>
-        }
         <p>Detected: <strong>@scan.ProjectType</strong>
             @if (scan.HasTests) { <span class="tag">tests</span> }
             @if (scan.HasDockerfile) { <span class="tag">Dockerfile</span> }

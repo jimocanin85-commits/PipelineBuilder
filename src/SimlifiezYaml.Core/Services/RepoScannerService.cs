@@ -13,8 +13,8 @@ public sealed class RepoScannerService : IRepoScannerService
         ("*.csproj", b => b.HasDotNet = true),
         ("*Tests*.csproj", b => { b.HasTests = true; b.Suggest("dotnet-with-tests"); }),
         ("Dockerfile", b => { b.HasDockerfile = true; b.Suggest("docker-build-push"); }),
-        ("docker-compose.yml", b => { b.HasDocker = true; b.Suggest("docker-compose-deploy"); }),
-        ("docker-compose.yaml", b => { b.HasDocker = true; b.Suggest("docker-compose-deploy"); }),
+        ("docker-compose.yml", b => b.Suggest("docker-compose-deploy")),
+        ("docker-compose.yaml", b => b.Suggest("docker-compose-deploy")),
         ("package.json", b => { b.ProjectType = ProjectType.Node; b.Suggest("node-build"); }),
         ("*.tf", b => { b.HasTerraform = true; b.Suggest("terraform-azure"); }),
         ("*.bicep", b => { b.HasBicep = true; b.Suggest("bicep-deploy"); }),
@@ -22,44 +22,6 @@ public sealed class RepoScannerService : IRepoScannerService
         ("azure-pipelines.yml", b => b.Suggest("existing-pipeline-migrate")),
         ("azure-pipelines.yaml", b => b.Suggest("existing-pipeline-migrate"))
     };
-
-    public RepoScanResult ScanDirectory(string rootPath)
-    {
-        if (!Directory.Exists(rootPath))
-            return new RepoScanResult { ProjectType = ProjectType.Unknown };
-
-        try
-        {
-            var files = Directory.EnumerateFiles(rootPath, "*.*", SearchOption.AllDirectories)
-                .Select(f => Path.GetRelativePath(rootPath, f).Replace('\\', '/'))
-                .ToList();
-            return ScanFileList(files);
-        }
-        catch (UnauthorizedAccessException ex)
-        {
-            return new RepoScanResult
-            {
-                ProjectType = ProjectType.Unknown,
-                ScanError = $"Access denied scanning {rootPath}: {ex.Message}"
-            };
-        }
-        catch (System.IO.IOException ex)
-        {
-            return new RepoScanResult
-            {
-                ProjectType = ProjectType.Unknown,
-                ScanError = $"I/O error scanning {rootPath}: {ex.Message}"
-            };
-        }
-        catch (Exception ex)
-        {
-            return new RepoScanResult
-            {
-                ProjectType = ProjectType.Unknown,
-                ScanError = $"Error scanning repository: {ex.GetType().Name}: {ex.Message}"
-            };
-        }
-    }
 
     public RepoScanResult ScanFileList(IReadOnlyList<string> relativePaths)
     {
@@ -101,7 +63,6 @@ public sealed class RepoScannerService : IRepoScannerService
         public bool HasDotNet { get; set; }
         public bool HasTests { get; set; }
         public bool HasDockerfile { get; set; }
-        public bool HasDocker { get; set; }
         public bool HasTerraform { get; set; }
         public bool HasBicep { get; set; }
         public List<string> Suggested { get; } = new();

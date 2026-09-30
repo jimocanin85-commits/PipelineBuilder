@@ -38,8 +38,6 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<TestStageGenerator>();
         services.AddSingleton<ArtifactStageGenerator>();
         services.AddSingleton<DeploymentStageGenerator>();
-        services.AddSingleton<RollbackStepGenerator>();
-        services.AddSingleton<HealthCheckStepGenerator>();
         services.AddSingleton<NotificationStepGenerator>();
         services.AddSingleton<GovernanceValidator>();
 

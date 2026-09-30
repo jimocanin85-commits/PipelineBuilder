@@ -148,9 +148,6 @@ public sealed class RepoScanResult
     public bool HasBicep { get; set; }
     public IReadOnlyList<string> SuggestedTemplates { get; set; } = Array.Empty<string>();
     public IReadOnlyList<string> DetectedFiles { get; set; } = Array.Empty<string>();
-
-    /// <summary>Set when the scan could not complete (for example access denied).</summary>
-    public string? ScanError { get; set; }
 }
 
 public sealed class AgentDiagnosticConfig
