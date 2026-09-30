@@ -57,6 +57,18 @@ public sealed class DeploymentConfig
     /// <summary>Script run by the Custom deploy step. Defaults to a placeholder.</summary>
     public string? CustomScript { get; set; }
 
+    /// <summary>Kubernetes service connection (Kubernetes).</summary>
+    public string? KubernetesServiceConnection { get; set; }
+
+    /// <summary>Kubernetes namespace (Kubernetes).</summary>
+    public string? KubernetesNamespace { get; set; }
+
+    /// <summary>Manifest files in the repository, e.g. <c>manifests/*.yaml</c> (Kubernetes).</summary>
+    public string? ManifestsPath { get; set; }
+
+    /// <summary>Name of the Kubernetes deployment, used to roll back (Kubernetes).</summary>
+    public string? KubernetesDeploymentName { get; set; }
+
     [JsonIgnore]
     public string TargetPathOrDefault => string.IsNullOrWhiteSpace(TargetPath) ? "$(DEPLOY_PATH)" : TargetPath;
     [JsonIgnore]
@@ -65,6 +77,14 @@ public sealed class DeploymentConfig
     public string WebsiteNameOrDefault => string.IsNullOrWhiteSpace(WebsiteName) ? "Default Web Site" : WebsiteName;
     [JsonIgnore]
     public string WebAppNameOrDefault => string.IsNullOrWhiteSpace(WebAppName) ? "$(WEBAPP_NAME)" : WebAppName;
+    [JsonIgnore]
+    public string KubernetesServiceConnectionOrDefault => string.IsNullOrWhiteSpace(KubernetesServiceConnection) ? "$(K8S_SERVICE_CONNECTION)" : KubernetesServiceConnection;
+    [JsonIgnore]
+    public string KubernetesNamespaceOrDefault => string.IsNullOrWhiteSpace(KubernetesNamespace) ? "$(K8S_NAMESPACE)" : KubernetesNamespace;
+    [JsonIgnore]
+    public string ManifestsPathOrDefault => string.IsNullOrWhiteSpace(ManifestsPath) ? "manifests/*.yaml" : ManifestsPath;
+    [JsonIgnore]
+    public string KubernetesDeploymentNameOrDefault => string.IsNullOrWhiteSpace(KubernetesDeploymentName) ? "$(K8S_DEPLOYMENT)" : KubernetesDeploymentName;
     [JsonIgnore]
     public string ContainerNameOrDefault => string.IsNullOrWhiteSpace(ContainerName) ? "$(CONTAINER_NAME)" : ContainerName;
 

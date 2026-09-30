@@ -31,6 +31,7 @@ Only what your chosen settings need:
 | **Azure Resource Manager service connection** | Key Vault, infrastructure as code, App Service deployments and slot swaps. Enter its name on the wizard's Identity step. |
 | **Docker registry service connection** | Docker image artifacts. |
 | An agent pool | Microsoft-hosted (`windows-latest`) by default, or your own self-hosted pool. |
+| **Kubernetes service connection** and an environment for each stage | Kubernetes deployments. Keep your manifests in the repository (default `manifests/*.yaml`). |
 | **Terraform extension** (Microsoft DevLabs) from the Visual Studio Marketplace | Terraform infrastructure as code (`TerraformTaskV4@4`), plus a storage account for Terraform state. |
 | An Azure Key Vault | If you enable Key Vault. |
 | A variable group with the variables your settings use | See below. Mark secrets (webhook URLs) as secret. |
@@ -47,7 +48,8 @@ Settings you leave empty in the wizard become pipeline variables. Define the one
 | `AZURE_SUBSCRIPTION_ID`, `AZURE_LOCATION` | ARM template deployments |
 | `NUGET_FEED` | NuGet package artifacts |
 | `TEAMS_WEBHOOK_URL`, `CUSTOM_WEBHOOK_URL` | Notifications (names can be changed in the wizard) |
-| `K8S_NAMESPACE` | The AKS template's placeholder deploy script |
+| `K8S_SERVICE_CONNECTION`, `K8S_NAMESPACE`, `K8S_DEPLOYMENT` | Kubernetes deployments and rollback (if not entered in the wizard) |
+| `SMTP_HOST`, `SMTP_PORT`, `SMTP_USERNAME`, `SMTP_PASSWORD`, `EMAIL_FROM` | Email notifications (`SMTP_PASSWORD` as a secret; port defaults to 587) |
 
 The wizard's **Validation** step lists what your particular pipeline still needs.
 
@@ -84,12 +86,13 @@ in `appsettings.json`, or set the environment variable `SimlifiezYaml__Templates
 ## Features
 
 - **Variable groups** at pipeline or environment scope, and **Azure Key Vault** secrets loaded in each deploy job
+- **Projects**: .NET (restore, build, test, publish) and Node.js (npm ci, build, test)
 - **Artifacts**: pipeline or build artifact, zip, Docker image, NuGet package
-- **Deployments**: IIS, Windows service, file share, Azure App Service, Docker container, or a custom script
+- **Deployments**: IIS, Windows service, file share, Azure App Service, Docker container, Kubernetes (manifests with rollout undo), or a custom script
 - **Strategies**: standard, rolling (native, on registered servers), slot swap, plus blue-green and canary placeholders
 - **Backups and automatic rollback** on failure, per environment
 - **Health checks**: HTTP (per-environment URL), IIS app pool, Windows service, port, custom PowerShell
-- **Notifications**: Teams, custom webhook, email placeholder, on success and/or failure
+- **Notifications**: Teams, custom webhook, email over SMTP, on success and/or failure
 - **Infrastructure as code**: Terraform, Bicep, ARM, PowerShell, per environment
 - **Governance validation**: approvals reminder, secrets scanning, health check and rollback requirements, naming, forbidden and required tasks
 - **Repository scan and templates**, **task explanations**, and an **agent diagnostics** script

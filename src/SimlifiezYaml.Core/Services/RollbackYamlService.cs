@@ -19,6 +19,7 @@ public sealed class RollbackYamlService : IRollbackYamlService
         DeploymentKind.FileShare => RollbackTarget.FileShare,
         DeploymentKind.AzureAppService => RollbackTarget.AzureAppServiceSlot,
         DeploymentKind.DockerContainer => RollbackTarget.DockerContainer,
+        DeploymentKind.Kubernetes => RollbackTarget.Kubernetes,
         _ => config.Target
     };
 
@@ -145,6 +146,17 @@ $target = {{YamlBuilder.PsLiteral(deployment.TargetPathOrDefault)}}
 Sync-Folder -Source $backup -Destination $target -Mirror
 Write-Host "Restored $target from $backup"
 """, "Roll back file share")
+            },
+            RollbackTarget.Kubernetes => new[]
+            {
+                YamlBuilder.Task("Kubernetes@1", new Dictionary<string, string>
+                {
+                    ["connectionType"] = "Kubernetes Service Connection",
+                    ["kubernetesServiceEndpoint"] = deployment.KubernetesServiceConnectionOrDefault,
+                    ["namespace"] = deployment.KubernetesNamespaceOrDefault,
+                    ["command"] = "rollout",
+                    ["arguments"] = $"undo deployment/{deployment.KubernetesDeploymentNameOrDefault}"
+                }, "Roll back Kubernetes deployment")
             },
             RollbackTarget.DockerContainer => new[]
             {

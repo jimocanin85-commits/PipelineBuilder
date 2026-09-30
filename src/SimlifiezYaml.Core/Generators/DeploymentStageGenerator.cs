@@ -51,8 +51,9 @@ public sealed class DeploymentStageGenerator
     /// (VM resources) rather than on a pipeline agent pool.
     /// </summary>
     public static bool UsesServerResources(PipelineDefinition definition) =>
-        definition.DeploymentTarget == DeploymentTarget.OnPrem
-        || (definition.DeploymentTarget == DeploymentTarget.Hybrid && definition.Deployment.IsServerDeployment);
+        definition.Deployment.Kind != DeploymentKind.Kubernetes // deploys to the cluster, from a pipeline agent
+        && (definition.DeploymentTarget == DeploymentTarget.OnPrem
+            || (definition.DeploymentTarget == DeploymentTarget.Hybrid && definition.Deployment.IsServerDeployment));
 
     public string Generate(PipelineDefinition definition)
     {
@@ -130,6 +131,8 @@ public sealed class DeploymentStageGenerator
         var packagePath = _artifactService.GetDeployPackagePath(definition.Artifact);
 
         var deploySteps = new List<string> { "    - download: none" }; // we download explicitly below
+        if (definition.Deployment.Kind == DeploymentKind.Kubernetes)
+            deploySteps.Add("    - checkout: self"); // the manifests live in the repository
         deploySteps.AddRange(_artifactService.GenerateDownloadSteps(definition.Artifact, env));
         if (definition.KeyVault != null && !string.IsNullOrWhiteSpace(definition.KeyVault.KeyVaultName))
             deploySteps.Add(_keyVaultService.GeneratePreJobSteps(definition.KeyVault));

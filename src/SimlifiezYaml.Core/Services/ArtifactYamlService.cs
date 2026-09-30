@@ -16,6 +16,19 @@ public sealed class ArtifactYamlService : IArtifactYamlService
         if (config.ArtifactType is ArtifactType.DockerImage or ArtifactType.NuGetPackage)
             return Array.Empty<string>(); // these package straight from source
 
+        if (definition.ProjectType == ProjectType.Node)
+        {
+            return new[]
+            {
+                YamlBuilder.Task("CopyFiles@2", new Dictionary<string, string>
+                {
+                    ["SourceFolder"] = definition.NodeOutputFolder,
+                    ["Contents"] = "**",
+                    ["TargetFolder"] = PublishOutput
+                }, $"Copy build output ({definition.NodeOutputFolder})")
+            };
+        }
+
         if (definition.ProjectType != ProjectType.DotNet)
         {
             return new[]

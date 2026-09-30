@@ -181,6 +181,23 @@ public sealed class GovernanceValidationService : IGovernanceValidationService
                 "Replace the placeholder step with your traffic-switch commands.");
         }
 
+        if (deployment.Kind == DeploymentKind.Kubernetes && definition.Artifact.ArtifactType != ArtifactType.DockerImage)
+        {
+            yield return Result(ValidationSeverity.Warning,
+                "Kubernetes deployments need a container image, but the artifact is not a Docker image.",
+                nameof(PipelineDefinition.Artifact),
+                "Set the artifact type to DockerImage.");
+        }
+
+        foreach (var email in definition.Notifications.Where(n => n.NotificationType == NotificationType.Email
+                                                                  && !n.EmailRecipients.Any(r => !string.IsNullOrWhiteSpace(r))))
+        {
+            yield return Result(ValidationSeverity.Warning,
+                "An email notification has no recipients, so it will be skipped.",
+                nameof(PipelineDefinition.Notifications),
+                "Add at least one recipient on the Notifications step.");
+        }
+
         if (strategy == DeploymentStrategyType.SlotSwap && deployment.Kind != DeploymentKind.AzureAppService)
         {
             yield return Result(ValidationSeverity.Error,

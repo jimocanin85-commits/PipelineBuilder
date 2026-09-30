@@ -31,6 +31,14 @@
     <label for="test-path">Test projects</label>
     <InputText id="test-path" @bind-Value="Wizard.Definition.TestProjectPath" class="form-control" placeholder="**/*Tests*.csproj" />
 }
+else if (Wizard.Definition.ProjectType == ProjectType.Node)
+{
+    <label for="node-version">Node.js version</label>
+    <InputText id="node-version" @bind-Value="Wizard.Definition.NodeVersion" class="form-control" placeholder="24.x" />
+    <label for="node-output">Build output folder</label>
+    <InputText id="node-output" @bind-Value="Wizard.Definition.NodeOutputFolder" class="form-control" placeholder="dist" />
+    <p class="hint">The pipeline runs <code>npm ci</code>, <code>npm run build</code> and <code>npm run test</code> (each only if the script exists) and deploys the output folder.</p>
+}
 else
 {
     <div class="info-box">Build and test steps for @Wizard.Definition.ProjectType projects are generated as placeholders for you to fill in.</div>

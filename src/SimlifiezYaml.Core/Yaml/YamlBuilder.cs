@@ -38,7 +38,8 @@ public static class YamlBuilder
         return sb.ToString().TrimEnd();
     }
 
-    public static string Task(string taskName, IDictionary<string, string> inputs, string? displayName = null, int indent = 4)
+    public static string Task(string taskName, IDictionary<string, string> inputs, string? displayName = null, int indent = 4,
+        IReadOnlyDictionary<string, string>? env = null)
     {
         var pad = new string(' ', indent);
         var sb = new StringBuilder();
@@ -48,13 +49,27 @@ public static class YamlBuilder
         sb.Append(pad).Append("  inputs:\n");
         foreach (var (key, value) in inputs)
             sb.Append(pad).Append("    ").Append(key).Append(": ").Append(YamlString(value)).Append('\n');
+        AppendEnv(sb, pad, env);
         return sb.ToString().TrimEnd();
+    }
+
+    /// <summary>
+    /// Step-level environment variables. Secret pipeline variables are not visible to scripts
+    /// unless they are mapped like this, e.g. <c>SMTP_PASSWORD: $(SMTP_PASSWORD)</c>.
+    /// </summary>
+    private static void AppendEnv(StringBuilder sb, string pad, IReadOnlyDictionary<string, string>? env)
+    {
+        if (env is not { Count: > 0 }) return;
+        sb.Append(pad).Append("  env:\n");
+        foreach (var (key, value) in env)
+            sb.Append(pad).Append("    ").Append(key).Append(": ").Append(YamlString(value)).Append('\n');
     }
 
     /// <summary>
     /// Emits a <c>powershell:</c> step. The script is written verbatim as a literal block scalar.
     /// </summary>
-    public static string PowerShellStep(string script, string displayName, int indent = 4, string? condition = null)
+    public static string PowerShellStep(string script, string displayName, int indent = 4, string? condition = null,
+        IReadOnlyDictionary<string, string>? env = null)
     {
         var pad = new string(' ', indent);
         var body = new string(' ', indent + 4);
@@ -70,6 +85,7 @@ public static class YamlBuilder
         sb.Append(pad).Append("  displayName: ").Append(YamlString(displayName)).Append('\n');
         if (!string.IsNullOrWhiteSpace(condition))
             sb.Append(pad).Append("  condition: ").Append(condition).Append('\n');
+        AppendEnv(sb, pad, env);
         return sb.ToString().TrimEnd();
     }
 
