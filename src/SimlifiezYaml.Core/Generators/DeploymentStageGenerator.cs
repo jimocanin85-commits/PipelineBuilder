@@ -15,7 +15,7 @@ namespace SimlifiezYaml.Core.Generators;
 /// <item>an <c>on: failure</c> hook on that job which rolls back on the same server.</item>
 /// </list>
 /// </summary>
-public sealed class DeploymentStageGenerator : IStageGenerator
+public sealed class DeploymentStageGenerator
 {
     /// <summary>Environments whose deployment is restricted to the main branch.</summary>
     private static readonly HashSet<string> ProductionNames = new(StringComparer.OrdinalIgnoreCase) { "prod", "production" };
@@ -48,8 +48,6 @@ public sealed class DeploymentStageGenerator : IStageGenerator
         _keyVaultService = keyVaultService;
         _iacService = iacService;
     }
-
-    public string StageName => "Deploy";
 
     /// <summary>
     /// True when deployments run on servers registered in the Azure DevOps environment

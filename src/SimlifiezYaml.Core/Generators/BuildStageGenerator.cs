@@ -6,10 +6,8 @@ using SimlifiezYaml.Core.Yaml;
 
 namespace SimlifiezYaml.Core.Generators;
 
-public sealed class BuildStageGenerator : IStageGenerator
+public sealed class BuildStageGenerator
 {
-    public string StageName => "Build";
-
     public string Generate(PipelineDefinition definition)
     {
         var pool = PoolConfigurationHelper.GeneratePoolConfiguration(definition.BuildAgent, definition.PoolName);

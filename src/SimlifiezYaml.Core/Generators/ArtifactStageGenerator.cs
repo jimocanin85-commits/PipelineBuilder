@@ -8,13 +8,11 @@ namespace SimlifiezYaml.Core.Generators;
 /// Builds the deployable output (e.g. <c>dotnet publish</c>) and publishes it as an artifact.
 /// This runs in its own job, so it produces its own output rather than relying on the Build job's agent.
 /// </summary>
-public sealed class ArtifactStageGenerator : IStageGenerator
+public sealed class ArtifactStageGenerator
 {
     private readonly IArtifactYamlService _artifactService;
 
     public ArtifactStageGenerator(IArtifactYamlService artifactService) => _artifactService = artifactService;
-
-    public string StageName => "Artifact";
 
     public string Generate(PipelineDefinition definition)
     {

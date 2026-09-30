@@ -162,7 +162,7 @@ public sealed class WizardState
         DeploymentTarget = DeploymentTarget.OnPrem,
         Environments = new[] { "test", "preprod", "prod" },
         DotNetProjectPath = "**/*.csproj",
-        SolutionPath = "**/*Tests*.csproj",
+        TestProjectPath = "**/*Tests*.csproj",
         VariableGroups = new[]
         {
             new VariableGroupConfig { Name = "vg-test", Scope = VariableGroupScope.Pipeline },

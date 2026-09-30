@@ -1,60 +1,57 @@
+using SimlifiezYaml.Core.Yaml;
+
 namespace SimlifiezYaml.Core.Models;
 
 public sealed class DependencyGraphNode
 {
     public string Id { get; set; } = string.Empty;
     public string DisplayName { get; set; } = string.Empty;
-    public string NodeType { get; set; } = "stage";
     public IReadOnlyList<string> DependsOn { get; set; } = Array.Empty<string>();
     public string? Condition { get; set; }
-    public bool IsParallel { get; set; }
+
+    /// <summary>True for environments that should be gated by an approval in Azure DevOps.</summary>
     public bool ManualPromotion { get; set; }
 }
 
+/// <summary>
+/// Summary of the stages the generator produces, for display in the wizard.
+/// Mirrors <c>PipelineGeneratorService</c>: Build → Test → Artifact → Deploy_{env}… → Notify.
+/// </summary>
 public sealed class PipelineDependencyGraph
 {
+    private static readonly HashSet<string> ProductionNames = new(StringComparer.OrdinalIgnoreCase) { "prod", "production" };
+
     public IReadOnlyList<DependencyGraphNode> Nodes { get; set; } = Array.Empty<DependencyGraphNode>();
 
     public static PipelineDependencyGraph FromDefinition(PipelineDefinition definition)
     {
         var nodes = new List<DependencyGraphNode>
         {
-            new() { Id = "Build", DisplayName = "Build", NodeType = "stage" },
+            new() { Id = "Build", DisplayName = "Build" },
             new() { Id = "Test", DisplayName = "Test", DependsOn = new[] { "Build" }, Condition = "succeeded()" },
             new() { Id = "Artifact", DisplayName = "Artifact", DependsOn = new[] { "Test" }, Condition = "succeeded()" }
         };
 
-        string? previous = "Artifact";
+        var previous = "Artifact";
         foreach (var env in definition.Environments)
         {
-            var id = $"Deploy_{Yaml.YamlBuilder.ToIdentifier(env)}";
+            var id = $"Deploy_{YamlBuilder.ToIdentifier(env)}";
+            var isProduction = ProductionNames.Contains(env);
             nodes.Add(new DependencyGraphNode
             {
                 Id = id,
                 DisplayName = $"Deploy {env}",
-                DependsOn = previous != null ? new[] { previous } : Array.Empty<string>(),
-                Condition = env is "prod" ? "succeeded() + main branch" : "succeeded()",
-                ManualPromotion = env is "preprod" or "prod"
+                DependsOn = new[] { previous },
+                Condition = isProduction ? "succeeded() + main branch" : "succeeded()",
+                ManualPromotion = isProduction || env.Contains("prod", StringComparison.OrdinalIgnoreCase)
             });
             previous = id;
         }
 
-        foreach (var custom in definition.StageDependencies)
-        {
-            var existing = nodes.FirstOrDefault(n => n.Id == custom.StageName);
-            if (existing is DependencyGraphNode node)
-            {
-                nodes[nodes.IndexOf(node)] = new DependencyGraphNode
-                {
-                    Id = node.Id,
-                    DisplayName = node.DisplayName,
-                    DependsOn = custom.DependsOn.Count > 0 ? custom.DependsOn : node.DependsOn,
-                    Condition = custom.Condition ?? node.Condition,
-                    IsParallel = custom.IsParallel,
-                    ManualPromotion = custom.ManualPromotion
-                };
-            }
-        }
+        if (definition.Notifications.Any(n => n.NotifyOnSuccess))
+            nodes.Add(new DependencyGraphNode { Id = "Notify_Success", DisplayName = "Notify on success", DependsOn = new[] { previous }, Condition = "succeeded()" });
+        if (definition.Notifications.Any(n => n.NotifyOnFailure))
+            nodes.Add(new DependencyGraphNode { Id = "Notify_Failure", DisplayName = "Notify on failure", DependsOn = new[] { "any stage" }, Condition = "failed()" });
 
         return new PipelineDependencyGraph { Nodes = nodes };
     }

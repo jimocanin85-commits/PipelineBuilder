@@ -39,10 +39,13 @@ public class PipelineGeneratorTests
         {
             Name = "test",
             Environments = new[] { "test" },
-            VariableGroups = Array.Empty<VariableGroupConfig>()
+            Deployment = new DeploymentConfig { CustomScript = "$password = 'SuperSecret123!'" }
         };
+
         var result = _generator.Generate(definition);
-        Assert.NotNull(result.ValidationResults);
+
+        Assert.Contains(result.ValidationResults, v =>
+            v.Severity == ValidationSeverity.Error && v.Message.Contains("plaintext password"));
     }
 
     private static PipelineDefinition WizardState_CreateDefinition() => new()

@@ -73,14 +73,12 @@ public interface IGovernanceValidationService
 
 public interface IRepoScannerService
 {
-    RepoScanResult ScanDirectory(string rootPath);
     RepoScanResult ScanFileList(IReadOnlyList<string> relativePaths);
 }
 
 public interface IYamlExplanationService
 {
     IReadOnlyList<YamlBlockExplanation> ExplainYaml(string yaml);
-    string ExplainTask(string taskName);
 }
 
 public interface IAgentDiagnosticsService
@@ -96,14 +94,12 @@ public interface ISecretsGovernanceService
 
 public interface IEnvironmentYamlService
 {
-    string GenerateEnvironmentReference(string environmentName);
     string GetApprovalUiNote();
 }
 
 public interface ITemplateMarketplaceService
 {
     IReadOnlyList<PipelineTemplate> GetAllTemplates();
-    IReadOnlyList<PipelineTemplate> GetByCategory(TemplateCategory category);
     PipelineTemplate? GetById(string id);
 
     /// <summary>

@@ -47,7 +47,7 @@ public sealed class YamlExplanationService : IYamlExplanationService
         return explanations;
     }
 
-    public string ExplainTask(string taskName) =>
+    private static string ExplainTask(string taskName) =>
         TaskExplanations.TryGetValue(taskName, out var explanation)
             ? explanation
             : $"Task {taskName} executes an Azure DevOps pipeline step. Review task documentation for input details.";

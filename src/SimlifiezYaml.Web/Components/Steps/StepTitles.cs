@@ -1,4 +1,4 @@
-using SimlifiezYaml.Core.Enums;
+using SimlifiezYaml.Web.State;
 
 namespace SimlifiezYaml.Web.Components.Steps;
 
