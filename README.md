@@ -28,6 +28,10 @@ src/SimlifiezYaml.Web/       Blazor Server 15-step wizard UI
 tests/SimlifiezYaml.Core.Tests/
 ```
 
+## Requirements
+
+- .NET 10 SDK (10.0.401 or later; pinned in `global.json`)
+
 ## Run
 
 ```bash

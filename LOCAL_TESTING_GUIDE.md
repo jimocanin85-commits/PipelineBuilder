@@ -7,7 +7,7 @@ Complete guide to build, test, and run the SimlifiezYaml project locally after P
 ## Prerequisites
 
 ### Required Software
-- **.NET 8.0+ SDK** - Download from https://dotnet.microsoft.com/download
+- **.NET 10 SDK** (10.0.401 or later, see `global.json`) - Download from https://dotnet.microsoft.com/download
 - **Git** - For version control
 - **PowerShell 5.1+** or **Windows Terminal** - For running commands
 - **Visual Studio Code** (optional) - For code editing
@@ -19,7 +19,7 @@ Complete guide to build, test, and run the SimlifiezYaml project locally after P
 
 ### Verify Prerequisites
 ```powershell
-# Check .NET SDK version (must be 8.0+)
+# Check .NET SDK version (must be 10.0+)
 dotnet --version
 
 # Check PowerShell version (must be 5.1+)
@@ -381,9 +381,9 @@ dotnet test --filter "Name~Assembler"
 ### Issue: "No .NET SDKs were found"
 **Solution:**
 ```powershell
-# Download and install .NET 8.0 SDK from https://dotnet.microsoft.com/download
+# Download and install the .NET 10 SDK from https://dotnet.microsoft.com/download
 # Restart PowerShell/Terminal after installation
-dotnet --version  # Should show 8.0.x
+dotnet --version  # Should show 10.0.x
 ```
 
 ### Issue: "dotnet: The term 'dotnet' is not recognized"

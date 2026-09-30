@@ -18,7 +18,24 @@ public class WebAppSmokeTests : IClassFixture<WebApplicationFactory<Program>>
 
         Assert.Contains("SimlifiezYaml", html);
         Assert.Contains("Project type", html);
-        Assert.Contains("_framework/blazor.web.js", html);
+    }
+
+    [Theory]
+    [InlineData(@"_framework/blazor\.web(\.[a-z0-9]+)?\.js", "Blazor")]
+    [InlineData(@"js/download(\.[a-z0-9]+)?\.js", "downloadText")]
+    [InlineData(@"app(\.[a-z0-9]+)?\.css", ".wizard-nav")]
+    public async Task AssetsReferencedByThePageAreServed(string pattern, string expected)
+    {
+        // .NET 10 serves static assets with fingerprinted URLs; follow the URL the page actually uses.
+        var client = _factory.CreateClient();
+        var html = await client.GetStringAsync("/");
+        var match = System.Text.RegularExpressions.Regex.Match(html, "(src|href)=\"(?<url>" + pattern + ")\"");
+        Assert.True(match.Success, $"No reference matching {pattern} in the page");
+
+        var response = await client.GetAsync("/" + match.Groups["url"].Value);
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Contains(expected, await response.Content.ReadAsStringAsync());
     }
 
     [Theory]
