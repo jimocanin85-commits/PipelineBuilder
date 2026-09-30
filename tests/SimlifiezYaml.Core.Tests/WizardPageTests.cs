@@ -12,7 +12,7 @@ using Xunit;
 namespace SimlifiezYaml.Core.Tests;
 
 /// <summary>Renders the wizard with bUnit and drives it like a user would.</summary>
-public class WizardPageTests : TestContext
+public class WizardPageTests : BunitContext
 {
     public WizardPageTests()
     {
@@ -28,7 +28,7 @@ public class WizardPageTests : TestContext
     [MemberData(nameof(AllSteps))]
     public void EveryStepRendersWithoutErrors(WizardStep step)
     {
-        var cut = RenderComponent<Home>();
+        var cut = Render<Home>();
 
         GoTo(cut, step);
 
@@ -40,7 +40,7 @@ public class WizardPageTests : TestContext
     [Fact]
     public void DownloadButtonSendsTheYamlToTheBrowser()
     {
-        var cut = RenderComponent<Home>();
+        var cut = Render<Home>();
         GoTo(cut, WizardStep.DownloadExport);
 
         cut.Find("#download-yaml").Click();
@@ -54,7 +54,7 @@ public class WizardPageTests : TestContext
     [Fact]
     public void DiagnosticsScriptCanBeDownloaded()
     {
-        var cut = RenderComponent<Home>();
+        var cut = Render<Home>();
         GoTo(cut, WizardStep.DownloadExport);
 
         cut.Find("#download-diagnostics").Click();
@@ -67,7 +67,7 @@ public class WizardPageTests : TestContext
     [Fact]
     public void CopyButtonUsesTheClipboard()
     {
-        var cut = RenderComponent<Home>();
+        var cut = Render<Home>();
         GoTo(cut, WizardStep.DownloadExport);
 
         cut.Find("#copy-yaml").Click();
@@ -79,7 +79,7 @@ public class WizardPageTests : TestContext
     [Fact]
     public void EditsSurviveJumpingBetweenStepsAndReachTheYaml()
     {
-        var cut = RenderComponent<Home>();
+        var cut = Render<Home>();
         cut.Find("#pipeline-name").Change("orders-api");
 
         GoTo(cut, WizardStep.EnvironmentSelection);
@@ -97,7 +97,7 @@ public class WizardPageTests : TestContext
     [Fact]
     public void KeyVaultCanBeTurnedOnAndOff()
     {
-        var cut = RenderComponent<Home>();
+        var cut = Render<Home>();
         GoTo(cut, WizardStep.VariableGroupsAndKeyVault);
 
         cut.Find("input[type=checkbox]:not(.card input)").Change(true); // first checkbox outside the group cards is Key Vault
@@ -114,7 +114,7 @@ public class WizardPageTests : TestContext
     [Fact]
     public void ApplyingATemplateChangesTheGeneratedPipeline()
     {
-        var cut = RenderComponent<Home>();
+        var cut = Render<Home>();
         GoTo(cut, WizardStep.PipelineTemplate);
 
         cut.Find("button[data-template='dotnet-web-app']").Click();
@@ -129,7 +129,7 @@ public class WizardPageTests : TestContext
     [Fact]
     public void RepositoryScanDetectsTheProject()
     {
-        var cut = RenderComponent<Home>();
+        var cut = Render<Home>();
         GoTo(cut, WizardStep.PipelineTemplate);
 
         cut.Find("textarea").Change("main.tf\nmodules/network/main.tf");
@@ -141,7 +141,7 @@ public class WizardPageTests : TestContext
     [Fact]
     public void InvalidSettingsShowErrorsInsteadOfCrashing()
     {
-        var cut = RenderComponent<Home>();
+        var cut = Render<Home>();
         GoTo(cut, WizardStep.EnvironmentSelection);
         cut.Find("#environments").Change("Bad Name");
 
@@ -153,7 +153,7 @@ public class WizardPageTests : TestContext
     [Fact]
     public void StepShowsItsOwnErrorsAndTheNavigationFlagsIt()
     {
-        var cut = RenderComponent<Home>();
+        var cut = Render<Home>();
         GoTo(cut, WizardStep.EnvironmentSelection);
 
         cut.Find("#environments").Change("Bad Name");
@@ -166,7 +166,7 @@ public class WizardPageTests : TestContext
     [Fact]
     public void GoToStepLinkOpensTheStepWithTheProblem()
     {
-        var cut = RenderComponent<Home>();
+        var cut = Render<Home>();
         GoTo(cut, WizardStep.EnvironmentSelection);
         cut.Find("#environments").Change("Bad Name");
         GoTo(cut, WizardStep.YamlPreview);
@@ -180,7 +180,7 @@ public class WizardPageTests : TestContext
     [Fact]
     public void SettingsCanBeDownloaded()
     {
-        var cut = RenderComponent<Home>();
+        var cut = Render<Home>();
         GoTo(cut, WizardStep.DownloadExport);
 
         cut.Find("#download-settings").Click();
@@ -196,7 +196,7 @@ public class WizardPageTests : TestContext
         var saved = WizardState.CreateDefault();
         saved.Name = "loaded-app";
         saved.Environments = new[] { "qa", "prod" };
-        var cut = RenderComponent<Home>();
+        var cut = Render<Home>();
 
         cut.FindComponent<InputFile>().UploadFiles(InputFileContent.CreateFromText(PipelineDefinitionSerializer.ToJson(saved), "settings.json"));
 
@@ -209,7 +209,7 @@ public class WizardPageTests : TestContext
     [Fact]
     public void OpeningAnInvalidFileShowsAnError()
     {
-        var cut = RenderComponent<Home>();
+        var cut = Render<Home>();
 
         cut.FindComponent<InputFile>().UploadFiles(InputFileContent.CreateFromText("{ nope", "settings.json"));
 
