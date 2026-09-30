@@ -2,6 +2,7 @@ using System.Text;
 using SimlifiezYaml.Core.Abstractions;
 using SimlifiezYaml.Core.Enums;
 using SimlifiezYaml.Core.Models;
+using SimlifiezYaml.Core.Yaml;
 
 namespace SimlifiezYaml.Core.Services;
 
@@ -9,17 +10,17 @@ public sealed class VariableGroupService : IVariableGroupService
 {
     public string GeneratePipelineVariables(PipelineDefinition definition)
     {
+        // Always emitted: the build, test and publish steps use $(BuildConfiguration).
+        // Stage-scoped groups are treated as pipeline scope (stages have no separate setting).
         var pipelineGroups = definition.VariableGroups
-            .Where(g => g.Scope == VariableGroupScope.Pipeline)
+            .Where(g => g.Scope is VariableGroupScope.Pipeline or VariableGroupScope.Stage)
             .ToList();
-        if (pipelineGroups.Count == 0 && definition.KeyVault == null)
-            return string.Empty;
 
         var sb = new StringBuilder("variables:");
         sb.AppendLine();
         foreach (var g in pipelineGroups)
         {
-            sb.AppendLine($"  - group: {g.Name}");
+            sb.AppendLine($"  - group: {YamlBuilder.YamlString(g.Name)}");
         }
         sb.AppendLine("  - name: BuildConfiguration");
         sb.AppendLine("    value: Release");
@@ -31,7 +32,7 @@ public sealed class VariableGroupService : IVariableGroupService
         if (groups.Count == 0) return string.Empty;
         var sb = new StringBuilder();
         foreach (var g in groups)
-            sb.AppendLine($"    - group: {g.Name}");
+            sb.AppendLine($"    - group: {YamlBuilder.YamlString(g.Name)}");
         return sb.ToString().TrimEnd();
     }
 

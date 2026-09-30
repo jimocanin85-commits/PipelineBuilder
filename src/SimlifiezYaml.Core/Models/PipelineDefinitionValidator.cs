@@ -27,6 +27,13 @@ public static class PipelineDefinitionValidator
         if (definition.Name?.Length > 255)
             errors.Add("Pipeline name cannot exceed 255 characters.");
 
+        if (definition.Name?.Any(char.IsControl) == true)
+            errors.Add("Pipeline name cannot contain line breaks or other control characters.");
+
+        if (string.IsNullOrWhiteSpace(definition.ReleaseBranch)
+            || !System.Text.RegularExpressions.Regex.IsMatch(definition.ReleaseBranch, "^[A-Za-z0-9._/-]+$"))
+            errors.Add("Release branch must be a branch name such as 'main' (letters, digits, '.', '_', '/', '-').");
+
         // Environment validation
         if (definition.Environments == null || definition.Environments.Count == 0)
             errors.Add("At least one environment must be specified.");

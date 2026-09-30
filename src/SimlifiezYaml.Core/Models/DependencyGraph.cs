@@ -19,8 +19,6 @@ public sealed class DependencyGraphNode
 /// </summary>
 public sealed class PipelineDependencyGraph
 {
-    private static readonly HashSet<string> ProductionNames = new(StringComparer.OrdinalIgnoreCase) { "prod", "production" };
-
     public IReadOnlyList<DependencyGraphNode> Nodes { get; set; } = Array.Empty<DependencyGraphNode>();
 
     public static PipelineDependencyGraph FromDefinition(PipelineDefinition definition)
@@ -36,13 +34,13 @@ public sealed class PipelineDependencyGraph
         foreach (var env in definition.Environments)
         {
             var id = $"Deploy_{YamlBuilder.ToIdentifier(env)}";
-            var isProduction = ProductionNames.Contains(env);
+            var isProduction = EnvironmentNames.IsProduction(env);
             nodes.Add(new DependencyGraphNode
             {
                 Id = id,
                 DisplayName = $"Deploy {env}",
                 DependsOn = new[] { previous },
-                Condition = isProduction ? "succeeded() + main branch" : "succeeded()",
+                Condition = isProduction ? $"succeeded() + {definition.ReleaseBranch} branch" : "succeeded()",
                 ManualPromotion = isProduction || env.Contains("prod", StringComparison.OrdinalIgnoreCase)
             });
             previous = id;

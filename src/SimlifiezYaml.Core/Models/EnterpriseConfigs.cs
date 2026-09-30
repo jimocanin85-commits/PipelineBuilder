@@ -63,7 +63,7 @@ public sealed class DeploymentConfig
     public string ContainerNameOrDefault => string.IsNullOrWhiteSpace(ContainerName) ? "$(CONTAINER_NAME)" : ContainerName;
 
     /// <summary>True for targets that run on servers registered in an Azure DevOps environment.</summary>
-    public bool IsServerDeployment => Kind is DeploymentKind.Iis or DeploymentKind.WindowsService or DeploymentKind.FileShare;
+    public bool IsServerDeployment => Kind is DeploymentKind.Iis or DeploymentKind.WindowsService or DeploymentKind.FileShare or DeploymentKind.DockerContainer;
 }
 
 public sealed class RollbackConfig
