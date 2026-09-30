@@ -5,9 +5,9 @@
 <div class="card load-settings">
     <label for="settings-file">Open saved settings (@PipelineDefinitionSerializer.FileName)</label>
     <InputFile id="settings-file" accept=".json,application/json" OnChange="LoadSettings" />
-    @if (_loadMessage != null)
+    @if (Wizard.SettingsMessage is { } message)
     {
-        <p class="@(_loadFailed ? "severity-error" : "status")" role="status">@_loadMessage</p>
+        <p class="@(message.IsError ? "severity-error" : "status")" role="status">@message.Text</p>
     }
 </div>
 
@@ -37,9 +37,6 @@ else
 }
 
 @code {
-    private string? _loadMessage;
-    private bool _loadFailed;
-
     private async Task LoadSettings(InputFileChangeEventArgs e)
     {
         try
@@ -47,12 +44,12 @@ else
             await using var stream = e.File.OpenReadStream(PipelineDefinitionSerializer.MaxFileSize);
             using var reader = new StreamReader(stream);
             var definition = PipelineDefinitionSerializer.FromJson(await reader.ReadToEndAsync());
+            Wizard.SettingsMessage = ($"Loaded settings for '{definition.Name}'.", false);
             Wizard.Load(definition);
-            (_loadMessage, _loadFailed) = ($"Loaded settings for '{definition.Name}'.", false);
         }
         catch (Exception ex) when (ex is FormatException or IOException)
         {
-            (_loadMessage, _loadFailed) = ($"Could not open the file: {ex.Message}", true);
+            Wizard.SettingsMessage = ($"Could not open the file: {ex.Message}", true);
         }
     }
 }

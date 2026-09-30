@@ -44,6 +44,12 @@ public sealed class WizardState
     public void NotifyChanged() => Changed?.Invoke();
 
     /// <summary>
+    /// Result of the last "Open saved settings". Kept here rather than in the component, because
+    /// loading replaces the form (and so recreates the step components).
+    /// </summary>
+    public (string Text, bool IsError)? SettingsMessage { get; set; }
+
+    /// <summary>
     /// Replaces all settings, e.g. with a saved settings file. The editable lists and the
     /// Key Vault / IaC / diagnostics sections are rebuilt from <paramref name="definition"/>.
     /// </summary>
