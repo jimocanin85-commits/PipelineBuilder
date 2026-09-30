@@ -10,8 +10,12 @@ namespace SimlifiezYaml.Core.DependencyInjection;
 
 public static class ServiceCollectionExtensions
 {
-    public static IServiceCollection AddSimlifiezYamlCore(this IServiceCollection services)
+    public static IServiceCollection AddSimlifiezYamlCore(this IServiceCollection services, Action<SimlifiezYamlOptions>? configure = null)
     {
+        var options = new SimlifiezYamlOptions();
+        configure?.Invoke(options);
+        services.AddSingleton(options);
+
         // Fall back to a no-op logger when the host has not configured logging (e.g. unit tests).
         // Hosts that call AddLogging() first keep their own ILogger<T> registration.
         services.TryAdd(ServiceDescriptor.Singleton(typeof(ILogger<>), typeof(NullLogger<>)));

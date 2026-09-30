@@ -2,19 +2,6 @@ using SimlifiezYaml.Core.Enums;
 
 namespace SimlifiezYaml.Core.Models;
 
-public sealed class PipelineTemplate
-{
-    public string Id { get; set; } = string.Empty;
-    public string Name { get; set; } = string.Empty;
-    public TemplateCategory Category { get; set; }
-    public string Description { get; set; } = string.Empty;
-    public IReadOnlyList<DeploymentTarget> SupportedTargets { get; set; } = Array.Empty<DeploymentTarget>();
-    public IReadOnlyList<string> RequiredInputs { get; set; } = Array.Empty<string>();
-    public IReadOnlyList<string> GeneratedStages { get; set; } = Array.Empty<string>();
-    public TemplateRiskLevel RiskLevel { get; set; }
-    public IReadOnlyList<string> Tags { get; set; } = Array.Empty<string>();
-}
-
 public sealed class YamlBlockExplanation
 {
     public string YamlSnippet { get; set; } = string.Empty;

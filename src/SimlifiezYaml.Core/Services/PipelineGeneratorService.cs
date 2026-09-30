@@ -73,6 +73,13 @@ public sealed class PipelineGeneratorService : IPipelineGeneratorService
                 .AddNotificationStages(definition.Notifications, _notificationGenerator, definition);
 
             var yaml = assembler.Build();
+
+            // Safety net: never hand out YAML that Azure DevOps would reject.
+            var yamlProblems = GeneratedYamlValidator.Validate(yaml);
+            if (yamlProblems.Count > 0)
+                throw new InvalidOperationException(
+                    "SimlifiezYaml generated an invalid pipeline. This is a bug; please report it with your settings file.\n  - " +
+                    string.Join("\n  - ", yamlProblems));
             
             // Validate the generated YAML
             var validation = _governanceValidator.ValidateAll(definition, yaml);

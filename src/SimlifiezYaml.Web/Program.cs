@@ -4,7 +4,8 @@ using SimlifiezYaml.Web.State;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddRazorComponents().AddInteractiveServerComponents();
-builder.Services.AddSimlifiezYamlCore();
+builder.Services.AddSimlifiezYamlCore(options =>
+    options.TemplatesFile = builder.Configuration["SimlifiezYaml:TemplatesFile"]);
 builder.Services.AddScoped<WizardState>();
 
 var app = builder.Build();
