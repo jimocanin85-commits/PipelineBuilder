@@ -41,6 +41,12 @@ public sealed class PipelineDefinition
     public GovernancePolicyConfig Governance { get; set; } = new();
     public AgentDiagnosticConfig? AgentDiagnostics { get; set; }
     public string? DotNetProjectPath { get; set; }
+    /// <summary>Node.js version for Node projects (NodeTool version spec).</summary>
+    public string NodeVersion { get; set; } = "24.x";
+
+    /// <summary>Folder the Node build writes the deployable output to.</summary>
+    public string NodeOutputFolder { get; set; } = "dist";
+
     /// <summary>Test projects to run in the Test stage (glob).</summary>
     public string? TestProjectPath { get; set; }
 }

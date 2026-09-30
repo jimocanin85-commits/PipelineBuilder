@@ -18,6 +18,13 @@ public sealed class YamlExplanationService : IYamlExplanationService
         ["PublishBuildArtifacts@1"] = "PublishBuildArtifacts@1 publishes build output to Azure DevOps build artifacts (classic).",
         ["DownloadBuildArtifacts@1"] = "DownloadBuildArtifacts@1 downloads build artifacts from the current or specified build.",
         ["AzureCLI@2"] = "AzureCLI@2 runs Azure CLI or PowerShell scripts authenticated via a service connection.",
+        ["IISWebAppDeploymentOnMachineGroup@0"] = "IISWebAppDeploymentOnMachineGroup@0 deploys a web package to an IIS website on the server the deployment job runs on.",
+        ["AzureWebApp@1"] = "AzureWebApp@1 deploys the package to an Azure App Service (optionally to a deployment slot).",
+        ["KubernetesManifest@1"] = "KubernetesManifest@1 applies Kubernetes manifests and substitutes the container image built by this run.",
+        ["Kubernetes@1"] = "Kubernetes@1 runs a kubectl command (here: rollout undo) against the cluster in the service connection.",
+        ["NodeTool@0"] = "NodeTool@0 installs the requested Node.js version on the agent.",
+        ["Npm@1"] = "Npm@1 runs npm commands such as ci, build and test.",
+        ["CopyFiles@2"] = "CopyFiles@2 copies the build output into the artifact staging folder.",
         ["AzureResourceManagerTemplateDeployment@3"] = "Deploys an ARM template to a resource group using an Azure Resource Manager service connection."
     };
 

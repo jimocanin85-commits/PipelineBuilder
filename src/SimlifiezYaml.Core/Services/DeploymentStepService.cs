@@ -62,6 +62,20 @@ Write-Host "Deployed to $target"
 
             DeploymentKind.AzureAppService => new[] { AppServiceDeploy(definition, environment, packagePath) },
 
+            // Applies the repository's manifests with the image built by this run.
+            DeploymentKind.Kubernetes => new[]
+            {
+                YamlBuilder.Task("KubernetesManifest@1", new Dictionary<string, string>
+                {
+                    ["action"] = "deploy",
+                    ["connectionType"] = "kubernetesServiceConnection",
+                    ["kubernetesServiceConnection"] = deployment.KubernetesServiceConnectionOrDefault,
+                    ["namespace"] = deployment.KubernetesNamespaceOrDefault,
+                    ["manifests"] = deployment.ManifestsPathOrDefault,
+                    ["containers"] = $"$(DOCKER_REGISTRY)/{definition.Artifact.ArtifactName}:$(Build.BuildId)"
+                }, $"Deploy to Kubernetes ({environment})")
+            },
+
             DeploymentKind.DockerContainer => new[]
             {
                 YamlBuilder.PowerShellStep($$"""

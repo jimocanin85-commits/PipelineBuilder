@@ -25,7 +25,7 @@
                 <label>Recipients (comma-separated)</label>
                 <input class="form-control" value="@string.Join(", ", n.EmailRecipients)"
                        @onchange="e => n.EmailRecipients = SplitList(e.Value?.ToString())" />
-                <p class="hint">Email is a placeholder step: connect SendGrid or an SMTP extension to send it.</p>
+                <p class="hint">Sent over SMTP. Define <code>SMTP_HOST</code>, <code>EMAIL_FROM</code> and, if the server needs a login, <code>SMTP_USERNAME</code> and <code>SMTP_PASSWORD</code> (secret); <code>SMTP_PORT</code> defaults to 587.</p>
                 break;
         }
         <label><InputCheckbox @bind-Value="n.NotifyOnSuccess" /> On success</label>

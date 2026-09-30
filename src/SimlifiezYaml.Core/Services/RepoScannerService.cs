@@ -15,7 +15,7 @@ public sealed class RepoScannerService : IRepoScannerService
         ("*Tests*.csproj", b => b.HasTests = true),
         ("web.config", b => b.Suggest("iis-onprem")),
         ("Dockerfile", b => { b.HasDockerfile = true; b.Suggest("docker-build-push"); }),
-        ("package.json", b => b.ProjectType = ProjectType.Node),
+        ("package.json", b => { b.ProjectType = ProjectType.Node; b.Suggest("node-web-app"); }),
         ("*.tf", b => { b.HasTerraform = true; b.Suggest("terraform-azure"); }),
         ("*.bicep", b => b.HasBicep = true)
     };

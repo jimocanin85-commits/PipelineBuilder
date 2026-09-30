@@ -29,14 +29,7 @@ $body = @{ text = "Pipeline $(Build.DefinitionName) #$(Build.BuildNumber) {{outc
 Invoke-RestMethod -Uri $webhook -Method Post -Body $body -ContentType 'application/json'
 """, succeeded ? "Notify Teams on success" : "Notify Teams on failure")
             },
-            NotificationType.Email => new[]
-            {
-                YamlBuilder.PowerShellStep($$"""
-# Email placeholder - configure SendGrid or an SMTP extension.
-# Recipients: {{string.Join(", ", config.EmailRecipients).ReplaceLineEndings(" ")}}
-Write-Host 'Email notification ({{outcome}}) would be sent to the configured recipients.'
-""", succeeded ? "Email notification on success" : "Email notification on failure")
-            },
+            NotificationType.Email => new[] { EmailStep(config, succeeded, outcome) },
             NotificationType.CustomWebhook => new[]
             {
                 YamlBuilder.PowerShellStep($$"""
@@ -51,6 +44,48 @@ Invoke-RestMethod -Uri $webhook -Method Post -Body $payload -ContentType 'applic
             },
             _ => Array.Empty<string>()
         };
+    }
+
+    /// <summary>
+    /// Sends the email over SMTP. Server settings come from pipeline variables; the password is a
+    /// secret variable, which scripts only see when it is mapped into the step's environment.
+    /// If SMTP_HOST is not defined the step warns and succeeds, so a missing setup never fails a deploy.
+    /// </summary>
+    private static string EmailStep(NotificationConfig config, bool succeeded, string outcome)
+    {
+        var recipients = string.Join(", ", config.EmailRecipients
+            .Where(r => !string.IsNullOrWhiteSpace(r))
+            .Select(r => YamlBuilder.PsLiteral(r.Trim())));
+        var env = new Dictionary<string, string> { ["SMTP_PASSWORD"] = "$(SMTP_PASSWORD)" };
+
+        return YamlBuilder.PowerShellStep($$"""
+$smtpHost = '$(SMTP_HOST)'
+if ([string]::IsNullOrWhiteSpace($smtpHost) -or $smtpHost.StartsWith('$(')) {
+  Write-Warning 'SMTP_HOST is not set; skipping email notification.'
+  exit 0
+}
+$recipients = @({{recipients}})
+if ($recipients.Count -eq 0) {
+  Write-Warning 'No email recipients configured; skipping email notification.'
+  exit 0
+}
+$port = '$(SMTP_PORT)'
+if ($port.StartsWith('$(')) { $port = '587' }
+$from = '$(EMAIL_FROM)'
+$user = '$(SMTP_USERNAME)'
+$message = New-Object System.Net.Mail.MailMessage
+$message.From = $from
+foreach ($recipient in $recipients) { $message.To.Add($recipient) }
+$message.Subject = "Pipeline $(Build.DefinitionName) #$(Build.BuildNumber) {{outcome}}"
+$message.Body = "Run: $(System.CollectionUri)$(System.TeamProject)/_build/results?buildId=$(Build.BuildId)"
+$client = New-Object System.Net.Mail.SmtpClient($smtpHost, [int]$port)
+$client.EnableSsl = $true
+if (-not $user.StartsWith('$(')) {
+  $client.Credentials = New-Object System.Net.NetworkCredential($user, $env:SMTP_PASSWORD)
+}
+$client.Send($message)
+Write-Host "Email sent to $($recipients -join ', ')"
+""", succeeded ? "Email on success" : "Email on failure", env: env);
     }
 
     /// <summary>

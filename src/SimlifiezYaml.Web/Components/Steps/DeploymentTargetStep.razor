@@ -43,6 +43,17 @@
         <InputText id="container" @bind-Value="Wizard.Definition.Deployment.ContainerName" class="form-control" placeholder="$(CONTAINER_NAME)" />
         <p class="hint">The image is pulled from <code>$(DOCKER_REGISTRY)</code>; define that variable in a variable group.</p>
         break;
+    case DeploymentKind.Kubernetes:
+        <label for="k8s-connection">Kubernetes service connection</label>
+        <InputText id="k8s-connection" @bind-Value="Wizard.Definition.Deployment.KubernetesServiceConnection" class="form-control" placeholder="$(K8S_SERVICE_CONNECTION)" />
+        <label for="k8s-namespace">Namespace</label>
+        <InputText id="k8s-namespace" @bind-Value="Wizard.Definition.Deployment.KubernetesNamespace" class="form-control" placeholder="$(K8S_NAMESPACE)" />
+        <label for="k8s-manifests">Manifest files in the repository</label>
+        <InputText id="k8s-manifests" @bind-Value="Wizard.Definition.Deployment.ManifestsPath" class="form-control" placeholder="manifests/*.yaml" />
+        <label for="k8s-deployment">Deployment name (used to roll back)</label>
+        <InputText id="k8s-deployment" @bind-Value="Wizard.Definition.Deployment.KubernetesDeploymentName" class="form-control" placeholder="$(K8S_DEPLOYMENT)" />
+        <p class="hint">Use a Docker image artifact; the manifests get the image built by the run (<code>$(DOCKER_REGISTRY)/name:BuildId</code>).</p>
+        break;
     default:
         <label for="custom-script">Deploy script (PowerShell)</label>
         <InputTextArea id="custom-script" @bind-Value="Wizard.Definition.Deployment.CustomScript" class="form-control" rows="4" placeholder="Your deploy commands" />

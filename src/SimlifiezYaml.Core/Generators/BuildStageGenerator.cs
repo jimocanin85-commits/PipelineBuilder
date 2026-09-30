@@ -19,7 +19,12 @@ public sealed class BuildStageGenerator
     public string Generate(PipelineDefinition definition)
     {
         var steps = new List<string>();
-        steps.AddRange(definition.ProjectType == ProjectType.DotNet ? DotNetSteps(definition) : PlaceholderSteps(definition));
+        steps.AddRange(definition.ProjectType switch
+        {
+            ProjectType.DotNet => DotNetSteps(definition),
+            ProjectType.Node => NodeSteps(definition),
+            _ => PlaceholderSteps(definition)
+        });
         steps.AddRange(_artifactService.GenerateBuildOutputSteps(definition));
         steps.AddRange(_artifactService.GeneratePublishSteps(definition.Artifact));
 
@@ -58,6 +63,30 @@ public sealed class BuildStageGenerator
             ["projects"] = definition.TestProjectPath ?? "**/*Tests*.csproj",
             ["arguments"] = "--configuration $(BuildConfiguration) --no-build --collect:\"XPlat Code Coverage\""
         }, "Run tests");
+    }
+
+    private static IEnumerable<string> NodeSteps(PipelineDefinition definition)
+    {
+        // CI=true stops test runners such as Jest from waiting in watch mode.
+        var ci = new Dictionary<string, string> { ["CI"] = "true" };
+        yield return YamlBuilder.Task("NodeTool@0", new Dictionary<string, string>
+        {
+            ["versionSpec"] = definition.NodeVersion
+        }, $"Use Node.js {definition.NodeVersion}");
+        yield return YamlBuilder.Task("Npm@1", new Dictionary<string, string>
+        {
+            ["command"] = "ci"
+        }, "Install packages (npm ci)");
+        yield return YamlBuilder.Task("Npm@1", new Dictionary<string, string>
+        {
+            ["command"] = "custom",
+            ["customCommand"] = "run build --if-present"
+        }, "Build", env: ci);
+        yield return YamlBuilder.Task("Npm@1", new Dictionary<string, string>
+        {
+            ["command"] = "custom",
+            ["customCommand"] = "run test --if-present"
+        }, "Run tests", env: ci);
     }
 
     private static IEnumerable<string> PlaceholderSteps(PipelineDefinition definition)

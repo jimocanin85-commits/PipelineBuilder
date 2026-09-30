@@ -130,6 +130,8 @@ public sealed class DeploymentStageGenerator
         var packagePath = _artifactService.GetDeployPackagePath(definition.Artifact);
 
         var deploySteps = new List<string> { "    - download: none" }; // we download explicitly below
+        if (definition.Deployment.Kind == DeploymentKind.Kubernetes)
+            deploySteps.Add("    - checkout: self"); // the manifests live in the repository
         deploySteps.AddRange(_artifactService.GenerateDownloadSteps(definition.Artifact, env));
         if (definition.KeyVault != null && !string.IsNullOrWhiteSpace(definition.KeyVault.KeyVaultName))
             deploySteps.Add(_keyVaultService.GeneratePreJobSteps(definition.KeyVault));
