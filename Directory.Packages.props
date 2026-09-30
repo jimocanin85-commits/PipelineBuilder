@@ -2,6 +2,8 @@
   <!-- Central package versions: update a version here once for the whole solution. -->
   <PropertyGroup>
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+    <!-- Lets the pins below override versions that other packages bring in. -->
+    <CentralPackageTransitivePinningEnabled>true</CentralPackageTransitivePinningEnabled>
   </PropertyGroup>
   <ItemGroup>
     <!-- Core -->
@@ -17,5 +19,8 @@
     <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="18.10.1" />
     <PackageVersion Include="xunit" Version="2.9.3" />
     <PackageVersion Include="xunit.runner.visualstudio" Version="3.1.5" />
+    <!-- Transitive pins -->
+    <!-- bunit brings AngleSharp 1.2.0, which has a known vulnerability (GHSA-pgww-w46g-26qg). -->
+    <PackageVersion Include="AngleSharp" Version="1.8.2" />
   </ItemGroup>
 </Project>
