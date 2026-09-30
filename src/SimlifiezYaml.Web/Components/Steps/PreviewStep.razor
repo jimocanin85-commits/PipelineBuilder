@@ -1,11 +1,11 @@
 @inject WizardState Wizard
 
 <h2>YAML preview</h2>
-@if (Wizard.GenerationError != null)
+@if (Wizard.BlockingErrors.Count > 0)
 {
-    <div class="severity-error generation-error">
-        <p>The pipeline could not be generated. Fix these settings and come back:</p>
-        <pre>@Wizard.GenerationError</pre>
+    <div class="generation-error">
+        <p class="severity-error">The pipeline could not be generated. Fix these settings:</p>
+        <IssueList Issues="Wizard.BlockingErrors" ShowGoTo="true" />
     </div>
 }
 else if (Wizard.Result is { } result)

@@ -1,7 +1,9 @@
 using Bunit;
 using Microsoft.Extensions.DependencyInjection;
 using SimlifiezYaml.Core.DependencyInjection;
+using Microsoft.AspNetCore.Components.Forms;
 using SimlifiezYaml.Core.Enums;
+using SimlifiezYaml.Core.Models;
 using SimlifiezYaml.Web.Components.Pages;
 using SimlifiezYaml.Web.Components.Steps;
 using SimlifiezYaml.Web.State;
@@ -146,6 +148,73 @@ public class WizardPageTests : TestContext
         GoTo(cut, WizardStep.YamlPreview);
 
         Assert.Contains("invalid characters", cut.Find(".generation-error").TextContent);
+    }
+
+    [Fact]
+    public void StepShowsItsOwnErrorsAndTheNavigationFlagsIt()
+    {
+        var cut = RenderComponent<Home>();
+        GoTo(cut, WizardStep.EnvironmentSelection);
+
+        cut.Find("#environments").Change("Bad Name");
+
+        Assert.Contains("invalid characters", cut.Find(".issue-list").TextContent);
+        Assert.NotNull(cut.Find($"button[data-step='{WizardStep.EnvironmentSelection}'] .badge"));
+        Assert.Empty(cut.FindAll($"button[data-step='{WizardStep.ProjectType}'] .badge"));
+    }
+
+    [Fact]
+    public void GoToStepLinkOpensTheStepWithTheProblem()
+    {
+        var cut = RenderComponent<Home>();
+        GoTo(cut, WizardStep.EnvironmentSelection);
+        cut.Find("#environments").Change("Bad Name");
+        GoTo(cut, WizardStep.YamlPreview);
+
+        cut.Find($"button[data-go-to='{WizardStep.EnvironmentSelection}']").Click();
+
+        Assert.Contains("active", cut.Find($"button[data-step='{WizardStep.EnvironmentSelection}']").ClassList);
+        Assert.NotNull(cut.Find("#environments"));
+    }
+
+    [Fact]
+    public void SettingsCanBeDownloaded()
+    {
+        var cut = RenderComponent<Home>();
+        GoTo(cut, WizardStep.DownloadExport);
+
+        cut.Find("#download-settings").Click();
+
+        var invocation = JSInterop.VerifyInvoke("simlifiezYaml.downloadText");
+        Assert.Equal(PipelineDefinitionSerializer.FileName, invocation.Arguments[0]);
+        Assert.Contains(PipelineDefinitionSerializer.Format, (string)invocation.Arguments[1]!);
+    }
+
+    [Fact]
+    public void SavedSettingsCanBeOpened()
+    {
+        var saved = WizardState.CreateDefault();
+        saved.Name = "loaded-app";
+        saved.Environments = new[] { "qa", "prod" };
+        var cut = RenderComponent<Home>();
+
+        cut.FindComponent<InputFile>().UploadFiles(InputFileContent.CreateFromText(PipelineDefinitionSerializer.ToJson(saved), "settings.json"));
+
+        Assert.Contains("Loaded settings for 'loaded-app'", cut.Markup);
+        Assert.Equal("loaded-app", cut.Find("#pipeline-name").GetAttribute("value"));
+        GoTo(cut, WizardStep.YamlPreview);
+        Assert.Contains("- stage: Deploy_qa", cut.Find(".yaml-preview").TextContent);
+    }
+
+    [Fact]
+    public void OpeningAnInvalidFileShowsAnError()
+    {
+        var cut = RenderComponent<Home>();
+
+        cut.FindComponent<InputFile>().UploadFiles(InputFileContent.CreateFromText("{ nope", "settings.json"));
+
+        Assert.Contains("Could not open the file", cut.Markup);
+        Assert.Equal("enterprise-pipeline", cut.Find("#pipeline-name").GetAttribute("value"));
     }
 
     private static void GoTo(IRenderedComponent<Home> cut, WizardStep step) =>

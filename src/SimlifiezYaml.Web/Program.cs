@@ -9,7 +9,11 @@ builder.Services.AddScoped<WizardState>();
 
 var app = builder.Build();
 if (!app.Environment.IsDevelopment())
+{
     app.UseExceptionHandler("/Error", createScopeForErrors: true);
+    app.UseHsts();
+    app.UseHttpsRedirection();
+}
 
 app.UseAntiforgery();
 app.MapStaticAssets();

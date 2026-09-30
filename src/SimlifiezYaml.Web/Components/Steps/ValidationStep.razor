@@ -1,9 +1,12 @@
 @inject WizardState Wizard
 
 <h2>Validation</h2>
-@if (Wizard.GenerationError != null)
+@if (Wizard.BlockingErrors.Count > 0)
 {
-    <div class="severity-error generation-error"><pre>@Wizard.GenerationError</pre></div>
+    <div class="generation-error">
+        <p class="severity-error">The pipeline could not be generated. Fix these settings:</p>
+        <IssueList Issues="Wizard.BlockingErrors" ShowGoTo="true" />
+    </div>
 }
 else if (Wizard.Result is { } result)
 {
@@ -16,18 +19,7 @@ else if (Wizard.Result is { } result)
         foreach (var group in result.ValidationResults.GroupBy(v => v.Severity).OrderByDescending(g => g.Key))
         {
             <h3 class="severity-@group.Key.ToString().ToLowerInvariant()">@group.Key (@group.Count())</h3>
-            <ul class="validation-list">
-                @foreach (var v in group)
-                {
-                    <li class="severity-@v.Severity.ToString().ToLowerInvariant()">
-                        @v.Message
-                        @if (!string.IsNullOrWhiteSpace(v.SuggestedFix))
-                        {
-                            <div class="hint">Fix: @v.SuggestedFix</div>
-                        }
-                    </li>
-                }
-            </ul>
+            <IssueList Issues="group.ToList()" ShowGoTo="true" />
         }
     }
 }

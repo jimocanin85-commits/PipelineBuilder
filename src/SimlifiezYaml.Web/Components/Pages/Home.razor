@@ -2,6 +2,7 @@
 @rendermode InteractiveServer
 @inject WizardState Wizard
 @inject IPipelineGeneratorService Generator
+@implements IDisposable
 
 <PageTitle>SimlifiezYaml - Pipeline Builder</PageTitle>
 
@@ -13,13 +14,21 @@
                     data-step="@step" aria-current="@(Wizard.CurrentStep == step ? "step" : null)"
                     @onclick="() => GoTo(step)">
                 @((int)step). @StepTitles.For(step)
+                @if (step < WizardStep.YamlPreview && Wizard.HasErrors(step))
+                {
+                    <span class="badge" title="This step has errors">!</span>
+                }
             </button>
         }
     </nav>
 
     <section class="wizard-content">
+        @if (Wizard.CurrentStep < WizardStep.YamlPreview)
+        {
+            <IssueList Issues="Wizard.IssuesFor(Wizard.CurrentStep)" />
+        }
         @* Input* components need a cascading EditContext, so every step renders inside this form. *@
-        <EditForm Model="Wizard.Definition">
+        <EditForm EditContext="CurrentEditContext">
             @switch (Wizard.CurrentStep)
             {
                 case WizardStep.ProjectType:
@@ -78,6 +87,49 @@
 </div>
 
 @code {
+    private EditContext? _editContext;
+
+    protected override void OnInitialized()
+    {
+        Wizard.NavigationRequested += OnNavigationRequested;
+        Wizard.Changed += OnWizardChanged;
+    }
+
+    public void Dispose()
+    {
+        Wizard.NavigationRequested -= OnNavigationRequested;
+        Wizard.Changed -= OnWizardChanged;
+        if (_editContext != null) _editContext.OnFieldChanged -= OnFieldChanged;
+    }
+
+    /// <summary>
+    /// One EditContext per settings object. Field changes re-render the page so the step's issue
+    /// list and the error badges in the navigation stay current.
+    /// </summary>
+    private EditContext CurrentEditContext
+    {
+        get
+        {
+            if (_editContext?.Model != Wizard.Definition)
+            {
+                if (_editContext != null) _editContext.OnFieldChanged -= OnFieldChanged;
+                _editContext = new EditContext(Wizard.Definition);
+                _editContext.OnFieldChanged += OnFieldChanged;
+            }
+            return _editContext;
+        }
+    }
+
+    private void OnFieldChanged(object? sender, FieldChangedEventArgs e) => StateHasChanged();
+
+    private void OnWizardChanged() => InvokeAsync(StateHasChanged);
+
+    private void OnNavigationRequested(WizardStep step)
+    {
+        GoTo(step);
+        StateHasChanged();
+    }
+
     private void Prev() => GoTo((WizardStep)Math.Max((int)WizardStep.ProjectType, (int)Wizard.CurrentStep - 1));
     private void Next() => GoTo((WizardStep)Math.Min((int)WizardStep.DownloadExport, (int)Wizard.CurrentStep + 1));
 

@@ -30,13 +30,17 @@
         }
         <label><InputCheckbox @bind-Value="n.NotifyOnSuccess" /> On success</label>
         <label><InputCheckbox @bind-Value="n.NotifyOnFailure" /> On failure</label>
-        <button type="button" class="btn-link" @onclick="() => Wizard.Notifications.Remove(n)">Remove</button>
+        <button type="button" class="btn-link" @onclick="() => { Wizard.Notifications.Remove(n); Wizard.NotifyChanged(); }">Remove</button>
     </div>
 }
 <button type="button" class="btn-secondary" @onclick="Add">Add notification</button>
 
 @code {
-    private void Add() => Wizard.Notifications.Add(new NotificationConfig { NotificationType = NotificationType.TeamsWebhook, NotifyOnFailure = true });
+    private void Add()
+    {
+        Wizard.Notifications.Add(new NotificationConfig { NotificationType = NotificationType.TeamsWebhook, NotifyOnFailure = true });
+        Wizard.NotifyChanged();
+    }
 
     private static IReadOnlyList<string> SplitList(string? value) =>
         (value ?? string.Empty).Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);

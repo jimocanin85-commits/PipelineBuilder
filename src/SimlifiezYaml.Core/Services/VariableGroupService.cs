@@ -45,7 +45,7 @@ public sealed class VariableGroupService : IVariableGroupService
             {
                 Severity = ValidationSeverity.Error,
                 Message = "Variable group name is required.",
-                AffectedField = nameof(VariableGroupConfig.Name),
+                AffectedField = "VariableGroups",
                 SuggestedFix = "Provide a valid Azure DevOps variable group name, e.g. vg-test."
             });
         }

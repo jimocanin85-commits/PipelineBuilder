@@ -28,7 +28,7 @@ public sealed class KeyVaultYamlService : IKeyVaultYamlService
             {
                 Severity = ValidationSeverity.Error,
                 Message = "Key Vault name is required when Key Vault integration is enabled.",
-                AffectedField = nameof(KeyVaultConfig.KeyVaultName),
+                AffectedField = nameof(PipelineDefinition.KeyVault),
                 SuggestedFix = "Specify the Azure Key Vault name linked to your service connection."
             });
         }
