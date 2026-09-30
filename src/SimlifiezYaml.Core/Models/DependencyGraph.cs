@@ -15,7 +15,7 @@ public sealed class DependencyGraphNode
 
 /// <summary>
 /// Summary of the stages the generator produces, for display in the wizard.
-/// Mirrors <c>PipelineGeneratorService</c>: Build → Test → Artifact → Deploy_{env}… → Notify.
+/// Mirrors <c>PipelineGeneratorService</c>: Build → Deploy_{env}… → Notify.
 /// </summary>
 public sealed class PipelineDependencyGraph
 {
@@ -25,12 +25,10 @@ public sealed class PipelineDependencyGraph
     {
         var nodes = new List<DependencyGraphNode>
         {
-            new() { Id = "Build", DisplayName = "Build" },
-            new() { Id = "Test", DisplayName = "Test", DependsOn = new[] { "Build" }, Condition = "succeeded()" },
-            new() { Id = "Artifact", DisplayName = "Artifact", DependsOn = new[] { "Test" }, Condition = "succeeded()" }
+            new() { Id = "Build", DisplayName = "Build, test and package" }
         };
 
-        var previous = "Artifact";
+        var previous = "Build";
         foreach (var env in definition.Environments)
         {
             var id = $"Deploy_{YamlBuilder.ToIdentifier(env)}";

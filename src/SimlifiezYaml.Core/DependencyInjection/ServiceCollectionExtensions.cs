@@ -35,8 +35,6 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IPipelineGeneratorService, PipelineGeneratorService>();
 
         services.AddSingleton<BuildStageGenerator>();
-        services.AddSingleton<TestStageGenerator>();
-        services.AddSingleton<ArtifactStageGenerator>();
         services.AddSingleton<DeploymentStageGenerator>();
         services.AddSingleton<NotificationStepGenerator>();
         services.AddSingleton<GovernanceValidator>();

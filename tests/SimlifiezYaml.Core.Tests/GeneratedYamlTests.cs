@@ -136,26 +136,44 @@ public class GeneratedYamlTests
     }
 
     [Fact]
-    public void GeneratedYaml_ArtifactStagePublishesTheApp()
+    public void GeneratedYaml_BuildJobCompilesOnceThenTestsAndPackages()
     {
-        var yaml = _generator.Generate(FullDefinition()).Yaml;
-        var artifact = StageNamed(Parse(yaml), "Artifact");
-        var job = Assert.Single(JobsOf(artifact));
-        var tasks = StepsOf(job).Select(s => s.GetValueOrDefault("task") as string).ToList();
+        var root = Parse(_generator.Generate(FullDefinition()).Yaml);
 
-        Assert.Equal(new[] { "DotNetCoreCLI@2", "PublishPipelineArtifact@1" }, tasks);
-        Assert.Equal("publish", (string)Inputs(StepsOf(job)[0])["command"]);
-        Assert.Equal("$(Build.ArtifactStagingDirectory)/app", (string)Inputs(StepsOf(job)[1])["targetPath"]);
-        Assert.True(job.ContainsKey("pool"));
+        Assert.Equal(new[] { "Build" }, StagesOf(root).Select(s => (string)s["stage"]).Take(1));
+        Assert.DoesNotContain(StagesOf(root), s => (string)s["stage"] is "Test" or "Artifact");
+
+        var job = Assert.Single(JobsOf(StageNamed(root, "Build")));
+        var steps = StepsOf(job);
+        var commands = steps.Select(s => s.GetValueOrDefault("task") as string == "DotNetCoreCLI@2" ? (string)Inputs(s)["command"] : s.GetValueOrDefault("task") as string).ToList();
+        Assert.Equal(new[] { "restore", "build", "test", "publish", "PublishPipelineArtifact@1" }, commands);
+
+        // Only the build step compiles; test and publish reuse its output.
+        Assert.Contains("--no-build", (string)Inputs(steps[2])["arguments"]);
+        Assert.Contains("--no-build", (string)Inputs(steps[3])["arguments"]);
+        Assert.Equal("$(Build.ArtifactStagingDirectory)/app", (string)Inputs(steps[4])["targetPath"]);
     }
 
     [Fact]
-    public void GeneratedYaml_TestStageBuildsItsOwnCode()
+    public void GeneratedYaml_HostedBuildsRunOnLinuxAndDeploysOnWindows()
     {
-        var yaml = _generator.Generate(FullDefinition()).Yaml;
-        var job = Assert.Single(JobsOf(StageNamed(Parse(yaml), "Test")));
-        var arguments = (string)Inputs(StepsOf(job).Single())["arguments"];
-        Assert.DoesNotContain("--no-build", arguments);
+        var root = Parse(_generator.Generate(FullDefinition()).Yaml);
+
+        var buildPool = Assert.IsType<Dictionary<object, object>>(Assert.Single(JobsOf(StageNamed(root, "Build")))["pool"]);
+        Assert.Equal("ubuntu-latest", (string)buildPool["vmImage"]);
+        Assert.Equal("windows-latest", (string)Assert.IsType<Dictionary<object, object>>(root["pool"])["vmImage"]);
+    }
+
+    [Fact]
+    public void GeneratedYaml_SelfHostedBuildsUseThePool()
+    {
+        var definition = FullDefinition();
+        definition.BuildAgent = BuildAgentType.SelfHosted;
+        definition.PoolName = "OnPremAgents";
+        var root = Parse(_generator.Generate(definition).Yaml);
+
+        var buildPool = Assert.IsType<Dictionary<object, object>>(Assert.Single(JobsOf(StageNamed(root, "Build")))["pool"]);
+        Assert.Equal("OnPremAgents", (string)buildPool["name"]);
     }
 
     [Fact]

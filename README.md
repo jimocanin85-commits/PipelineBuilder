@@ -92,7 +92,9 @@ tests/SimlifiezYaml.Core.Tests/  Unit, generated-YAML, bUnit and web smoke tests
 
 ## Generated pipeline
 
-Flow: **Build → Test → Artifact → Deploy_{env} (one stage per environment) → Notify_Success / Notify_Failure**
+Flow: **Build → Deploy_{env} (one stage per environment) → Notify_Success / Notify_Failure**
+
+The Build stage compiles once and then tests and packages the same output (`--no-build`) in a single job. Microsoft-hosted builds run on `ubuntu-latest`; deployments and notifications use `windows-latest` (or your self-hosted pool).
 
 Each `Deploy_{env}` stage contains:
 

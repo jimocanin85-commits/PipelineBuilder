@@ -9,19 +9,19 @@ public sealed class TemplateMarketplaceService : ITemplateMarketplaceService
     private static readonly IReadOnlyList<PipelineTemplate> Templates = new List<PipelineTemplate>
     {
         T("dotnet-web-app", ".NET Web Application", TemplateCategory.DotNet, "Build, test, and deploy ASP.NET Core to App Service",
-            DeploymentTarget.Cloud, new[] { "projectPath", "webAppName" }, new[] { "Build", "Test", "Artifact", "Deploy_test", "Deploy_prod" }, TemplateRiskLevel.Low, "dotnet", "web"),
+            DeploymentTarget.Cloud, new[] { "projectPath", "webAppName" }, new[] { "Build", "Deploy_test", "Deploy_prod" }, TemplateRiskLevel.Low, "dotnet", "web"),
         T("iis-onprem", "IIS On-Premises", TemplateCategory.Iis, "Deploy to IIS with backup and health checks",
-            DeploymentTarget.OnPrem, new[] { "sitePath", "appPool" }, new[] { "Build", "Artifact", "Deploy_test", "Deploy_prod" }, TemplateRiskLevel.Medium, "iis", "onprem"),
+            DeploymentTarget.OnPrem, new[] { "sitePath", "appPool" }, new[] { "Build", "Deploy_test", "Deploy_prod" }, TemplateRiskLevel.Medium, "iis", "onprem"),
         T("docker-build-push", "Docker Build and Push", TemplateCategory.Docker, "Build container image and push to registry",
-            DeploymentTarget.Cloud, new[] { "dockerfile", "registry" }, new[] { "Build", "Artifact" }, TemplateRiskLevel.Low, "docker"),
+            DeploymentTarget.Cloud, new[] { "dockerfile", "registry" }, new[] { "Build" }, TemplateRiskLevel.Low, "docker"),
         T("terraform-azure", "Terraform Azure", TemplateCategory.Terraform, "Plan and apply Terraform for Azure resources",
             DeploymentTarget.Cloud, new[] { "workingDirectory", "serviceConnection" }, new[] { "Build", "Deploy_test" }, TemplateRiskLevel.High, "terraform", "iac"),
         T("winrm-deploy", "WinRM Deployment", TemplateCategory.WinRm, "Deploy via WinRM to Windows servers",
-            DeploymentTarget.OnPrem, new[] { "targetHost", "credentialVariable" }, new[] { "Artifact", "Deploy_test", "Deploy_prod" }, TemplateRiskLevel.High, "winrm"),
+            DeploymentTarget.OnPrem, new[] { "targetHost", "credentialVariable" }, new[] { "Build", "Deploy_test", "Deploy_prod" }, TemplateRiskLevel.High, "winrm"),
         T("aks-deploy", "AKS Deployment", TemplateCategory.Aks, "Deploy manifests to Azure Kubernetes Service",
-            DeploymentTarget.Cloud, new[] { "cluster", "namespace" }, new[] { "Build", "Artifact", "Deploy_test", "Deploy_prod" }, TemplateRiskLevel.High, "kubernetes", "aks"),
+            DeploymentTarget.Cloud, new[] { "cluster", "namespace" }, new[] { "Build", "Deploy_test", "Deploy_prod" }, TemplateRiskLevel.High, "kubernetes", "aks"),
         T("hybrid-dotnet-docker", "Hybrid .NET + Docker", TemplateCategory.Hybrid, "Build .NET app, containerize, deploy to AKS or App Service",
-            DeploymentTarget.Hybrid, new[] { "projectPath", "dockerfile" }, new[] { "Build", "Test", "Artifact", "Deploy_test", "Deploy_preprod", "Deploy_prod" }, TemplateRiskLevel.Medium, "hybrid")
+            DeploymentTarget.Hybrid, new[] { "projectPath", "dockerfile" }, new[] { "Build", "Deploy_test", "Deploy_preprod", "Deploy_prod" }, TemplateRiskLevel.Medium, "hybrid")
     };
 
     public IReadOnlyList<PipelineTemplate> GetAllTemplates() => Templates;

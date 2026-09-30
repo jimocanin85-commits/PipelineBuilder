@@ -37,7 +37,7 @@ public sealed class ArtifactYamlService : IArtifactYamlService
         };
         if (!publishWebProjects)
             inputs["projects"] = projectPath!;
-        inputs["arguments"] = $"--configuration $(BuildConfiguration) --output {PublishOutput}";
+        inputs["arguments"] = $"--configuration $(BuildConfiguration) --no-build --output {PublishOutput}";
         inputs["zipAfterPublish"] = "false";
         inputs["modifyOutputPath"] = "false";
 
@@ -101,9 +101,11 @@ public sealed class ArtifactYamlService : IArtifactYamlService
                     ["command"] = "pack",
                     ["packagesToPack"] = config.PackagePath ?? "**/*.csproj;!**/*Tests*.csproj",
                     ["configuration"] = "$(BuildConfiguration)",
+                    ["nobuild"] = "true",
                     ["packDirectory"] = "$(Build.ArtifactStagingDirectory)/packages"
                 }, "Pack NuGet packages"),
-                YamlBuilder.Task("NuGetCommand@2", new Dictionary<string, string>
+                // dotnet push works on Linux agents; NuGetCommand@2 needs Mono there.
+                YamlBuilder.Task("DotNetCoreCLI@2", new Dictionary<string, string>
                 {
                     ["command"] = "push",
                     ["packagesToPush"] = "$(Build.ArtifactStagingDirectory)/packages/*.nupkg",

@@ -16,8 +16,6 @@ public sealed class PipelineGeneratorService : IPipelineGeneratorService
     private readonly IVariableGroupService _variableGroupService;
     private readonly IKeyVaultYamlService _keyVaultService;
     private readonly BuildStageGenerator _buildGenerator;
-    private readonly TestStageGenerator _testGenerator;
-    private readonly ArtifactStageGenerator _artifactGenerator;
     private readonly DeploymentStageGenerator _deploymentGenerator;
     private readonly NotificationStepGenerator _notificationGenerator;
     private readonly GovernanceValidator _governanceValidator;
@@ -29,8 +27,6 @@ public sealed class PipelineGeneratorService : IPipelineGeneratorService
         IVariableGroupService variableGroupService,
         IKeyVaultYamlService keyVaultService,
         BuildStageGenerator buildGenerator,
-        TestStageGenerator testGenerator,
-        ArtifactStageGenerator artifactGenerator,
         DeploymentStageGenerator deploymentGenerator,
         NotificationStepGenerator notificationGenerator,
         GovernanceValidator governanceValidator,
@@ -41,8 +37,6 @@ public sealed class PipelineGeneratorService : IPipelineGeneratorService
         _variableGroupService = variableGroupService;
         _keyVaultService = keyVaultService;
         _buildGenerator = buildGenerator;
-        _testGenerator = testGenerator;
-        _artifactGenerator = artifactGenerator;
         _deploymentGenerator = deploymentGenerator;
         _notificationGenerator = notificationGenerator;
         _governanceValidator = governanceValidator;
@@ -75,8 +69,6 @@ public sealed class PipelineGeneratorService : IPipelineGeneratorService
                 .AddPool(PoolConfigurationHelper.GeneratePoolConfiguration(definition.BuildAgent, definition.PoolName))
                 .StartStages()
                 .AddStage(_buildGenerator.Generate(definition))
-                .AddStage(_testGenerator.Generate(definition))
-                .AddStage(_artifactGenerator.Generate(definition))
                 .AddStage(_deploymentGenerator.Generate(definition))
                 .AddNotificationStages(definition.Notifications, _notificationGenerator, definition);
 
