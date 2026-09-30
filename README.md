@@ -71,6 +71,16 @@ The build treats warnings as errors (`Directory.Build.props`), package versions 
 
 Runs the unit tests, the generated-YAML checks (every strategy, artifact type, deployment kind and target), the wizard component tests (bUnit) and an in-memory smoke test of the web app. CI runs the same on every pull request and push to `main` (`.github/workflows/ci.yml`) and publishes a coverage report (job summary and the `coverage-report` artifact).
 
+## Templates
+
+The template catalogue ships in `src/SimlifiezYaml.Core/Templates/templates.json`. To add your own templates (or replace a built-in one with the same `id`), point the app at a JSON file in the same format:
+
+```json
+{ "SimlifiezYaml": { "TemplatesFile": "C:\\config\\our-templates.json" } }
+```
+
+in `appsettings.json`, or set the environment variable `SimlifiezYaml__TemplatesFile`. Each template has an `id`, `name`, `description`, `category`, `riskLevel` and a `settings` block with any of `projectType`, `deploymentTarget`, `environments`, `artifactType`, `deploymentKind`, `strategy`, `rollbackEnabled`, `iacTool`, `iacWorkingDirectory` and `customDeployScript`.
+
 ## Features
 
 - **Variable groups** at pipeline or environment scope, and **Azure Key Vault** secrets loaded in each deploy job

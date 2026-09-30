@@ -1,0 +1,111 @@
+[
+  {
+    "id": "dotnet-web-app",
+    "name": ".NET Web Application",
+    "category": "DotNet",
+    "description": "Build, test, and deploy ASP.NET Core to Azure App Service",
+    "riskLevel": "Low",
+    "tags": ["dotnet", "web", "azure"],
+    "settings": {
+      "projectType": "DotNet",
+      "deploymentTarget": "Cloud",
+      "environments": ["test", "prod"],
+      "artifactType": "PipelineArtifact",
+      "deploymentKind": "AzureAppService",
+      "strategy": "Standard"
+    }
+  },
+  {
+    "id": "iis-onprem",
+    "name": "IIS On-Premises",
+    "category": "Iis",
+    "description": "Deploy to IIS on your own servers, with backup, health checks and rollback",
+    "riskLevel": "Medium",
+    "tags": ["iis", "onprem"],
+    "settings": {
+      "projectType": "DotNet",
+      "deploymentTarget": "OnPrem",
+      "environments": ["test", "prod"],
+      "artifactType": "PipelineArtifact",
+      "deploymentKind": "Iis",
+      "rollbackEnabled": true
+    }
+  },
+  {
+    "id": "windows-service-onprem",
+    "name": "Windows Service On-Premises",
+    "category": "WindowsService",
+    "description": "Deploy a Windows service to servers registered in each environment, with rollback",
+    "riskLevel": "Medium",
+    "tags": ["windows-service", "onprem"],
+    "settings": {
+      "projectType": "DotNet",
+      "deploymentTarget": "OnPrem",
+      "environments": ["test", "prod"],
+      "artifactType": "PipelineArtifact",
+      "deploymentKind": "WindowsService",
+      "rollbackEnabled": true
+    }
+  },
+  {
+    "id": "docker-build-push",
+    "name": "Docker Build and Run",
+    "category": "Docker",
+    "description": "Build a container image, push it to your registry and run it on your servers",
+    "riskLevel": "Low",
+    "tags": ["docker"],
+    "settings": {
+      "projectType": "Docker",
+      "deploymentTarget": "Hybrid",
+      "artifactType": "DockerImage",
+      "deploymentKind": "DockerContainer"
+    }
+  },
+  {
+    "id": "hybrid-dotnet-docker",
+    "name": "Hybrid .NET + Docker",
+    "category": "Hybrid",
+    "description": "Build and test a .NET app, containerize it and run it on your servers",
+    "riskLevel": "Medium",
+    "tags": ["dotnet", "docker", "hybrid"],
+    "settings": {
+      "projectType": "DotNet",
+      "deploymentTarget": "Hybrid",
+      "environments": ["test", "preprod", "prod"],
+      "artifactType": "DockerImage",
+      "deploymentKind": "DockerContainer"
+    }
+  },
+  {
+    "id": "aks-deploy",
+    "name": "AKS Deployment",
+    "category": "Aks",
+    "description": "Build a container image and deploy Kubernetes manifests to Azure Kubernetes Service",
+    "riskLevel": "High",
+    "tags": ["kubernetes", "aks", "docker"],
+    "settings": {
+      "projectType": "Docker",
+      "deploymentTarget": "Cloud",
+      "environments": ["test", "prod"],
+      "artifactType": "DockerImage",
+      "deploymentKind": "Custom",
+      "customDeployScript": "kubectl apply -f manifests/ --namespace $(K8S_NAMESPACE)"
+    }
+  },
+  {
+    "id": "terraform-azure",
+    "name": "Terraform Azure",
+    "category": "Terraform",
+    "description": "Plan and apply Terraform for Azure resources in each environment",
+    "riskLevel": "High",
+    "tags": ["terraform", "iac"],
+    "settings": {
+      "projectType": "Terraform",
+      "deploymentTarget": "Cloud",
+      "environments": ["test", "prod"],
+      "deploymentKind": "Custom",
+      "iacTool": "Terraform",
+      "iacWorkingDirectory": "infra"
+    }
+  }
+]
