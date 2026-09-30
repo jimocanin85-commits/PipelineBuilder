@@ -17,9 +17,6 @@ namespace SimlifiezYaml.Core.Generators;
 /// </summary>
 public sealed class DeploymentStageGenerator
 {
-    /// <summary>Environments whose deployment is restricted to the main branch.</summary>
-    private static readonly HashSet<string> ProductionNames = new(StringComparer.OrdinalIgnoreCase) { "prod", "production" };
-
     private readonly IArtifactYamlService _artifactService;
     private readonly IHealthCheckYamlService _healthCheckService;
     private readonly IRollbackYamlService _rollbackService;
@@ -65,8 +62,9 @@ public sealed class DeploymentStageGenerator
         {
             var envId = YamlBuilder.ToIdentifier(env);
             var stageName = $"Deploy_{envId}";
-            var condition = ProductionNames.Contains(env)
-                ? "and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'))"
+            // Production only deploys from the release branch.
+            var condition = EnvironmentNames.IsProduction(env)
+                ? $"and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/{definition.ReleaseBranch}'))"
                 : "succeeded()";
 
             sb.Append($"- stage: {stageName}\n");

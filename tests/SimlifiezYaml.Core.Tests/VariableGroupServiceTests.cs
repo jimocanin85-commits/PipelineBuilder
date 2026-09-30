@@ -19,7 +19,7 @@ public class VariableGroupServiceTests
 
         var yaml = _sut.GeneratePipelineVariables(definition);
 
-        Assert.Contains("- group: vg-test", yaml);
+        Assert.Contains("- group: 'vg-test'", yaml);
         Assert.Contains("BuildConfiguration", yaml);
     }
 

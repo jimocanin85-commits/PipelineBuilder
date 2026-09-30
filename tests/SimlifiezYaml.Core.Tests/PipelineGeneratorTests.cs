@@ -28,7 +28,7 @@ public class PipelineGeneratorTests
         Assert.Contains("stage: Test", result.Yaml);
         Assert.Contains("stage: Artifact", result.Yaml);
         Assert.Contains("environment: test", result.Yaml);
-        Assert.Contains("- group: vg-test", result.Yaml);
+        Assert.Contains("- group: 'vg-test'", result.Yaml);
         Assert.NotEmpty(result.Explanations);
     }
 

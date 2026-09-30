@@ -7,21 +7,20 @@ namespace SimlifiezYaml.Core.Services;
 
 public sealed class RepoScannerService : IRepoScannerService
 {
+    // Every suggested id must exist in TemplateMarketplaceService (covered by a test).
     private static readonly (string Pattern, Action<RepoScanResultBuilder> Apply)[] Rules =
     {
         ("*.sln", b => { b.HasDotNet = true; b.Suggest("dotnet-web-app"); }),
         ("*.csproj", b => b.HasDotNet = true),
-        ("*Tests*.csproj", b => { b.HasTests = true; b.Suggest("dotnet-with-tests"); }),
+        ("*Tests*.csproj", b => b.HasTests = true),
+        ("web.config", b => b.Suggest("iis-onprem")),
         ("Dockerfile", b => { b.HasDockerfile = true; b.Suggest("docker-build-push"); }),
-        ("docker-compose.yml", b => b.Suggest("docker-compose-deploy")),
-        ("docker-compose.yaml", b => b.Suggest("docker-compose-deploy")),
-        ("package.json", b => { b.ProjectType = ProjectType.Node; b.Suggest("node-build"); }),
+        ("package.json", b => b.ProjectType = ProjectType.Node),
         ("*.tf", b => { b.HasTerraform = true; b.Suggest("terraform-azure"); }),
-        ("*.bicep", b => { b.HasBicep = true; b.Suggest("bicep-deploy"); }),
-        ("*.yaml", b => b.Suggest("kubernetes-aks")),
-        ("azure-pipelines.yml", b => b.Suggest("existing-pipeline-migrate")),
-        ("azure-pipelines.yaml", b => b.Suggest("existing-pipeline-migrate"))
+        ("*.bicep", b => b.HasBicep = true)
     };
+
+    private static readonly string[] KubernetesFolders = { "k8s", "kubernetes", "manifests", "helm", "charts" };
 
     public RepoScanResult ScanFileList(IReadOnlyList<string> relativePaths)
     {
@@ -34,6 +33,8 @@ public sealed class RepoScannerService : IRepoScannerService
                 if (MatchesPattern(path, pattern))
                     apply(builder);
             }
+            if (IsKubernetesManifest(path))
+                builder.Suggest("aks-deploy");
         }
 
         builder.ProjectType ??= builder.HasDotNet ? ProjectType.DotNet
@@ -45,6 +46,15 @@ public sealed class RepoScannerService : IRepoScannerService
             builder.Suggest("hybrid-dotnet-docker");
 
         return builder.Build();
+    }
+
+    /// <summary>YAML files inside a folder such as k8s/ or manifests/.</summary>
+    private static bool IsKubernetesManifest(string path)
+    {
+        var segments = path.Replace('\\', '/').Split('/');
+        var isYaml = segments[^1].EndsWith(".yaml", StringComparison.OrdinalIgnoreCase)
+                     || segments[^1].EndsWith(".yml", StringComparison.OrdinalIgnoreCase);
+        return isYaml && segments[..^1].Any(folder => KubernetesFolders.Contains(folder, StringComparer.OrdinalIgnoreCase));
     }
 
     /// <summary>

@@ -19,26 +19,28 @@ public sealed class IacYamlService : IIacYamlService
                     ["azureSubscription"] = config.ServiceConnection,
                     ["scriptType"] = "pscore",
                     ["scriptLocation"] = "inlineScript",
-                    ["inlineScript"] = $"az deployment group create -g $(RESOURCE_GROUP) -f {config.WorkingDirectory}/main.bicep"
-                }, $"Deploy Bicep to {environment}")
+                    // what-if previews the change without applying it.
+                    ["inlineScript"] = $"az deployment group {(config.PlanOnly ? "what-if" : "create")} -g $(RESOURCE_GROUP) -f \"{config.WorkingDirectory}/main.bicep\""
+                }, config.PlanOnly ? $"Preview Bicep changes for {environment}" : $"Deploy Bicep to {environment}")
             },
             IaCTool.ArmTemplate => new[]
             {
                 YamlBuilder.Task("AzureResourceManagerTemplateDeployment@3", new Dictionary<string, string>
                 {
                     ["deploymentScope"] = "Resource Group",
+                    ["deploymentMode"] = config.PlanOnly ? "Validation" : "Incremental",
                     ["azureResourceManagerConnection"] = config.ServiceConnection,
                     ["subscriptionId"] = "$(AZURE_SUBSCRIPTION_ID)",
                     ["resourceGroupName"] = "$(RESOURCE_GROUP)",
                     ["location"] = "$(AZURE_LOCATION)",
                     ["templateLocation"] = "Linked artifact",
                     ["csmFile"] = $"{config.WorkingDirectory}/azuredeploy.json"
-                }, $"Deploy ARM template to {environment}")
+                }, config.PlanOnly ? $"Validate ARM template for {environment}" : $"Deploy ARM template to {environment}")
             },
             IaCTool.PowerShell => new[]
             {
                 YamlBuilder.PowerShellStep(
-                    $"Set-Location {YamlBuilder.PsLiteral(config.WorkingDirectory)}; .\\Deploy-Infrastructure.ps1 -Environment {YamlBuilder.PsLiteral(environment)}",
+                    $"Set-Location {YamlBuilder.PsLiteral(config.WorkingDirectory)}; .\\Deploy-Infrastructure.ps1 -Environment {YamlBuilder.PsLiteral(environment)}{(config.PlanOnly ? " -WhatIf" : "")}",
                     "Run PowerShell IaC deployment script")
             },
             _ => Array.Empty<string>()
@@ -67,6 +69,7 @@ public sealed class IacYamlService : IIacYamlService
             ["provider"] = "azurerm",
             ["command"] = "plan",
             ["workingDirectory"] = config.WorkingDirectory,
+            ["commandOptions"] = "-input=false -out=tfplan",
             ["environmentServiceNameAzureRM"] = config.ServiceConnection
         }, "Terraform plan"));
 
@@ -79,6 +82,8 @@ public sealed class IacYamlService : IIacYamlService
                 ["provider"] = "azurerm",
                 ["command"] = "apply",
                 ["workingDirectory"] = config.WorkingDirectory,
+                // Apply exactly the plan produced above, not a fresh one.
+                ["commandOptions"] = "-input=false tfplan",
                 ["environmentServiceNameAzureRM"] = config.ServiceConnection
             }, "Terraform apply"));
         }

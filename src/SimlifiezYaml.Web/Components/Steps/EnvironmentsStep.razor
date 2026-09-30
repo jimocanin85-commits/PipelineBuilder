@@ -4,7 +4,10 @@
 <h2>Environments</h2>
 <label for="environments">Environments, in deployment order (comma-separated)</label>
 <InputText id="environments" @bind-Value="Wizard.EnvironmentsCsv" class="form-control" placeholder="test, preprod, prod" />
-<p class="hint">Use lowercase letters, digits and hyphens. Deployments to <code>prod</code> or <code>production</code> only run from the <code>main</code> branch.</p>
+<p class="hint">Use lowercase letters, digits and hyphens.</p>
+<label for="release-branch">Release branch</label>
+<InputText id="release-branch" @bind-Value="Wizard.Definition.ReleaseBranch" class="form-control" placeholder="main" />
+<p class="hint">Deployments to <code>prod</code> or <code>production</code> only run from this branch.</p>
 <div class="info-box">@EnvironmentService.GetApprovalUiNote()</div>
 
 <h3>Trigger</h3>

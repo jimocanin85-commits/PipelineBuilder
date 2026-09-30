@@ -38,7 +38,7 @@ public sealed class GovernanceValidationService : IGovernanceValidationService
 
         results.AddRange(ValidateDeployment(definition));
 
-        if (governance.RequireHealthCheck && definition.Environments.Contains("prod"))
+        if (governance.RequireHealthCheck && definition.Environments.Any(EnvironmentNames.IsProduction))
         {
             if (!definition.HealthChecks.Any(h => h.Enabled))
             {

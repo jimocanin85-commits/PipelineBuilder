@@ -32,6 +32,9 @@ public sealed class PipelineDefinition
     public string? PoolName { get; set; }
     public DeploymentTarget DeploymentTarget { get; set; }
     public TriggerConfig Trigger { get; set; } = TriggerConfig.Default;
+
+    /// <summary>Branch that production deployments are restricted to.</summary>
+    public string ReleaseBranch { get; set; } = "main";
     public IReadOnlyList<string> Environments { get; set; } = new[] { "test", "preprod", "prod" };
     public IReadOnlyList<VariableGroupConfig> VariableGroups { get; set; } = Array.Empty<VariableGroupConfig>();
     public KeyVaultConfig? KeyVault { get; set; }
