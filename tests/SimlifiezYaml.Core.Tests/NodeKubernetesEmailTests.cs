@@ -66,6 +66,17 @@ public class NodeKubernetesEmailTests
     }
 
     [Fact]
+    public void KubernetesNeverTargetsServerResources()
+    {
+        var definition = Minimal();
+        definition.DeploymentTarget = DeploymentTarget.OnPrem;
+        definition.Artifact = new ArtifactConfig { ArtifactType = ArtifactType.DockerImage, ArtifactName = "orders" };
+        definition.Deployment = new DeploymentConfig { Kind = DeploymentKind.Kubernetes };
+
+        Assert.DoesNotContain("resourceType: VirtualMachine", Generator.Generate(definition).Yaml);
+    }
+
+    [Fact]
     public void KubernetesWithoutAnImageIsFlagged()
     {
         var definition = Minimal();

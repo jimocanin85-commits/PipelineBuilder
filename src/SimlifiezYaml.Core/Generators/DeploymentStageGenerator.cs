@@ -51,8 +51,9 @@ public sealed class DeploymentStageGenerator
     /// (VM resources) rather than on a pipeline agent pool.
     /// </summary>
     public static bool UsesServerResources(PipelineDefinition definition) =>
-        definition.DeploymentTarget == DeploymentTarget.OnPrem
-        || (definition.DeploymentTarget == DeploymentTarget.Hybrid && definition.Deployment.IsServerDeployment);
+        definition.Deployment.Kind != DeploymentKind.Kubernetes // deploys to the cluster, from a pipeline agent
+        && (definition.DeploymentTarget == DeploymentTarget.OnPrem
+            || (definition.DeploymentTarget == DeploymentTarget.Hybrid && definition.Deployment.IsServerDeployment));
 
     public string Generate(PipelineDefinition definition)
     {
