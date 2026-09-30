@@ -1,6 +1,16 @@
 @inject WizardState Wizard
 
 <h2>Project</h2>
+
+<div class="card load-settings">
+    <label for="settings-file">Open saved settings (@PipelineDefinitionSerializer.FileName)</label>
+    <InputFile id="settings-file" accept=".json,application/json" OnChange="LoadSettings" />
+    @if (Wizard.SettingsMessage is { } message)
+    {
+        <p class="@(message.IsError ? "severity-error" : "status")" role="status">@message.Text</p>
+    }
+</div>
+
 <label for="pipeline-name">Pipeline name</label>
 <InputText id="pipeline-name" @bind-Value="Wizard.Definition.Name" class="form-control" />
 
@@ -24,4 +34,22 @@
 else
 {
     <div class="info-box">Build and test steps for @Wizard.Definition.ProjectType projects are generated as placeholders for you to fill in.</div>
+}
+
+@code {
+    private async Task LoadSettings(InputFileChangeEventArgs e)
+    {
+        try
+        {
+            await using var stream = e.File.OpenReadStream(PipelineDefinitionSerializer.MaxFileSize);
+            using var reader = new StreamReader(stream);
+            var definition = PipelineDefinitionSerializer.FromJson(await reader.ReadToEndAsync());
+            Wizard.SettingsMessage = ($"Loaded settings for '{definition.Name}'.", false);
+            Wizard.Load(definition);
+        }
+        catch (Exception ex) when (ex is FormatException or IOException)
+        {
+            Wizard.SettingsMessage = ($"Could not open the file: {ex.Message}", true);
+        }
+    }
 }

@@ -2,9 +2,12 @@
 @inject IJSRuntime JS
 
 <h2>Download / export</h2>
-@if (Wizard.GenerationError != null)
+@if (Wizard.BlockingErrors.Count > 0)
 {
-    <div class="severity-error generation-error"><pre>@Wizard.GenerationError</pre></div>
+    <div class="generation-error">
+        <p class="severity-error">The pipeline could not be generated. Fix these settings:</p>
+        <IssueList Issues="Wizard.BlockingErrors" ShowGoTo="true" />
+    </div>
 }
 else if (Wizard.Result is { } result)
 {
@@ -18,6 +21,12 @@ else if (Wizard.Result is { } result)
     <div class="actions">
         <button type="button" class="btn-primary" id="download-yaml" @onclick="() => Download(PipelineFileName, result.Yaml, YamlMime)">Download azure-pipelines.yml</button>
         <button type="button" class="btn-secondary" id="copy-yaml" @onclick="() => Copy(result.Yaml)">Copy YAML</button>
+    </div>
+
+    <h3>Settings</h3>
+    <p class="hint">Save your wizard settings to open and change this pipeline later (Project step → Open saved settings).</p>
+    <div class="actions">
+        <button type="button" class="btn-secondary" id="download-settings" @onclick="DownloadSettings">Download @PipelineDefinitionSerializer.FileName</button>
     </div>
 
     @if (!string.IsNullOrEmpty(result.DiagnosticScript))
@@ -56,6 +65,9 @@ else if (Wizard.Result is { } result)
             _status = $"Download failed: {ex.Message}";
         }
     }
+
+    private Task DownloadSettings() =>
+        Download(PipelineDefinitionSerializer.FileName, PipelineDefinitionSerializer.ToJson(Wizard.Definition), "application/json");
 
     private async Task Copy(string content)
     {

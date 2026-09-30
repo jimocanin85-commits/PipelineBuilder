@@ -22,7 +22,7 @@
             </InputSelect>
         }
         <label><InputCheckbox @bind-Value="group.ContainsSecrets" /> secrets</label>
-        <button type="button" class="btn-link" @onclick="() => Wizard.VariableGroups.Remove(group)">Remove</button>
+        <button type="button" class="btn-link" @onclick="() => { Wizard.VariableGroups.Remove(group); Wizard.NotifyChanged(); }">Remove</button>
     </div>
 }
 <button type="button" class="btn-secondary" @onclick="Add">Add variable group</button>
@@ -41,5 +41,9 @@
 }
 
 @code {
-    private void Add() => Wizard.VariableGroups.Add(new VariableGroupConfig { Name = "vg-new" });
+    private void Add()
+    {
+        Wizard.VariableGroups.Add(new VariableGroupConfig { Name = "vg-new" });
+        Wizard.NotifyChanged();
+    }
 }

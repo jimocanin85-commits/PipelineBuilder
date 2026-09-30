@@ -1,102 +1,88 @@
+using System.Text.RegularExpressions;
 using SimlifiezYaml.Core.Enums;
 
 namespace SimlifiezYaml.Core.Models;
 
 /// <summary>
-/// Validates PipelineDefinition instances to ensure required fields and constraints are met.
-/// Prevents invalid YAML generation by catching configuration issues early.
+/// Checks a <see cref="PipelineDefinition"/> for problems that would make the generated YAML invalid.
+/// These block generation; softer, policy-level findings come from <c>GovernanceValidationService</c>.
+/// Each result names the setting it is about (<see cref="ValidationResult.AffectedField"/>), so the
+/// wizard can show it on the right step.
 /// </summary>
 public static class PipelineDefinitionValidator
 {
-    /// <summary>
-    /// Validates the pipeline definition for required fields and constraints.
-    /// </summary>
-    /// <param name="definition">The pipeline definition to validate</param>
-    /// <returns>List of validation errors, or empty if valid</returns>
-    public static IReadOnlyList<string> Validate(PipelineDefinition definition)
+    /// <summary>All blocking problems, each with the setting it concerns.</summary>
+    public static IReadOnlyList<ValidationResult> ValidateDetailed(PipelineDefinition definition)
     {
-        if (definition == null)
-            throw new ArgumentNullException(nameof(definition));
+        ArgumentNullException.ThrowIfNull(definition);
+        var results = new List<ValidationResult>();
+        void Error(string field, string message, string? fix = null) =>
+            results.Add(new ValidationResult { Severity = ValidationSeverity.Error, AffectedField = field, Message = message, SuggestedFix = fix });
 
-        var errors = new List<string>();
-
-        // Name validation
         if (string.IsNullOrWhiteSpace(definition.Name))
-            errors.Add("Pipeline name is required and cannot be empty.");
-
+            Error(nameof(PipelineDefinition.Name), "Pipeline name is required and cannot be empty.");
         if (definition.Name?.Length > 255)
-            errors.Add("Pipeline name cannot exceed 255 characters.");
-
+            Error(nameof(PipelineDefinition.Name), "Pipeline name cannot exceed 255 characters.");
         if (definition.Name?.Any(char.IsControl) == true)
-            errors.Add("Pipeline name cannot contain line breaks or other control characters.");
+            Error(nameof(PipelineDefinition.Name), "Pipeline name cannot contain line breaks or other control characters.");
 
-        if (string.IsNullOrWhiteSpace(definition.ReleaseBranch)
-            || !System.Text.RegularExpressions.Regex.IsMatch(definition.ReleaseBranch, "^[A-Za-z0-9._/-]+$"))
-            errors.Add("Release branch must be a branch name such as 'main' (letters, digits, '.', '_', '/', '-').");
-
-        // Environment validation
         if (definition.Environments == null || definition.Environments.Count == 0)
-            errors.Add("At least one environment must be specified.");
-
-        // Validate environment names
+            Error(nameof(PipelineDefinition.Environments), "At least one environment must be specified.", "Add e.g. test, preprod, prod.");
         foreach (var env in definition.Environments ?? Array.Empty<string>())
         {
             if (string.IsNullOrWhiteSpace(env))
-                errors.Add("Environment names cannot be empty or whitespace.");
-            else if (!IsValidEnvironmentName(env))
-                errors.Add($"Environment name '{env}' contains invalid characters. Use lowercase letters, digits and hyphens only.");
+                Error(nameof(PipelineDefinition.Environments), "Environment names cannot be empty or whitespace.");
+            else if (!Regex.IsMatch(env, "^[a-z0-9-]+$"))
+                Error(nameof(PipelineDefinition.Environments), $"Environment name '{env}' contains invalid characters. Use lowercase letters, digits and hyphens only.");
         }
+        if (definition.Environments?.Count > 0 && definition.Environments.Count != definition.Environments.Distinct(StringComparer.OrdinalIgnoreCase).Count())
+            Error(nameof(PipelineDefinition.Environments), "Each environment can only be listed once.");
 
-        // Build agent validation
+        if (string.IsNullOrWhiteSpace(definition.ReleaseBranch) || !Regex.IsMatch(definition.ReleaseBranch, "^[A-Za-z0-9._/-]+$"))
+            Error(nameof(PipelineDefinition.ReleaseBranch), "Release branch must be a branch name such as 'main' (letters, digits, '.', '_', '/', '-').");
+
         if (definition.BuildAgent == BuildAgentType.SelfHosted && string.IsNullOrWhiteSpace(definition.PoolName))
-            errors.Add("Pool name is required when using self-hosted build agents.");
+            Error(nameof(PipelineDefinition.PoolName), "Pool name is required when using self-hosted build agents.");
 
-        // Artifact validation
         if (definition.Artifact == null)
-            errors.Add("Artifact configuration is required.");
+            Error(nameof(PipelineDefinition.Artifact), "Artifact configuration is required.");
+        else if (string.IsNullOrWhiteSpace(definition.Artifact.ArtifactName))
+            Error(nameof(PipelineDefinition.Artifact), "Artifact name is required.");
 
-        // Deployment strategy validation
-        if (definition.DeploymentStrategy != null && definition.DeploymentStrategy.StrategyType == DeploymentStrategyType.Canary)
-        {
-            if (definition.DeploymentStrategy.CanaryPercentage < 0 || definition.DeploymentStrategy.CanaryPercentage > 100)
-                errors.Add("Canary deployment percentage must be between 0 and 100.");
-        }
+        if (definition.DeploymentStrategy?.StrategyType == DeploymentStrategyType.Canary
+            && definition.DeploymentStrategy.CanaryPercentage is < 0 or > 100)
+            Error(nameof(PipelineDefinition.DeploymentStrategy), "Canary deployment percentage must be between 0 and 100.");
 
-        // Governance validation
         if (definition.Governance != null && !string.IsNullOrWhiteSpace(definition.Governance.NamingConvention))
         {
             try
             {
-                System.Text.RegularExpressions.Regex.IsMatch("test", definition.Governance.NamingConvention);
+                _ = Regex.IsMatch("test", definition.Governance.NamingConvention);
             }
-            catch (System.Text.RegularExpressions.RegexParseException)
+            catch (RegexParseException)
             {
-                errors.Add("Governance naming convention is not a valid regular expression.");
+                Error(nameof(GovernancePolicyConfig.NamingConvention), "Governance naming convention is not a valid regular expression.");
             }
         }
 
-        // Health check validation
-        if (definition.HealthChecks != null)
+        foreach (var hc in definition.HealthChecks ?? Array.Empty<HealthCheckConfig>())
         {
-            foreach (var hc in definition.HealthChecks)
-            {
-                if (hc.Enabled && hc.HealthCheckType == HealthCheckType.HttpEndpoint && !Uri.TryCreate(hc.Url?.Replace("{environment}", "env", StringComparison.OrdinalIgnoreCase), UriKind.Absolute, out _))
-                    errors.Add("HTTP health check requires a valid endpoint URL.");
-            }
+            var url = hc.Url?.Replace("{environment}", "env", StringComparison.OrdinalIgnoreCase);
+            if (hc.Enabled && hc.HealthCheckType == HealthCheckType.HttpEndpoint && !Uri.TryCreate(url, UriKind.Absolute, out _))
+                Error(nameof(PipelineDefinition.HealthChecks), "HTTP health check requires a valid endpoint URL.", "e.g. https://myapp-{environment}.contoso.com/health");
         }
 
-        // IaC validation
         if (definition.IaC != null && definition.IaC.Tool == IaCTool.Terraform && string.IsNullOrWhiteSpace(definition.IaC.WorkingDirectory))
-            errors.Add("Terraform IaC requires a working directory.");
+            Error(nameof(PipelineDefinition.IaC), "Terraform IaC requires a working directory.");
 
-        return errors;
+        return results;
     }
 
-    /// <summary>
-    /// Validates that a pipeline definition is valid, throwing if invalid.
-    /// </summary>
-    /// <param name="definition">The pipeline definition to validate</param>
-    /// <exception cref="ArgumentException">Thrown if validation fails</exception>
+    /// <summary>The blocking problems as plain messages.</summary>
+    public static IReadOnlyList<string> Validate(PipelineDefinition definition) =>
+        ValidateDetailed(definition).Select(r => r.Message).ToList();
+
+    /// <exception cref="ArgumentException">Thrown if there are blocking problems.</exception>
     public static void ValidateOrThrow(PipelineDefinition definition)
     {
         var errors = Validate(definition);
@@ -107,16 +93,5 @@ public static class PipelineDefinitionValidator
                 string.Join("\n", errors.Select(e => $"  - {e}")),
                 nameof(definition));
         }
-    }
-
-    /// <summary>
-    /// Checks if an environment name contains only valid characters (lowercase alphanumeric and hyphens).
-    /// </summary>
-    private static bool IsValidEnvironmentName(string? name)
-    {
-        if (string.IsNullOrWhiteSpace(name))
-            return false;
-
-        return System.Text.RegularExpressions.Regex.IsMatch(name, "^[a-z0-9-]+$");
     }
 }

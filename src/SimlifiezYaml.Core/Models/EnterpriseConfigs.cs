@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization;
 using SimlifiezYaml.Core.Enums;
 
 namespace SimlifiezYaml.Core.Models;
@@ -56,13 +57,19 @@ public sealed class DeploymentConfig
     /// <summary>Script run by the Custom deploy step. Defaults to a placeholder.</summary>
     public string? CustomScript { get; set; }
 
+    [JsonIgnore]
     public string TargetPathOrDefault => string.IsNullOrWhiteSpace(TargetPath) ? "$(DEPLOY_PATH)" : TargetPath;
+    [JsonIgnore]
     public string ServiceNameOrDefault => string.IsNullOrWhiteSpace(ServiceName) ? "$(SERVICE_NAME)" : ServiceName;
+    [JsonIgnore]
     public string WebsiteNameOrDefault => string.IsNullOrWhiteSpace(WebsiteName) ? "Default Web Site" : WebsiteName;
+    [JsonIgnore]
     public string WebAppNameOrDefault => string.IsNullOrWhiteSpace(WebAppName) ? "$(WEBAPP_NAME)" : WebAppName;
+    [JsonIgnore]
     public string ContainerNameOrDefault => string.IsNullOrWhiteSpace(ContainerName) ? "$(CONTAINER_NAME)" : ContainerName;
 
     /// <summary>True for targets that run on servers registered in an Azure DevOps environment.</summary>
+    [JsonIgnore]
     public bool IsServerDeployment => Kind is DeploymentKind.Iis or DeploymentKind.WindowsService or DeploymentKind.FileShare or DeploymentKind.DockerContainer;
 }
 
@@ -81,6 +88,7 @@ public sealed class RollbackConfig
     public RollbackTarget Target { get; set; } = RollbackTarget.Iis;
 
     /// <summary>Root folder for backups. Each environment and build gets its own subfolder.</summary>
+    [JsonIgnore]
     public string BackupRootOrDefault => string.IsNullOrWhiteSpace(BackupPath) ? @"D:\backups" : BackupPath;
 }
 

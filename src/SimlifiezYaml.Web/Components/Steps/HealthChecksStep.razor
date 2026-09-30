@@ -40,11 +40,15 @@
                 <InputTextArea @bind-Value="hc.CustomScript" class="form-control" rows="4" />
                 break;
         }
-        <button type="button" class="btn-link" @onclick="() => Wizard.HealthChecks.Remove(hc)">Remove</button>
+        <button type="button" class="btn-link" @onclick="() => { Wizard.HealthChecks.Remove(hc); Wizard.NotifyChanged(); }">Remove</button>
     </div>
 }
 <button type="button" class="btn-secondary" @onclick="Add">Add health check</button>
 
 @code {
-    private void Add() => Wizard.HealthChecks.Add(new HealthCheckConfig { Enabled = true, HealthCheckType = HealthCheckType.HttpEndpoint });
+    private void Add()
+    {
+        Wizard.HealthChecks.Add(new HealthCheckConfig { Enabled = true, HealthCheckType = HealthCheckType.HttpEndpoint });
+        Wizard.NotifyChanged();
+    }
 }

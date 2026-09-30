@@ -17,25 +17,76 @@ public sealed class WizardState
     public WizardState()
     {
         Definition = CreateDefault();
-        VariableGroups = Definition.VariableGroups.ToList();
-        HealthChecks = Definition.HealthChecks.ToList();
-        Notifications = Definition.Notifications.ToList();
-        Definition.VariableGroups = VariableGroups;
-        Definition.HealthChecks = HealthChecks;
-        Definition.Notifications = Notifications;
-        if (Definition.AgentDiagnostics != null) _agentDiagnostics = Definition.AgentDiagnostics;
+        Load(Definition);
     }
 
     public WizardStep CurrentStep { get; set; } = WizardStep.ProjectType;
-    public PipelineDefinition Definition { get; }
+    public PipelineDefinition Definition { get; private set; }
 
     // Editable lists; the same instances are assigned to Definition.
-    public List<VariableGroupConfig> VariableGroups { get; }
-    public List<HealthCheckConfig> HealthChecks { get; }
-    public List<NotificationConfig> Notifications { get; }
+    public List<VariableGroupConfig> VariableGroups { get; } = new();
+    public List<HealthCheckConfig> HealthChecks { get; } = new();
+    public List<NotificationConfig> Notifications { get; } = new();
 
     public GeneratedPipeline? Result { get; private set; }
-    public string? GenerationError { get; private set; }
+
+    /// <summary>Problems that stopped the last generation (invalid settings).</summary>
+    public IReadOnlyList<ValidationResult> BlockingErrors { get; private set; } = Array.Empty<ValidationResult>();
+
+    /// <summary>Raised when a component asks to show another step (e.g. "Go to step" on an error).</summary>
+    public event Action<WizardStep>? NavigationRequested;
+
+    public void RequestNavigation(WizardStep step) => NavigationRequested?.Invoke(step);
+
+    /// <summary>Raised when settings change in a way the whole page should reflect (e.g. a file was loaded).</summary>
+    public event Action? Changed;
+
+    public void NotifyChanged() => Changed?.Invoke();
+
+    /// <summary>
+    /// Result of the last "Open saved settings". Kept here rather than in the component, because
+    /// loading replaces the form (and so recreates the step components).
+    /// </summary>
+    public (string Text, bool IsError)? SettingsMessage { get; set; }
+
+    /// <summary>
+    /// Replaces all settings, e.g. with a saved settings file. The editable lists and the
+    /// Key Vault / IaC / diagnostics sections are rebuilt from <paramref name="definition"/>.
+    /// </summary>
+    public void Load(PipelineDefinition definition)
+    {
+        Definition = definition;
+        VariableGroups.Clear();
+        VariableGroups.AddRange(definition.VariableGroups);
+        HealthChecks.Clear();
+        HealthChecks.AddRange(definition.HealthChecks);
+        Notifications.Clear();
+        Notifications.AddRange(definition.Notifications);
+        definition.VariableGroups = VariableGroups;
+        definition.HealthChecks = HealthChecks;
+        definition.Notifications = Notifications;
+
+        _keyVault = definition.KeyVault ?? new KeyVaultConfig { ServiceConnection = definition.AzureServiceConnection };
+        _iac = definition.IaC ?? new InfrastructureAsCodeConfig { WorkingDirectory = "infra", ServiceConnection = definition.AzureServiceConnection };
+        _agentDiagnostics = definition.AgentDiagnostics ?? new AgentDiagnosticConfig();
+
+        Result = null;
+        BlockingErrors = Array.Empty<ValidationResult>();
+        ScanResult = null;
+        NotifyChanged();
+    }
+
+    /// <summary>
+    /// Issues to show on a step: blocking problems (always current) plus the warnings and errors
+    /// from the last generated pipeline.
+    /// </summary>
+    public IReadOnlyList<ValidationResult> IssuesFor(WizardStep step) =>
+        PipelineDefinitionValidator.ValidateDetailed(Definition)
+            .Concat(Result?.ValidationResults.Where(v => v.Severity != ValidationSeverity.Info) ?? Enumerable.Empty<ValidationResult>())
+            .Where(v => StepMap.ForField(v.AffectedField) == step)
+            .ToList();
+
+    public bool HasErrors(WizardStep step) => IssuesFor(step).Any(v => v.Severity == ValidationSeverity.Error);
     public RepoScanResult? ScanResult { get; set; }
     public string RepoPathsInput { get; set; } = "src/MyApp/MyApp.csproj\nDockerfile\ntests/MyApp.Tests/MyApp.Tests.csproj";
 
@@ -126,17 +177,9 @@ public sealed class WizardState
 
     public void Generate(IPipelineGeneratorService generator)
     {
-        try
-        {
-            Result = generator.Generate(Definition);
-            GenerationError = null;
-        }
-        catch (ArgumentException ex)
-        {
-            // Invalid input: show the validation errors instead of crashing the page.
-            Result = null;
-            GenerationError = ex.Message;
-        }
+        // Invalid settings: show the problems (with links to their steps) instead of generating.
+        BlockingErrors = PipelineDefinitionValidator.ValidateDetailed(Definition);
+        Result = BlockingErrors.Count == 0 ? generator.Generate(Definition) : null;
     }
 
     public void ScanRepository(IRepoScannerService scanner)
