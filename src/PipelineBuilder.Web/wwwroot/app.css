@@ -60,3 +60,4 @@ h3 { margin-top: 1.5rem; }
 .go-to-step { display: block; padding: 0; margin-top: 0.15rem; }
 .badge { display: inline-block; margin-left: 0.3rem; padding: 0 0.35rem; border-radius: 999px; background: var(--error); color: white; font-weight: bold; }
 .load-settings input[type=file] { margin-top: 0.35rem; }
+.signed-in { font-size: 0.85rem; }

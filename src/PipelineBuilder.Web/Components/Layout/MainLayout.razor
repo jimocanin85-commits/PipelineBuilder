@@ -4,6 +4,11 @@
     <header class="app-header">
         <h1>PipelineBuilder</h1>
         <p>Enterprise Azure DevOps Pipeline Builder</p>
+        <AuthorizeView>
+            <Authorized>
+                <p class="signed-in">Signed in as <strong>@context.User.Identity?.Name</strong></p>
+            </Authorized>
+        </AuthorizeView>
     </header>
     <main class="app-main">
         @Body
