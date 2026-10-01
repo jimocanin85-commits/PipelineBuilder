@@ -8,3 +8,4 @@ Short records of decisions that shape the code: the context, the decision and wh
 | [0002](0002-yaml-as-text-with-a-parse-check.md) | Build YAML as text and parse the result | Accepted |
 | [0003](0003-golden-files.md) | Golden files for generated pipelines | Accepted |
 | [0004](0004-measured-architecture-goals.md) | Architecture goals are measured and ratcheted in tests | Accepted |
+| [0005](0005-one-handler-per-deployment-kind.md) | One handler per deployment kind | Accepted |

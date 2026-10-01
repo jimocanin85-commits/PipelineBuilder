@@ -19,41 +19,29 @@ public sealed class DeploymentStageGenerator
 {
     private readonly IArtifactYamlService _artifactService;
     private readonly IHealthCheckYamlService _healthCheckService;
-    private readonly IRollbackYamlService _rollbackService;
+    private readonly IDeploymentKinds _deploymentKinds;
     private readonly IDeploymentStrategyService _strategyService;
     private readonly IVariableGroupService _variableGroupService;
-    private readonly IDeploymentStepService _deploymentStepService;
     private readonly IKeyVaultYamlService _keyVaultService;
     private readonly IIacYamlService _iacService;
 
     public DeploymentStageGenerator(
         IArtifactYamlService artifactService,
         IHealthCheckYamlService healthCheckService,
-        IRollbackYamlService rollbackService,
+        IDeploymentKinds deploymentKinds,
         IDeploymentStrategyService strategyService,
         IVariableGroupService variableGroupService,
-        IDeploymentStepService deploymentStepService,
         IKeyVaultYamlService keyVaultService,
         IIacYamlService iacService)
     {
         _artifactService = artifactService;
         _healthCheckService = healthCheckService;
-        _rollbackService = rollbackService;
+        _deploymentKinds = deploymentKinds;
         _strategyService = strategyService;
         _variableGroupService = variableGroupService;
-        _deploymentStepService = deploymentStepService;
         _keyVaultService = keyVaultService;
         _iacService = iacService;
     }
-
-    /// <summary>
-    /// True when deployments run on servers registered in the Azure DevOps environment
-    /// (VM resources) rather than on a pipeline agent pool.
-    /// </summary>
-    public static bool UsesServerResources(PipelineDefinition definition) =>
-        definition.Deployment.Kind != DeploymentKind.Kubernetes // deploys to the cluster, from a pipeline agent
-        && (definition.DeploymentTarget == DeploymentTarget.OnPrem
-            || (definition.DeploymentTarget == DeploymentTarget.Hybrid && definition.Deployment.IsServerDeployment));
 
     public string Generate(PipelineDefinition definition)
     {
@@ -127,18 +115,19 @@ public sealed class DeploymentStageGenerator
 
     private string DeploymentJob(PipelineDefinition definition, string env, string envId, bool dependsOnInfrastructure)
     {
-        var serverResources = UsesServerResources(definition);
+        var kind = _deploymentKinds.For(definition.Deployment.Kind);
+        var serverResources = _deploymentKinds.UsesServerResources(definition);
         var packagePath = _artifactService.GetDeployPackagePath(definition.Artifact);
 
         var deploySteps = new List<string> { "    - download: none" }; // we download explicitly below
-        if (definition.Deployment.Kind == DeploymentKind.Kubernetes)
-            deploySteps.Add("    - checkout: self"); // the manifests live in the repository
+        if (kind.NeedsRepositoryCheckout)
+            deploySteps.Add("    - checkout: self"); // e.g. Kubernetes manifests live in the repository
         deploySteps.AddRange(_artifactService.GenerateDownloadSteps(definition.Artifact, env));
         if (definition.KeyVault != null && !string.IsNullOrWhiteSpace(definition.KeyVault.KeyVaultName))
             deploySteps.Add(_keyVaultService.GeneratePreJobSteps(definition.KeyVault));
-        deploySteps.AddRange(_rollbackService.GenerateBackupSteps(definition.Rollback, definition.Deployment, env));
+        deploySteps.AddRange(_deploymentKinds.GenerateBackupSteps(definition, env));
 
-        var deployTask = string.Join("\n", _deploymentStepService.GenerateDeploySteps(definition, env, packagePath));
+        var deployTask = string.Join("\n", kind.GenerateDeploySteps(definition, env, packagePath));
         deploySteps.AddRange(_strategyService.GenerateStrategySteps(
             definition.DeploymentStrategy, env, deployTask, definition.Deployment.WebAppNameOrDefault, definition.AzureServiceConnection));
 
@@ -146,7 +135,7 @@ public sealed class DeploymentStageGenerator
             deploySteps.AddRange(_healthCheckService.GenerateHealthCheckSteps(ForEnvironment(hc, env)));
 
         var rollbackSteps = definition.DeploymentStrategy.RollbackOnFailure
-            ? _rollbackService.GenerateRollbackSteps(definition.Rollback, definition.Deployment, env)
+            ? _deploymentKinds.GenerateRollbackSteps(definition, env)
             : Array.Empty<string>();
 
         var sb = new StringBuilder();

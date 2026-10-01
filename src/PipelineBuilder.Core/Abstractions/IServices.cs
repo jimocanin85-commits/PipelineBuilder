@@ -27,22 +27,58 @@ public interface IArtifactYamlService
     string GetDeployPackagePath(ArtifactConfig config);
 }
 
-public interface IRollbackYamlService
+/// <summary>
+/// Everything about one deployment kind in one place: its deploy, backup and rollback steps, what it
+/// needs from the pipeline, and its own checks. Adding a deployment kind means adding one handler.
+/// </summary>
+public interface IDeploymentKindHandler
 {
-    /// <summary>Steps run in the deploy job before deploying, to snapshot the current version.</summary>
+    DeploymentKind Kind { get; }
+
+    /// <summary>The rollback target this kind backs up and restores; null when the user chooses one (Custom).</summary>
+    RollbackTarget? RollbackTarget { get; }
+
+    /// <summary>Deploys to servers registered in an Azure DevOps environment when the target is on-premises or hybrid.</summary>
+    bool RunsOnServers { get; }
+
+    /// <summary>Always deploys from a pipeline agent, even on-premises (e.g. to a Kubernetes cluster).</summary>
+    bool DeploysFromAgentOnly { get; }
+
+    /// <summary>The deploy job checks out the repository (e.g. for Kubernetes manifests).</summary>
+    bool NeedsRepositoryCheckout { get; }
+
+    /// <summary>Works with the slot-swap strategy.</summary>
+    bool SupportsSlotSwap { get; }
+
+    /// <summary>Steps that deploy the downloaded package to the target.</summary>
+    IReadOnlyList<string> GenerateDeploySteps(PipelineDefinition definition, string environment, string packagePath);
+
+    /// <summary>Steps run before deploying to snapshot the current version (rollback enabled).</summary>
     IReadOnlyList<string> GenerateBackupSteps(RollbackConfig config, DeploymentConfig deployment, string environment);
 
     /// <summary>Steps run in the deploy job's <c>on: failure</c> hook to restore the snapshot.</summary>
     IReadOnlyList<string> GenerateRollbackSteps(RollbackConfig config, DeploymentConfig deployment, string environment);
 
-    /// <summary>The rollback target in effect: follows the deployment kind unless that is Custom.</summary>
-    RollbackTarget ResolveTarget(RollbackConfig config, DeploymentConfig deployment);
+    /// <summary>Checks that only apply to this deployment kind.</summary>
+    IEnumerable<ValidationResult> Validate(PipelineDefinition definition);
 }
 
-public interface IDeploymentStepService
+/// <summary>The registered deployment kinds, and the decisions that depend on the selected one.</summary>
+public interface IDeploymentKinds
 {
-    /// <summary>Steps that deploy the downloaded package to the target.</summary>
-    IReadOnlyList<string> GenerateDeploySteps(PipelineDefinition definition, string environment, string packagePath);
+    IReadOnlyList<IDeploymentKindHandler> All { get; }
+
+    /// <summary>The handler for a kind; the Custom handler for a kind without one.</summary>
+    IDeploymentKindHandler For(DeploymentKind kind);
+
+    /// <summary>True when deployments run on servers registered in the environment rather than on an agent pool.</summary>
+    bool UsesServerResources(PipelineDefinition definition);
+
+    /// <summary>Backup steps for the deploy job, from the kind's own handler or, for Custom, the chosen rollback target's.</summary>
+    IReadOnlyList<string> GenerateBackupSteps(PipelineDefinition definition, string environment);
+
+    /// <summary>Rollback steps for the <c>on: failure</c> hook: the custom rollback script, or the handler's steps.</summary>
+    IReadOnlyList<string> GenerateRollbackSteps(PipelineDefinition definition, string environment);
 }
 
 public interface IHealthCheckYamlService

@@ -1,10 +1,12 @@
 @inject WizardState Wizard
+@inject IDeploymentKinds DeploymentKinds
 
 <h2>Rollback</h2>
 <label><InputCheckbox @bind-Value="Wizard.Definition.Rollback.Enabled" /> Back up before deploying and roll back automatically if the deployment fails</label>
 @if (Wizard.Definition.Rollback.Enabled)
 {
-    if (Wizard.Definition.Deployment.Kind == DeploymentKind.Custom)
+    @* Kinds without their own rollback target (Custom) let the user choose one. *@
+    if (DeploymentKinds.For(Wizard.Definition.Deployment.Kind).RollbackTarget is null)
     {
         <label for="rollback-target">Rollback target</label>
         <InputSelect id="rollback-target" @bind-Value="Wizard.Definition.Rollback.Target" class="form-control">
