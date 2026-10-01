@@ -63,6 +63,45 @@ Open <http://localhost:5150> (or <https://localhost:7150>), go through the wizar
 
 If the app doesn't start because a port is in use, stop the other process or change the port in `launchSettings.json`.
 
+## Hosting on IIS (Windows login)
+
+Run PipelineBuilder on a Windows server so the team can use it in the browser. Users sign in automatically with their Windows account (Kerberos/NTLM).
+
+**Server prerequisites**
+- Windows Server 2019 or later with IIS. The install script can add the features it needs: Web Server, **WebSockets** (Blazor needs it) and **Windows Authentication**.
+- The **ASP.NET Core Hosting Bundle for .NET 10** (from <https://dotnet.microsoft.com/download/dotnet/10.0>).
+- The server joined to the domain, and an HTTPS certificate if users connect over HTTPS.
+
+**Install or update**
+
+```powershell
+dotnet publish src/PipelineBuilder.Web -c Release -o .\publish
+# As Administrator on the server:
+.\deploy\Install-PipelineBuilder.ps1 -PublishFolder .\publish -InstallMissingFeatures `
+    -HostName pipelines.contoso.local -Port 443 -CertificateThumbprint <thumbprint> `
+    -AllowedGroups 'CONTOSO\Platform-Team'
+```
+
+The script works from Windows PowerShell or PowerShell 7; the IIS commands always run in Windows PowerShell. It:
+1. creates the app pool (No Managed Code) and the website;
+2. copies the files and gives the app pool read access;
+3. turns on Windows Authentication and turns off anonymous access;
+4. with `-AllowedGroups`, limits the app to members of those AD groups (written to `appsettings.Production.json`).
+
+Run it again with a new publish folder to update; it keeps `appsettings.Production.json`.
+
+**How login is decided** (`Authentication` section in appsettings):
+
+| `Mode` | Behaviour |
+|---|---|
+| empty (default) | Windows login everywhere except Development, so `dotnet run` locally stays open |
+| `Windows` | always Windows login |
+| `None` | no login. Only use this behind another access control. |
+
+`AllowedGroups` lists AD groups (`DOMAIN\Group`). When it's empty, any signed-in domain user can use the app.
+
+A separate CI workflow (`.github/workflows/iis.yml`) installs the app on IIS on a Windows runner with this script. It checks that anonymous requests get 401, and that a Windows-authenticated request gets the wizard.
+
 ## Test
 
 ```bash

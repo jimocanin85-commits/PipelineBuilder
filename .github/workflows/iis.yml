@@ -1,0 +1,95 @@
+name: IIS install test
+
+# Publishes the app and installs it on IIS on a Windows runner with deploy/Install-PipelineBuilder.ps1,
+# then checks that anonymous requests are refused and Windows-authenticated requests get the wizard.
+on:
+  pull_request:
+    paths:
+      - 'deploy/**'
+      - 'src/PipelineBuilder.Web/**'
+      - '.github/workflows/iis.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  iis:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-dotnet@v6
+        with:
+          global-json-file: global.json
+
+      - name: Publish
+        run: dotnet publish src/PipelineBuilder.Web -c Release -o publish
+
+      - name: Install IIS features
+        shell: pwsh
+        run: Install-WindowsFeature -Name Web-Server, Web-WebSockets, Web-Windows-Auth -IncludeManagementTools | Out-Null
+
+      - name: Install the ASP.NET Core Hosting Bundle (.NET 10)
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          # The official release list names the current Hosting Bundle download.
+          $releases = Invoke-RestMethod 'https://builds.dotnet.microsoft.com/dotnet/release-metadata/10.0/releases.json'
+          $latest = $releases.releases | Where-Object { $_.'release-version' -eq $releases.'latest-release' } | Select-Object -First 1
+          $bundle = $latest.'aspnetcore-runtime'.files | Where-Object { $_.name -like 'dotnet-hosting-win.exe' } | Select-Object -First 1
+          if (-not $bundle) { throw 'Hosting Bundle download not found in releases.json' }
+          Write-Host "Installing $($bundle.url)"
+          Invoke-WebRequest $bundle.url -OutFile hosting.exe
+          Start-Process hosting.exe -ArgumentList '/install', '/quiet', '/norestart' -Wait
+          net stop was /y | Out-Null
+          net start w3svc | Out-Null
+
+      - name: Run the install script
+        shell: pwsh
+        run: |
+          try {
+            ./deploy/Install-PipelineBuilder.ps1 -PublishFolder publish -Port 8080
+          }
+          catch {
+            # Show the failure on the run summary, including where in the script it happened.
+            $message = ($_ | Out-String) -replace "`r?`n", ' '
+            Write-Host "::error title=Install script::$message $($_.ScriptStackTrace -replace "`r?`n", ' <- ')"
+            exit 1
+          }
+
+      - name: Check Windows login
+        shell: pwsh
+        run: |
+          $url = 'http://localhost:8080/'
+          function Fail([string] $message, $response) {
+            $body = if ($response) { ($response.Content -replace '<[^>]+>', ' ' -replace '\s+', ' ').Trim() } else { '' }
+            if ($body.Length -gt 600) { $body = $body.Substring(0, 600) }
+            Write-Host "::error title=Windows login::$message | $body"
+            exit 1
+          }
+
+          trap { Write-Host "::error title=Windows login::$(($_ | Out-String) -replace "`r?`n", ' ')"; exit 1 }
+
+          # Anonymous: refused with a Windows authentication challenge.
+          $anonymous = Invoke-WebRequest $url -SkipHttpErrorCheck
+          Write-Host "Anonymous: $($anonymous.StatusCode) $($anonymous.Headers['WWW-Authenticate'])"
+          if ($anonymous.StatusCode -ne 401) { Fail "Expected 401 for anonymous requests, got $($anonymous.StatusCode)" $anonymous }
+
+          # Signed in as the runner's Windows account: the wizard and the signed-in user are shown.
+          # Test site is plain http on localhost; Kerberos/NTLM do not send the password itself.
+          $signedIn = Invoke-WebRequest $url -UseDefaultCredentials -AllowUnencryptedAuthentication -SkipHttpErrorCheck
+          Write-Host "Signed in: $($signedIn.StatusCode)"
+          if ($signedIn.StatusCode -ne 200) { Fail "Expected 200 with Windows credentials, got $($signedIn.StatusCode)" $signedIn }
+          if ($signedIn.Content -notmatch 'Project type') { Fail 'The wizard did not render.' $signedIn }
+          if ($signedIn.Content -notmatch 'Signed in as') { Fail 'The signed-in user is not shown.' $signedIn }
+          Write-Host 'Windows login works.' -ForegroundColor Green
+
+      - name: IIS logs on failure
+        if: failure()
+        shell: pwsh
+        run: |
+          Get-ChildItem C:\inetpub\logs\LogFiles -Recurse -File -ErrorAction SilentlyContinue | Select-Object -Last 1 | Get-Content -Tail 30
+          Get-WinEvent -LogName Application -MaxEvents 30 -ErrorAction SilentlyContinue |
+            Where-Object ProviderName -match 'IIS|AspNetCore|\.NET Runtime' | Select-Object -First 5 |
+            ForEach-Object { Write-Host "::warning title=$($_.ProviderName)::$(($_.Message -replace "`r?`n", ' ').Substring(0, [Math]::Min(800, $_.Message.Length)))" }
