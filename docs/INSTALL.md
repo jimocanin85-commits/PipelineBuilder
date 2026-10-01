@@ -24,8 +24,8 @@ Using the pipelines PipelineBuilder generates is a separate setup in Azure DevOp
 ### Steps
 
 ```bash
-git clone https://github.com/jimocanin85-commits/SimlifiezYaml.git
-cd SimlifiezYaml
+git clone https://github.com/jimocanin85-commits/PipelineBuilder.git
+cd PipelineBuilder
 dotnet run --project src/PipelineBuilder.Web
 ```
 
