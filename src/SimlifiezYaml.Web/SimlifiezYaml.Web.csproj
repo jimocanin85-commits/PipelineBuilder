@@ -1,8 +1,0 @@
-<Project Sdk="Microsoft.NET.Sdk.Web">
-  <PropertyGroup>
-    <RootNamespace>SimlifiezYaml.Web</RootNamespace>
-  </PropertyGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\SimlifiezYaml.Core\SimlifiezYaml.Core.csproj" />
-  </ItemGroup>
-</Project>

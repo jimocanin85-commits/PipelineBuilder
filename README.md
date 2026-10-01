@@ -1,10 +1,10 @@
-# SimlifiezYaml
+# PipelineBuilder
 
 Enterprise Azure DevOps pipeline builder for cloud, on-premises and hybrid deployments. A Blazor wizard collects your settings and generates a ready-to-use `azure-pipelines.yml`.
 
 ## Prerequisites
 
-### To run SimlifiezYaml
+### To run PipelineBuilder
 
 | What | Details |
 |---|---|
@@ -12,7 +12,7 @@ Enterprise Azure DevOps pipeline builder for cloud, on-premises and hybrid deplo
 | **Operating system** | Windows, macOS or Linux (anything .NET 10 supports). |
 | **Internet access to nuget.org** | Needed the first time you build, to restore packages. |
 | **HTTPS development certificate** | Only for the `https://localhost:7150` address: run `dotnet dev-certs https --trust` once. The `http://localhost:5150` address works without it. |
-| **Free ports 5150 and 7150** | Set in `src/SimlifiezYaml.Web/Properties/launchSettings.json`; change them there if they are taken. |
+| **Free ports 5150 and 7150** | Set in `src/PipelineBuilder.Web/Properties/launchSettings.json`; change them there if they are taken. |
 | **A modern browser** | Edge, Chrome, Firefox or Safari with WebSockets enabled (Blazor Server keeps a live connection). |
 | **An editor (optional)** | Visual Studio 2026 (18.9 or later, which includes the .NET 10.0.401 SDK), VS Code with C# Dev Kit, or JetBrains Rider. The command line alone is enough. |
 
@@ -56,10 +56,10 @@ The wizard's **Validation** step lists what your particular pipeline still needs
 ## Run
 
 ```bash
-dotnet run --project src/SimlifiezYaml.Web
+dotnet run --project src/PipelineBuilder.Web
 ```
 
-Open <http://localhost:5150> (or <https://localhost:7150>), go through the wizard and download `azure-pipelines.yml` on the **Export** step. Use `dotnet watch --project src/SimlifiezYaml.Web` to reload on code changes.
+Open <http://localhost:5150> (or <https://localhost:7150>), go through the wizard and download `azure-pipelines.yml` on the **Export** step. Use `dotnet watch --project src/PipelineBuilder.Web` to reload on code changes.
 
 If the app doesn't start because a port is in use, stop the other process or change the port in `launchSettings.json`.
 
@@ -75,13 +75,13 @@ Runs the unit tests, the generated-YAML checks (every strategy, artifact type, d
 
 ## Templates
 
-The template catalogue ships in `src/SimlifiezYaml.Core/Templates/templates.json`. To add your own templates (or replace a built-in one with the same `id`), point the app at a JSON file in the same format:
+The template catalogue ships in `src/PipelineBuilder.Core/Templates/templates.json`. To add your own templates (or replace a built-in one with the same `id`), point the app at a JSON file in the same format:
 
 ```json
-{ "SimlifiezYaml": { "TemplatesFile": "C:\\config\\our-templates.json" } }
+{ "PipelineBuilder": { "TemplatesFile": "C:\\config\\our-templates.json" } }
 ```
 
-in `appsettings.json`, or set the environment variable `SimlifiezYaml__TemplatesFile`. Each template has an `id`, `name`, `description`, `category`, `riskLevel` and a `settings` block with any of `projectType`, `deploymentTarget`, `environments`, `artifactType`, `deploymentKind`, `strategy`, `rollbackEnabled`, `iacTool`, `iacWorkingDirectory` and `customDeployScript`.
+in `appsettings.json`, or set the environment variable `PipelineBuilder__TemplatesFile`. Each template has an `id`, `name`, `description`, `category`, `riskLevel` and a `settings` block with any of `projectType`, `deploymentTarget`, `environments`, `artifactType`, `deploymentKind`, `strategy`, `rollbackEnabled`, `iacTool`, `iacWorkingDirectory` and `customDeployScript`.
 
 ## Features
 
@@ -100,9 +100,9 @@ in `appsettings.json`, or set the environment variable `SimlifiezYaml__Templates
 ## Solution structure
 
 ```
-src/SimlifiezYaml.Core/          Models, services and stage generators (no UI)
-src/SimlifiezYaml.Web/           Blazor Server wizard (one component per step)
-tests/SimlifiezYaml.Tests/       Unit, generated-YAML, bUnit and web smoke tests
+src/PipelineBuilder.Core/          Models, services and stage generators (no UI)
+src/PipelineBuilder.Web/           Blazor Server wizard (one component per step)
+tests/PipelineBuilder.Tests/       Unit, generated-YAML, bUnit and web smoke tests
 ```
 
 ## Generated pipeline
