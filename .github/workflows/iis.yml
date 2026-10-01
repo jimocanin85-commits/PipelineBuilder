@@ -77,7 +77,8 @@ jobs:
           if ($anonymous.StatusCode -ne 401) { Fail "Expected 401 for anonymous requests, got $($anonymous.StatusCode)" $anonymous }
 
           # Signed in as the runner's Windows account: the wizard and the signed-in user are shown.
-          $signedIn = Invoke-WebRequest $url -UseDefaultCredentials -SkipHttpErrorCheck
+          # Test site is plain http on localhost; Kerberos/NTLM do not send the password itself.
+          $signedIn = Invoke-WebRequest $url -UseDefaultCredentials -AllowUnencryptedAuthentication -SkipHttpErrorCheck
           Write-Host "Signed in: $($signedIn.StatusCode)"
           if ($signedIn.StatusCode -ne 200) { Fail "Expected 200 with Windows credentials, got $($signedIn.StatusCode)" $signedIn }
           if ($signedIn.Content -notmatch 'Project type') { Fail 'The wizard did not render.' $signedIn }
