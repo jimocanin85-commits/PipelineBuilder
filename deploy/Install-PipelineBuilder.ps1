@@ -41,6 +41,23 @@ param(
 
 $ErrorActionPreference = 'Stop'
 
+# The IIS cmdlets (WebAdministration, IIS: drive) only work in Windows PowerShell 5.1.
+# When started from PowerShell 7, run this same script in Windows PowerShell with the same parameters.
+if ($PSVersionTable.PSEdition -eq 'Core') {
+    $forward = @{}
+    foreach ($entry in $PSBoundParameters.GetEnumerator()) {
+        $forward[$entry.Key] = if ($entry.Value -is [switch]) { $entry.Value.IsPresent } else { $entry.Value }
+    }
+    & powershell.exe -NoProfile -ExecutionPolicy Bypass -Command {
+        param($Script, $Parameters)
+        $ErrorActionPreference = 'Stop'
+        try { & $Script @Parameters; exit 0 }
+        catch { Write-Host "ERROR: $($_ | Out-String)$($_.ScriptStackTrace)"; exit 1 }
+    } -args $PSCommandPath, $forward
+    if ($LASTEXITCODE -ne 0) { throw "Install-PipelineBuilder failed in Windows PowerShell (exit code $LASTEXITCODE). See the output above." }
+    return
+}
+
 function Assert-Administrator {
     $principal = [Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()
     if (-not $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {

@@ -82,7 +82,7 @@ dotnet publish src/PipelineBuilder.Web -c Release -o .\publish
     -AllowedGroups 'CONTOSO\Platform-Team'
 ```
 
-The script:
+The script works from Windows PowerShell or PowerShell 7; the IIS commands always run in Windows PowerShell. It:
 1. creates the app pool (No Managed Code) and the website;
 2. copies the files and gives the app pool read access;
 3. turns on Windows Authentication and turns off anonymous access;
