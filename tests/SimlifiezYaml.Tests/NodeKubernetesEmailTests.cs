@@ -6,7 +6,7 @@ using SimlifiezYaml.Core.Models;
 using Xunit;
 using YamlDotNet.Serialization;
 
-namespace SimlifiezYaml.Core.Tests;
+namespace SimlifiezYaml.Tests;
 
 public class NodeKubernetesEmailTests
 {

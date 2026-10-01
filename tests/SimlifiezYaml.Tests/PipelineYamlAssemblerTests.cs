@@ -2,7 +2,7 @@ using SimlifiezYaml.Core.Models;
 using SimlifiezYaml.Core.Services;
 using Xunit;
 
-namespace SimlifiezYaml.Core.Tests;
+namespace SimlifiezYaml.Tests;
 
 public class PipelineYamlAssemblerTests
 {

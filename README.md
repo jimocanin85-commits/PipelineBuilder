@@ -102,7 +102,7 @@ in `appsettings.json`, or set the environment variable `SimlifiezYaml__Templates
 ```
 src/SimlifiezYaml.Core/          Models, services and stage generators (no UI)
 src/SimlifiezYaml.Web/           Blazor Server wizard (one component per step)
-tests/SimlifiezYaml.Core.Tests/  Unit, generated-YAML, bUnit and web smoke tests
+tests/SimlifiezYaml.Tests/       Unit, generated-YAML, bUnit and web smoke tests
 ```
 
 ## Generated pipeline

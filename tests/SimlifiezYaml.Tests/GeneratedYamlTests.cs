@@ -7,7 +7,7 @@ using SimlifiezYaml.Core.Models;
 using Xunit;
 using YamlDotNet.Serialization;
 
-namespace SimlifiezYaml.Core.Tests;
+namespace SimlifiezYaml.Tests;
 
 /// <summary>
 /// End-to-end checks on the generated pipeline: the YAML must parse, stage names and

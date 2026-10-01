@@ -5,7 +5,7 @@ using SimlifiezYaml.Core.Models;
 using SimlifiezYaml.Core.Abstractions;
 using Xunit;
 
-namespace SimlifiezYaml.Core.Tests;
+namespace SimlifiezYaml.Tests;
 
 public class PipelineGeneratorTests
 {

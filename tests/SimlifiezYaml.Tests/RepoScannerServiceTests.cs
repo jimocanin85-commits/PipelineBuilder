@@ -2,7 +2,7 @@ using SimlifiezYaml.Core.Enums;
 using SimlifiezYaml.Core.Services;
 using Xunit;
 
-namespace SimlifiezYaml.Core.Tests;
+namespace SimlifiezYaml.Tests;
 
 public class RepoScannerServiceTests
 {

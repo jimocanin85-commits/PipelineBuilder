@@ -45,6 +45,8 @@ public sealed class SecretsGovernanceService : ISecretsGovernanceService
         return patterns.ToArray();
     }
 
+    private static readonly Regex VariableReference = new(@"\$\([^)]*\)|\$\{\{.*?\}\}", RegexOptions.Compiled);
+
     public IReadOnlyList<SecretGovernanceResult> ScanYaml(string yaml)
     {
         var results = new List<SecretGovernanceResult>();
@@ -52,12 +54,16 @@ public sealed class SecretsGovernanceService : ISecretsGovernanceService
         for (var i = 0; i < lines.Length; i++)
         {
             var line = lines[i];
-            if (line.Contains("$(") || line.Contains("***"))
+            if (line.Contains("***"))
                 continue;
+
+            // Variable references ($(name), ${{ expr }}) are the safe way to use secrets, so
+            // remove them before scanning; a literal secret elsewhere on the same line still counts.
+            var scanned = VariableReference.Replace(line, string.Empty);
 
             foreach (var (pattern, label, severity) in SecretPatterns)
             {
-                if (!pattern.IsMatch(line)) continue;
+                if (!pattern.IsMatch(scanned)) continue;
                 results.Add(new SecretGovernanceResult
                 {
                     HasPlainTextSecret = true,

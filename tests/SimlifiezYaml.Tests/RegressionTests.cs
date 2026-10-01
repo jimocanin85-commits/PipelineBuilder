@@ -7,7 +7,7 @@ using SimlifiezYaml.Core.Services;
 using Xunit;
 using YamlDotNet.Serialization;
 
-namespace SimlifiezYaml.Core.Tests;
+namespace SimlifiezYaml.Tests;
 
 /// <summary>One test (or more) per bug found in the September 2026 code review.</summary>
 public class RegressionTests

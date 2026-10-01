@@ -2,7 +2,7 @@ using System.Net;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Xunit;
 
-namespace SimlifiezYaml.Core.Tests;
+namespace SimlifiezYaml.Tests;
 
 /// <summary>Starts the real web app in memory and requests its pages.</summary>
 public class WebAppSmokeTests : IClassFixture<WebApplicationFactory<Program>>
