@@ -12,6 +12,10 @@ permissions:
 jobs:
   build-and-test:
     runs-on: ubuntu-latest
+    env:
+      # Minimum coverage (docs/ARCHITECTURE.md, goal M3). Raise these when coverage rises; never lower them.
+      MIN_LINE_COVERAGE: 90
+      MIN_BRANCH_COVERAGE: 80
     steps:
       - uses: actions/checkout@v7
 
@@ -61,6 +65,18 @@ jobs:
           line=$(grep -m1 "Line coverage" coverage/Summary.txt | sed 's/^ *//')
           branch=$(grep -m1 "Branch coverage" coverage/Summary.txt | sed 's/^ *//')
           echo "::notice title=Coverage::$line, $branch"
+          # Fail the build when coverage drops below the minimum.
+          below() { awk -v actual="$1" -v minimum="$2" 'BEGIN { exit !(actual + 0 < minimum + 0) }'; }
+          line_pct=$(echo "$line" | grep -oE '[0-9]+([.,][0-9]+)?' | head -1 | tr ',' '.')
+          branch_pct=$(echo "$branch" | grep -oE '[0-9]+([.,][0-9]+)?' | head -1 | tr ',' '.')
+          failed=0
+          if below "$line_pct" "$MIN_LINE_COVERAGE"; then
+            echo "::error title=Coverage::Line coverage $line_pct% is below the minimum of $MIN_LINE_COVERAGE%"; failed=1
+          fi
+          if below "$branch_pct" "$MIN_BRANCH_COVERAGE"; then
+            echo "::error title=Coverage::Branch coverage $branch_pct% is below the minimum of $MIN_BRANCH_COVERAGE%"; failed=1
+          fi
+          exit $failed
 
       - name: Upload coverage report
         if: always()
