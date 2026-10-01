@@ -16,6 +16,8 @@ Enterprise Azure DevOps pipeline builder for cloud, on-premises and hybrid deplo
 | **A modern browser** | Edge, Chrome, Firefox or Safari with WebSockets enabled (Blazor Server keeps a live connection). |
 | **An editor (optional)** | Visual Studio 2026 (18.9 or later, which includes the .NET 10.0.401 SDK), VS Code with C# Dev Kit, or JetBrains Rider. The command line alone is enough. |
 
+To host it on a Windows server with IIS and Windows login, see the checklist in [docs/INSTALL.md](docs/INSTALL.md#21-checklist).
+
 ### To use the generated pipeline in Azure DevOps
 
 Only what your chosen settings need:
@@ -53,54 +55,28 @@ Settings you leave empty in the wizard become pipeline variables. Define the one
 
 The wizard's **Validation** step lists what your particular pipeline still needs.
 
-## Run
+## Install and run
+
+**Full guide: [docs/INSTALL.md](docs/INSTALL.md)**, covering running locally, installing on IIS with Windows login, updating, configuration and troubleshooting.
+
+Quick start, locally:
 
 ```bash
+git clone https://github.com/jimocanin85-commits/SimlifiezYaml.git
+cd SimlifiezYaml
 dotnet run --project src/PipelineBuilder.Web
 ```
 
-Open <http://localhost:5150> (or <https://localhost:7150>), go through the wizard and download `azure-pipelines.yml` on the **Export** step. Use `dotnet watch --project src/PipelineBuilder.Web` to reload on code changes.
+Open <http://localhost:5150>, go through the wizard and download `azure-pipelines.yml` on the **Export** step.
 
-If the app doesn't start because a port is in use, stop the other process or change the port in `launchSettings.json`.
-
-## Hosting on IIS (Windows login)
-
-Run PipelineBuilder on a Windows server so the team can use it in the browser. Users sign in automatically with their Windows account (Kerberos/NTLM).
-
-**Server prerequisites**
-- Windows Server 2019 or later with IIS. The install script can add the features it needs: Web Server, **WebSockets** (Blazor needs it) and **Windows Authentication**.
-- The **ASP.NET Core Hosting Bundle for .NET 10** (from <https://dotnet.microsoft.com/download/dotnet/10.0>).
-- The server joined to the domain, and an HTTPS certificate if users connect over HTTPS.
-
-**Install or update**
+On a Windows server with IIS, as Administrator:
 
 ```powershell
 dotnet publish src/PipelineBuilder.Web -c Release -o .\publish
-# As Administrator on the server:
-.\deploy\Install-PipelineBuilder.ps1 -PublishFolder .\publish -InstallMissingFeatures `
-    -HostName pipelines.contoso.local -Port 443 -CertificateThumbprint <thumbprint> `
-    -AllowedGroups 'CONTOSO\Platform-Team'
+.\deploy\Install-PipelineBuilder.ps1 -PublishFolder .\publish -InstallMissingFeatures
 ```
 
-The script works from Windows PowerShell or PowerShell 7; the IIS commands always run in Windows PowerShell. It:
-1. creates the app pool (No Managed Code) and the website;
-2. copies the files and gives the app pool read access;
-3. turns on Windows Authentication and turns off anonymous access;
-4. with `-AllowedGroups`, limits the app to members of those AD groups (written to `appsettings.Production.json`).
-
-Run it again with a new publish folder to update; it keeps `appsettings.Production.json`.
-
-**How login is decided** (`Authentication` section in appsettings):
-
-| `Mode` | Behaviour |
-|---|---|
-| empty (default) | Windows login everywhere except Development, so `dotnet run` locally stays open |
-| `Windows` | always Windows login |
-| `None` | no login. Only use this behind another access control. |
-
-`AllowedGroups` lists AD groups (`DOMAIN\Group`). When it's empty, any signed-in domain user can use the app.
-
-A separate CI workflow (`.github/workflows/iis.yml`) installs the app on IIS on a Windows runner with this script. It checks that anonymous requests get 401, and that a Windows-authenticated request gets the wizard.
+Users then sign in automatically with their Windows account. Requirements, HTTPS, AD-group restriction and Kerberos are covered in the guide.
 
 ## Test
 
