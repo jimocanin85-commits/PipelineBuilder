@@ -110,6 +110,91 @@ public class DeploymentKindTests
         Assert.DoesNotContain("IISWebAppDeploymentOnMachineGroup@0", yaml);
     }
 
+    [Fact]
+    public void WithoutAHandlerForTheChosenTargetCustomHasNoBackupOrRollback()
+    {
+        var onlyCustom = new DeploymentKindRegistry(new IDeploymentKindHandler[] { new CustomDeploymentHandler() });
+        var definition = new PipelineDefinition
+        {
+            Deployment = new DeploymentConfig { Kind = DeploymentKind.Custom },
+            Rollback = new RollbackConfig { Enabled = true, Target = RollbackTarget.Iis }
+        };
+
+        Assert.Empty(onlyCustom.GenerateBackupSteps(definition, "test"));
+        Assert.Empty(onlyCustom.GenerateRollbackSteps(definition, "test"));
+    }
+
+    [Theory]
+    [InlineData(null, true)]
+    [InlineData("Write-Host deploy", false)]
+    public void CustomWarnsOnlyWithoutAScript(string? script, bool warns)
+    {
+        var definition = new PipelineDefinition { Deployment = new DeploymentConfig { Kind = DeploymentKind.Custom, CustomScript = script } };
+        var handler = _kinds.For(DeploymentKind.Custom);
+
+        Assert.Equal(warns, handler.Validate(definition).Any(v => v.Severity == ValidationSeverity.Warning));
+        var deploy = string.Join("\n", handler.GenerateDeploySteps(definition, "test", "$(Pipeline.Workspace)/drop"));
+        Assert.Equal(warns, deploy.Contains("No deployment kind selected", StringComparison.Ordinal));
+    }
+
+    [Theory]
+    [InlineData(ArtifactType.DockerImage, false)]
+    [InlineData(ArtifactType.ZipPackage, true)]
+    public void KubernetesWarnsWithoutADockerImage(ArtifactType artifact, bool warns)
+    {
+        var definition = new PipelineDefinition
+        {
+            Deployment = new DeploymentConfig { Kind = DeploymentKind.Kubernetes },
+            Artifact = new ArtifactConfig { ArtifactType = artifact }
+        };
+
+        Assert.Equal(warns, _kinds.For(DeploymentKind.Kubernetes).Validate(definition).Any());
+    }
+
+    [Theory]
+    [InlineData(true, true)]
+    [InlineData(false, false)]
+    public void AppServiceExplainsItsRollbackOnlyWhenRollbackIsOn(bool rollback, bool explains)
+    {
+        var definition = new PipelineDefinition
+        {
+            Deployment = new DeploymentConfig { Kind = DeploymentKind.AzureAppService },
+            Rollback = new RollbackConfig { Enabled = rollback }
+        };
+
+        Assert.Equal(explains, _kinds.For(DeploymentKind.AzureAppService).Validate(definition).Any());
+    }
+
+    [Theory]
+    [InlineData(DeploymentStrategyType.SlotSwap, true)]
+    [InlineData(DeploymentStrategyType.Standard, false)]
+    public void AppServiceDeploysToTheStagingSlotOnlyForSlotSwap(DeploymentStrategyType strategy, bool toSlot)
+    {
+        var definition = new PipelineDefinition
+        {
+            Deployment = new DeploymentConfig { Kind = DeploymentKind.AzureAppService },
+            DeploymentStrategy = new DeploymentStrategyConfig { StrategyType = strategy }
+        };
+
+        var steps = string.Join("\n", _kinds.For(DeploymentKind.AzureAppService).GenerateDeploySteps(definition, "test", "$(Pipeline.Workspace)/drop"));
+
+        Assert.Equal(toSlot, steps.Contains("slotName", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void TheBaseHandlerHasNoBackupRollbackOrChecks()
+    {
+        var handler = new OwnIisHandler();
+        var definition = WizardState.CreateDefault();
+
+        Assert.Empty(handler.GenerateBackupSteps(definition.Rollback, definition.Deployment, "test"));
+        Assert.Empty(handler.GenerateRollbackSteps(definition.Rollback, definition.Deployment, "test"));
+        Assert.Empty(handler.Validate(definition));
+        Assert.False(handler.DeploysFromAgentOnly);
+        Assert.False(handler.NeedsRepositoryCheckout);
+        Assert.False(handler.SupportsSlotSwap);
+    }
+
     private sealed class OwnIisHandler : DeploymentKindHandler
     {
         public override DeploymentKind Kind => DeploymentKind.Iis;
