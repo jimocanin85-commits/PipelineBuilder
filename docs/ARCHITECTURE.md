@@ -14,7 +14,8 @@ Core · application         PipelineGeneratorService: validate → build YAML �
   │
   ▼
 Core · stage generators    Generators/ (build, deployment, notification, governance)
-and services               Services/ (artifact, rollback, health check, IaC, Key Vault, ...)
+and services               Services/ (artifact, health check, IaC, Key Vault, ...)
+                           Deployment/ (one handler per deployment kind + the registry)
   │
   ▼
 Core · foundation          Models/, Enums/, Yaml/ (YamlBuilder, GeneratedYamlValidator, PipelineTaskInventory)
@@ -26,7 +27,7 @@ Dependencies point down only.
 | Layer | Namespaces | May use |
 |---|---|---|
 | Web | `PipelineBuilder.Web.*` | Core through `PipelineBuilder.Core.Abstractions` (injected), plus the static helpers in Models (settings file, validation) |
-| Application, generators, services | `PipelineBuilder.Core.Services`, `.Generators`, `.Abstractions`, `.DependencyInjection` | Each other and the foundation |
+| Application, generators, services | `PipelineBuilder.Core.Services`, `.Generators`, `.Deployment`, `.Abstractions`, `.DependencyInjection` | Each other and the foundation |
 | Foundation | `PipelineBuilder.Core.Models`, `.Enums`, `.Yaml` | Only each other and .NET |
 
 ## How a pipeline is generated
@@ -48,6 +49,19 @@ Dependencies point down only.
 | Coverage does not drop | CI: `MIN_LINE_COVERAGE` and `MIN_BRANCH_COVERAGE` in `.github/workflows/ci.yml` |
 | No new warnings | `TreatWarningsAsErrors` in `Directory.Build.props` |
 
+## Deployment kinds
+
+Everything about one deployment kind lives in one handler in `src/PipelineBuilder.Core/Deployment/` ([ADR 0005](adr/0005-one-handler-per-deployment-kind.md)): its deploy steps, its backup and rollback steps, whether it runs on registered servers, and its own validation. `DeploymentKindRegistry` (`IDeploymentKinds`) picks the handler for the selected kind; the deployment stage generator and the governance checks only ask it.
+
+To add a deployment kind:
+
+1. Add the value to `DeploymentKind` (and to `RollbackTarget` if it has its own rollback).
+2. Add a handler deriving from `DeploymentKindHandler` and list it in `DeploymentKindRegistry.BuiltInHandlers()`.
+3. Add its fields to the wizard's list in `DeploymentTargetStep.razor`.
+4. Add a template or test case, and regenerate the golden files.
+
+A host can also replace a built-in handler by registering its own `IDeploymentKindHandler` after `AddPipelineBuilderCore()`.
+
 ## Golden files
 
 `tests/PipelineBuilder.Tests/Golden/` holds the approved YAML for the wizard defaults and for every built-in template. When you change the generated output on purpose:
@@ -67,14 +81,14 @@ The architecture is moving towards one entry point into Core and one class per d
 | M2 | Whole pipelines are kept as golden files | `GoldenFileTests` | Done | Defaults and all 8 templates | 1 |
 | M3 | Coverage cannot drop | CI thresholds | Done | Line ≥ 90 %, branch ≥ 80 % | 1 |
 | M4 | The architecture is written down | This page and [ADRs](adr/README.md) | Done | | 1 |
-| M5 | A new deployment kind is one class | Files that branch on `DeploymentKind` | 8 | 2 | 2 |
+| M5 | A new deployment kind is one class | Files that branch on `DeploymentKind` | Done: 7 → 1 (the wizard's field list) | At most 2 | 2 |
 | M6 | Validation has one entry point | Places that produce validation findings | 6 | 1 chain of rules | 2 |
-| M7 | No class is a hub | Constructor dependencies | Up to 9 | At most 5 | 2 |
+| M7 | No class is a hub | Constructor dependencies | Up to 9 (deployment stage generator 8 → 7) | At most 5 | 2 |
 | M8 | Errors are logged once | catch-log-rethrow blocks in Core | 1 | 0, Web logs at the boundary | 2 |
 | M9 | The domain model is immutable | Public setters on `PipelineDefinition` | 25 | 0 | 3 |
 | M10 | Wizard state is separate from the forms | Lines in `WizardState`, text proxies | 246, 8 | Under 150, 0 | 3 |
 | M11 | Indentation is handled in one place | Hand-written indentation in generators | 80 `Append` calls | 0, via a `YamlWriter` | 3 |
-| M12 | Interfaces only where there is variation | Core interfaces with one implementation | 17 | Facade, handlers and rules only | 3 |
+| M12 | Interfaces only where there is variation | Core interfaces with one implementation | 17 → 16 | Facade, handlers and rules only | 3 |
 
 Phase 1 adds the safety net and changes no production code. Phases 2 and 3 change structure, not output; the golden files prove it.
 

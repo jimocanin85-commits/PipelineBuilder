@@ -12,20 +12,26 @@ namespace PipelineBuilder.Tests;
 /// </summary>
 public class ArchitectureBaselineTests
 {
-    /// <summary>M5: files that branch on a deployment kind. Target: 2 (the handler registry and the wizard list).</summary>
-    public const int FilesBranchingOnDeploymentKind = 8;
+    /// <summary>
+    /// M5: files that branch on a deployment kind (<c>case</c>, <c>==</c>, <c>!=</c>, <c>is</c>, <c>or</c> or a switch arm).
+    /// Met: only the wizard's field list is left; everything else lives in one handler per kind.
+    /// </summary>
+    public const int FilesBranchingOnDeploymentKind = 1;
 
     /// <summary>M9: public setters on <see cref="PipelineDefinition"/>. Target: 0.</summary>
     public const int SettablePropertiesOnPipelineDefinition = 25;
 
     /// <summary>M12: Core interfaces with exactly one implementation. Target: only the facade, handlers and rules.</summary>
-    public const int SingleImplementationInterfaces = 17;
+    public const int SingleImplementationInterfaces = 16;
+
+    private static readonly Regex BranchOnDeploymentKind =
+        new(@"(case\s+|==\s*|!=\s*|\bis\s+|\bor\s+)DeploymentKind\.[A-Z]|DeploymentKind\.[A-Z]\w*\s*=>", RegexOptions.Compiled);
 
     [Fact]
     public void FilesThatBranchOnDeploymentKind()
     {
         var files = ArchitectureTests.SourceFiles("src")
-            .Where(f => Regex.IsMatch(File.ReadAllText(f), @"\bDeploymentKind\.[A-Z]"))
+            .Where(f => BranchOnDeploymentKind.IsMatch(File.ReadAllText(f)))
             .Select(ArchitectureTests.Relative)
             .OrderBy(f => f, StringComparer.Ordinal)
             .ToList();

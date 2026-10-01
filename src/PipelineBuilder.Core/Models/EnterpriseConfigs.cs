@@ -87,10 +87,6 @@ public sealed class DeploymentConfig
     public string KubernetesDeploymentNameOrDefault => string.IsNullOrWhiteSpace(KubernetesDeploymentName) ? "$(K8S_DEPLOYMENT)" : KubernetesDeploymentName;
     [JsonIgnore]
     public string ContainerNameOrDefault => string.IsNullOrWhiteSpace(ContainerName) ? "$(CONTAINER_NAME)" : ContainerName;
-
-    /// <summary>True for targets that run on servers registered in an Azure DevOps environment.</summary>
-    [JsonIgnore]
-    public bool IsServerDeployment => Kind is DeploymentKind.Iis or DeploymentKind.WindowsService or DeploymentKind.FileShare or DeploymentKind.DockerContainer;
 }
 
 public sealed class RollbackConfig

@@ -1,7 +1,6 @@
 using System.Text.RegularExpressions;
 using PipelineBuilder.Core.Abstractions;
 using PipelineBuilder.Core.Enums;
-using PipelineBuilder.Core.Generators;
 using PipelineBuilder.Core.Models;
 using PipelineBuilder.Core.Yaml;
 
@@ -10,10 +9,12 @@ namespace PipelineBuilder.Core.Services;
 public sealed class GovernanceValidationService : IGovernanceValidationService
 {
     private readonly IVariableGroupService _variableGroupService;
+    private readonly IDeploymentKinds _deploymentKinds;
 
-    public GovernanceValidationService(IVariableGroupService variableGroupService)
+    public GovernanceValidationService(IVariableGroupService variableGroupService, IDeploymentKinds deploymentKinds)
     {
         _variableGroupService = variableGroupService ?? throw new ArgumentNullException(nameof(variableGroupService));
+        _deploymentKinds = deploymentKinds ?? throw new ArgumentNullException(nameof(deploymentKinds));
     }
 
     public IReadOnlyList<ValidationResult> Validate(PipelineDefinition definition, string yaml)
@@ -140,21 +141,18 @@ public sealed class GovernanceValidationService : IGovernanceValidationService
         return results;
     }
 
-    private static IEnumerable<ValidationResult> ValidateDeployment(PipelineDefinition definition)
+    private IEnumerable<ValidationResult> ValidateDeployment(PipelineDefinition definition)
     {
         var deployment = definition.Deployment;
+        var kind = _deploymentKinds.For(deployment.Kind);
         var strategy = definition.DeploymentStrategy.StrategyType;
-        var onServers = DeploymentStageGenerator.UsesServerResources(definition);
+        var onServers = _deploymentKinds.UsesServerResources(definition);
 
-        if (deployment.Kind == DeploymentKind.Custom && string.IsNullOrWhiteSpace(deployment.CustomScript))
-        {
-            yield return Result(ValidationSeverity.Warning,
-                "No deployment kind is selected, so the deploy step is only a placeholder.",
-                nameof(PipelineDefinition.Deployment),
-                "Choose IIS, Windows service, file share, App Service or Docker, or provide a custom deploy script.");
-        }
+        // Checks that belong to the selected deployment kind.
+        foreach (var finding in kind.Validate(definition))
+            yield return finding;
 
-        if (deployment.IsServerDeployment && definition.DeploymentTarget == DeploymentTarget.Cloud)
+        if (kind.RunsOnServers && definition.DeploymentTarget == DeploymentTarget.Cloud)
         {
             yield return Result(ValidationSeverity.Warning,
                 $"{deployment.Kind} deployments need your own servers, but the deployment target is Cloud, so they would run on a hosted build agent.",
@@ -186,14 +184,6 @@ public sealed class GovernanceValidationService : IGovernanceValidationService
                 "Replace the placeholder step with your traffic-switch commands.");
         }
 
-        if (deployment.Kind == DeploymentKind.Kubernetes && definition.Artifact.ArtifactType != ArtifactType.DockerImage)
-        {
-            yield return Result(ValidationSeverity.Warning,
-                "Kubernetes deployments need a container image, but the artifact is not a Docker image.",
-                nameof(PipelineDefinition.Artifact),
-                "Set the artifact type to DockerImage.");
-        }
-
         foreach (var email in definition.Notifications.Where(n => n.NotificationType == NotificationType.Email
                                                                   && !n.EmailRecipients.Any(r => !string.IsNullOrWhiteSpace(r))))
         {
@@ -203,20 +193,12 @@ public sealed class GovernanceValidationService : IGovernanceValidationService
                 "Add at least one recipient on the Notifications step.");
         }
 
-        if (strategy == DeploymentStrategyType.SlotSwap && deployment.Kind != DeploymentKind.AzureAppService)
+        if (strategy == DeploymentStrategyType.SlotSwap && !kind.SupportsSlotSwap)
         {
             yield return Result(ValidationSeverity.Error,
                 "The slot-swap strategy only works with Azure App Service deployments.",
                 nameof(PipelineDefinition.DeploymentStrategy),
                 "Set the deployment kind to Azure App Service, or choose another strategy.");
-        }
-
-        if (definition.Rollback.Enabled && deployment.Kind == DeploymentKind.AzureAppService)
-        {
-            yield return Result(ValidationSeverity.Info,
-                "App Service rollback is not automatic: the failure hook prints the command to swap the slots back.",
-                nameof(PipelineDefinition.Rollback),
-                "Use the slot-swap strategy so production only changes after the new version is deployed.");
         }
     }
 

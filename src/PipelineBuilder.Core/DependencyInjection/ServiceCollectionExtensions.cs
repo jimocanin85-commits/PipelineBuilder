@@ -3,6 +3,7 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using PipelineBuilder.Core.Abstractions;
+using PipelineBuilder.Core.Deployment;
 using PipelineBuilder.Core.Generators;
 using PipelineBuilder.Core.Services;
 
@@ -20,15 +21,18 @@ public static class ServiceCollectionExtensions
         // Hosts that call AddLogging() first keep their own ILogger<T> registration.
         services.TryAdd(ServiceDescriptor.Singleton(typeof(ILogger<>), typeof(NullLogger<>)));
 
+        // One handler per deployment kind. A handler registered after these replaces the built-in one for its kind.
+        foreach (var handler in DeploymentKindRegistry.BuiltInHandlers())
+            services.AddSingleton(typeof(IDeploymentKindHandler), handler);
+        services.AddSingleton<IDeploymentKinds, DeploymentKindRegistry>();
+
         services.AddSingleton<IVariableGroupService, VariableGroupService>();
         services.AddSingleton<IKeyVaultYamlService, KeyVaultYamlService>();
         services.AddSingleton<IArtifactYamlService, ArtifactYamlService>();
-        services.AddSingleton<IRollbackYamlService, RollbackYamlService>();
         services.AddSingleton<IHealthCheckYamlService, HealthCheckYamlService>();
         services.AddSingleton<INotificationYamlService, NotificationYamlService>();
         services.AddSingleton<IIacYamlService, IacYamlService>();
         services.AddSingleton<IDeploymentStrategyService, DeploymentStrategyService>();
-        services.AddSingleton<IDeploymentStepService, DeploymentStepService>();
         services.AddSingleton<IGovernanceValidationService, GovernanceValidationService>();
         services.AddSingleton<IRepoScannerService, RepoScannerService>();
         services.AddSingleton<IYamlExplanationService, YamlExplanationService>();

@@ -29,6 +29,7 @@ public class ArchitectureTests
     private static readonly string[] Wired =
     {
         "PipelineBuilder.Core.Services",
+        "PipelineBuilder.Core.Deployment",
         "PipelineBuilder.Core.Generators",
         "PipelineBuilder.Web.State",
         "PipelineBuilder.Web.Security",
@@ -42,7 +43,7 @@ public class ArchitectureTests
     /// </summary>
     private static readonly Dictionary<string, int> KnownHubs = new(StringComparer.Ordinal)
     {
-        ["DeploymentStageGenerator"] = 8,
+        ["DeploymentStageGenerator"] = 7,
         ["PipelineGeneratorService"] = 9,
     };
 

@@ -1,3 +1,4 @@
+using PipelineBuilder.Core.Deployment;
 using PipelineBuilder.Core.Enums;
 using PipelineBuilder.Core.Models;
 using PipelineBuilder.Core.Services;
@@ -28,7 +29,7 @@ public class GovernanceAndSecretsTests
         """;
 
     private static IReadOnlyList<ValidationResult> Validate(GovernancePolicyConfig governance) =>
-        new GovernanceValidationService(new VariableGroupService()).Validate(
+        new GovernanceValidationService(new VariableGroupService(), DeploymentKindRegistry.CreateDefault()).Validate(
             new PipelineDefinition { Name = "app", Environments = new[] { "test" }, Governance = governance }, Pipeline);
 
     private static GovernancePolicyConfig Policy() => new() { RequiredApprovals = false, RequireHealthCheck = false };
