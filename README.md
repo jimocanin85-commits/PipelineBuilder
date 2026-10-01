@@ -86,7 +86,7 @@ dotnet test
 
 The build treats warnings as errors (`Directory.Build.props`), package versions live in one place (`Directory.Packages.props`), and Dependabot opens weekly update pull requests for NuGet packages and GitHub Actions.
 
-Runs the unit tests, the generated-YAML checks (every strategy, artifact type, deployment kind and target), the wizard component tests (bUnit) and an in-memory smoke test of the web app, including the Windows login setup. CI runs the same on every pull request and push to `main` (`.github/workflows/ci.yml`) and publishes a coverage report (job summary and the `coverage-report` artifact).
+Runs the unit tests, the generated-YAML checks (every strategy, artifact type, deployment kind and target), the wizard component tests (bUnit) and an in-memory smoke test of the web app, including the Windows login setup. It also runs the architecture tests (the layering rules) and compares every generated pipeline with its approved copy in `tests/PipelineBuilder.Tests/Golden/`; see [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md#golden-files) for how to update those after an intended change. CI runs the same on every pull request and push to `main` (`.github/workflows/ci.yml`) and publishes a coverage report (job summary and the `coverage-report` artifact), failing below 90 % line or 80 % branch coverage.
 
 A second workflow (`.github/workflows/iis.yml`) runs on pull requests that touch the web app or the install script: on a Windows runner it installs PipelineBuilder in IIS with `deploy/Install-PipelineBuilder.ps1` and checks that anonymous requests get 401 and Windows-authenticated requests get the wizard.
 
@@ -122,8 +122,10 @@ in `appsettings.json`, or set the environment variable `PipelineBuilder__Templat
 ```
 src/PipelineBuilder.Core/          Models, services and stage generators (no UI)
 src/PipelineBuilder.Web/           Blazor Server wizard (one component per step)
-tests/PipelineBuilder.Tests/       Unit, generated-YAML, bUnit and web smoke tests
+tests/PipelineBuilder.Tests/       Unit, generated-YAML, golden-file, architecture, bUnit and web smoke tests
 ```
+
+The layers, their rules and the architecture goals are described in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md), with the decisions behind them in [docs/adr](docs/adr/README.md).
 
 ## Generated pipeline
 
