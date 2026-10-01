@@ -61,20 +61,26 @@ jobs:
       - name: Check Windows login
         shell: pwsh
         run: |
-          $ErrorActionPreference = 'Stop'
           $url = 'http://localhost:8080/'
+          function Fail([string] $message, $response) {
+            $body = if ($response) { ($response.Content -replace '<[^>]+>', ' ' -replace '\s+', ' ').Trim() } else { '' }
+            if ($body.Length -gt 600) { $body = $body.Substring(0, 600) }
+            Write-Host "::error title=Windows login::$message | $body"
+            exit 1
+          }
 
           # Anonymous: refused with a Windows authentication challenge.
           $anonymous = Invoke-WebRequest $url -SkipHttpErrorCheck
           Write-Host "Anonymous: $($anonymous.StatusCode) $($anonymous.Headers['WWW-Authenticate'])"
-          if ($anonymous.StatusCode -ne 401) { throw "Expected 401 for anonymous requests, got $($anonymous.StatusCode)" }
+          if ($anonymous.StatusCode -ne 401) { Fail "Expected 401 for anonymous requests, got $($anonymous.StatusCode)" $anonymous }
 
           # Signed in as the runner's Windows account: the wizard and the signed-in user are shown.
-          $signedIn = Invoke-WebRequest $url -UseDefaultCredentials
-          if ($signedIn.StatusCode -ne 200) { throw "Expected 200 with Windows credentials, got $($signedIn.StatusCode)" }
-          if ($signedIn.Content -notmatch 'Project type') { throw 'The wizard did not render.' }
-          if ($signedIn.Content -notmatch 'Signed in as') { throw 'The signed-in user is not shown.' }
-          Write-Host "Signed in: $($signedIn.StatusCode)" -ForegroundColor Green
+          $signedIn = Invoke-WebRequest $url -UseDefaultCredentials -SkipHttpErrorCheck
+          Write-Host "Signed in: $($signedIn.StatusCode)"
+          if ($signedIn.StatusCode -ne 200) { Fail "Expected 200 with Windows credentials, got $($signedIn.StatusCode)" $signedIn }
+          if ($signedIn.Content -notmatch 'Project type') { Fail 'The wizard did not render.' $signedIn }
+          if ($signedIn.Content -notmatch 'Signed in as') { Fail 'The signed-in user is not shown.' $signedIn }
+          Write-Host 'Windows login works.' -ForegroundColor Green
 
       - name: IIS logs on failure
         if: failure()
@@ -82,4 +88,5 @@ jobs:
         run: |
           Get-ChildItem C:\inetpub\logs\LogFiles -Recurse -File -ErrorAction SilentlyContinue | Select-Object -Last 1 | Get-Content -Tail 30
           Get-WinEvent -LogName Application -MaxEvents 30 -ErrorAction SilentlyContinue |
-            Where-Object ProviderName -match 'IIS|AspNetCore' | ForEach-Object { "::warning title=$($_.ProviderName)::$($_.Message -replace "`r?`n", ' ')" }
+            Where-Object ProviderName -match 'IIS|AspNetCore|\.NET Runtime' | Select-Object -First 5 |
+            ForEach-Object { Write-Host "::warning title=$($_.ProviderName)::$(($_.Message -replace "`r?`n", ' ').Substring(0, [Math]::Min(800, $_.Message.Length)))" }
