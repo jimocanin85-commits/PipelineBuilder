@@ -3,6 +3,7 @@ using SimlifiezYaml.Core.Abstractions;
 using SimlifiezYaml.Core.Enums;
 using SimlifiezYaml.Core.Generators;
 using SimlifiezYaml.Core.Models;
+using SimlifiezYaml.Core.Yaml;
 
 namespace SimlifiezYaml.Core.Services;
 
@@ -103,23 +104,27 @@ public sealed class GovernanceValidationService : IGovernanceValidationService
             }
         }
 
-        foreach (var forbidden in governance.ForbiddenTasks)
+        // Check the tasks the pipeline really runs, not text that merely mentions a task name.
+        var tasks = PipelineTaskInventory.FindTasks(yaml);
+
+        foreach (var forbidden in governance.ForbiddenTasks.Where(f => !string.IsNullOrWhiteSpace(f)))
         {
-            if (yaml.Contains(forbidden, StringComparison.OrdinalIgnoreCase))
+            var uses = tasks.Count(t => PipelineTaskInventory.Matches(t, forbidden));
+            if (uses > 0)
             {
                 results.Add(new ValidationResult
                 {
                     Severity = ValidationSeverity.Error,
-                    Message = $"Forbidden task '{forbidden}' detected in generated YAML.",
+                    Message = $"Forbidden task '{forbidden}' is used by {uses} step(s) in the generated pipeline.",
                     AffectedField = "Yaml",
                     SuggestedFix = $"Remove or replace task '{forbidden}' per governance policy."
                 });
             }
         }
 
-        foreach (var required in governance.RequiredTasks)
+        foreach (var required in governance.RequiredTasks.Where(r => !string.IsNullOrWhiteSpace(r)))
         {
-            if (!yaml.Contains(required, StringComparison.OrdinalIgnoreCase))
+            if (!tasks.Any(t => PipelineTaskInventory.Matches(t, required)))
             {
                 results.Add(new ValidationResult
                 {

@@ -9,7 +9,7 @@ using SimlifiezYaml.Web.Components.Steps;
 using SimlifiezYaml.Web.State;
 using Xunit;
 
-namespace SimlifiezYaml.Core.Tests;
+namespace SimlifiezYaml.Tests;
 
 /// <summary>Renders the wizard with bUnit and drives it like a user would.</summary>
 public class WizardPageTests : BunitContext

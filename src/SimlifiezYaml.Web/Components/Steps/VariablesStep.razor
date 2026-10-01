@@ -21,12 +21,12 @@
                 }
             </InputSelect>
         }
-        <label><InputCheckbox @bind-Value="group.ContainsSecrets" /> secrets</label>
+        <label title="Groups with secrets should be scoped to the environments that need them"><InputCheckbox @bind-Value="group.ContainsSecrets" /> contains secrets</label>
         <button type="button" class="btn-link" @onclick="() => { Wizard.VariableGroups.Remove(group); Wizard.NotifyChanged(); }">Remove</button>
     </div>
 }
 <button type="button" class="btn-secondary" @onclick="Add">Add variable group</button>
-<p class="hint">Stage scope is treated like pipeline scope; environment scope applies only to that environment's deploy stage.</p>
+<p class="hint">Stage scope is treated like pipeline scope; environment scope applies only to that environment's deploy stage. Groups that contain secrets should use environment scope, so the build never sees them.</p>
 
 <h3>Azure Key Vault</h3>
 <label><InputCheckbox @bind-Value="Wizard.KeyVaultEnabled" /> Load secrets from Key Vault in every deploy job</label>

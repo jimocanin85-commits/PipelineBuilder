@@ -6,7 +6,7 @@ using SimlifiezYaml.Core.Models;
 using SimlifiezYaml.Web.State;
 using Xunit;
 
-namespace SimlifiezYaml.Core.Tests;
+namespace SimlifiezYaml.Tests;
 
 public class SettingsAndValidationTests
 {

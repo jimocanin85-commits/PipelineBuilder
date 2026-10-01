@@ -3,7 +3,7 @@ using SimlifiezYaml.Core.Models;
 using SimlifiezYaml.Core.Yaml;
 using Xunit;
 
-namespace SimlifiezYaml.Core.Tests;
+namespace SimlifiezYaml.Tests;
 
 public class YamlBuilderTests
 {

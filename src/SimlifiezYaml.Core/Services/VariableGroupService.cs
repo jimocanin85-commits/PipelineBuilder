@@ -50,6 +50,18 @@ public sealed class VariableGroupService : IVariableGroupService
             });
         }
 
+        // Least privilege: secrets shared at pipeline level reach every job, including the build.
+        foreach (var g in groups.Where(x => x.ContainsSecrets && x.Scope != VariableGroupScope.Environment && !string.IsNullOrWhiteSpace(x.Name)))
+        {
+            results.Add(new ValidationResult
+            {
+                Severity = ValidationSeverity.Warning,
+                Message = $"Variable group '{g.Name}' contains secrets but is available to the whole pipeline, including the build.",
+                AffectedField = "VariableGroups",
+                SuggestedFix = "Set its scope to Environment so only the deployments that need the secrets can read them."
+            });
+        }
+
         if (governance?.RequiredVariableGroups.Count > 0)
         {
             foreach (var required in governance.RequiredVariableGroups)
