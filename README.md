@@ -32,7 +32,7 @@ Only what your chosen settings need:
 | Docker Engine on the servers | Docker container deployments. |
 | **Azure Resource Manager service connection** | Key Vault, infrastructure as code, App Service deployments and slot swaps. Enter its name on the wizard's Identity step. |
 | **Docker registry service connection** | Docker image artifacts. |
-| An agent pool | Microsoft-hosted (`windows-latest`) by default, or your own self-hosted pool. |
+| An agent pool | Microsoft-hosted by default (`ubuntu-latest` for the build, `windows-latest` for deployments and notifications), or your own self-hosted pool on the Build agent step. |
 | **Kubernetes service connection** and an environment for each stage | Kubernetes deployments. Keep your manifests in the repository (default `manifests/*.yaml`). |
 | **Terraform extension** (Microsoft DevLabs) from the Visual Studio Marketplace | Terraform infrastructure as code (`TerraformTaskV4@4`), plus a storage account for Terraform state. |
 | An Azure Key Vault | If you enable Key Vault. |
@@ -86,7 +86,9 @@ dotnet test
 
 The build treats warnings as errors (`Directory.Build.props`), package versions live in one place (`Directory.Packages.props`), and Dependabot opens weekly update pull requests for NuGet packages and GitHub Actions.
 
-Runs the unit tests, the generated-YAML checks (every strategy, artifact type, deployment kind and target), the wizard component tests (bUnit) and an in-memory smoke test of the web app. CI runs the same on every pull request and push to `main` (`.github/workflows/ci.yml`) and publishes a coverage report (job summary and the `coverage-report` artifact).
+Runs the unit tests, the generated-YAML checks (every strategy, artifact type, deployment kind and target), the wizard component tests (bUnit) and an in-memory smoke test of the web app, including the Windows login setup. CI runs the same on every pull request and push to `main` (`.github/workflows/ci.yml`) and publishes a coverage report (job summary and the `coverage-report` artifact).
+
+A second workflow (`.github/workflows/iis.yml`) runs on pull requests that touch the web app or the install script: on a Windows runner it installs PipelineBuilder in IIS with `deploy/Install-PipelineBuilder.ps1` and checks that anonymous requests get 401 and Windows-authenticated requests get the wizard.
 
 ## Templates
 
@@ -100,6 +102,9 @@ in `appsettings.json`, or set the environment variable `PipelineBuilder__Templat
 
 ## Features
 
+- **Guided wizard** with validation on every step, a **Validation** step that links each issue to the step that fixes it, a live YAML preview, and download or copy on the **Export** step
+- **Save and reopen settings**: download your wizard settings as a JSON file on the Export step and open it again on the **Project type** step to change the pipeline later
+- **Windows login when hosted on IIS** (Kerberos/NTLM), optionally limited to AD groups; off when running locally
 - **Variable groups** at pipeline or environment scope, and **Azure Key Vault** secrets loaded in each deploy job
 - **Projects**: .NET (restore, build, test, publish) and Node.js (npm ci, build, test)
 - **Artifacts**: pipeline or build artifact, zip, Docker image, NuGet package
@@ -136,4 +141,4 @@ Each `Deploy_{env}` stage contains:
    - runs the health checks (`{environment}` in a URL is replaced per environment)
    - rolls back from that backup in its `on: failure` hook if any step fails
 
-Deployments to `prod`/`production` only run from the `main` branch.
+Deployments to `prod`/`production` only run from the release branch, `main` by default; change it on the wizard's **Environments** step.
