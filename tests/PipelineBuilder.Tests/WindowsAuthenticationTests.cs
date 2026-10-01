@@ -1,4 +1,7 @@
-using System.Net;
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.Negotiate;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Authorization.Infrastructure;
 using Microsoft.AspNetCore.Mvc.Testing;
@@ -49,15 +52,20 @@ public class WindowsAuthenticationTests : IClassFixture<WebApplicationFactory<Pr
         Assert.Equal(new[] { @"CONTOSO\Platform", @"CONTOSO\Ops" }, roles.AllowedRoles);
     }
 
+    // The in-memory test server can't run Negotiate (it needs Kestrel, HTTP.sys or IIS), so this checks
+    // the wiring; .github/workflows/iis.yml checks the real 401 challenge and sign-in on IIS.
     [Fact]
-    public async Task WithWindowsLoginAnonymousRequestsGetANegotiateChallenge()
+    public async Task WithWindowsLoginEveryRequestNeedsANegotiateSignIn()
     {
         using var factory = _factory.WithWebHostBuilder(b => b.UseSetting("Authentication:Mode", "Windows"));
 
-        var response = await factory.CreateClient().GetAsync("/");
+        var schemes = factory.Services.GetRequiredService<IAuthenticationSchemeProvider>();
+        var challenge = await schemes.GetDefaultChallengeSchemeAsync();
+        Assert.Equal(NegotiateDefaults.AuthenticationScheme, challenge?.Name);
 
-        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
-        Assert.Contains("Negotiate", response.Headers.WwwAuthenticate.ToString());
+        var fallback = factory.Services.GetRequiredService<IOptions<AuthorizationOptions>>().Value.FallbackPolicy;
+        Assert.NotNull(fallback);
+        Assert.Contains(fallback.Requirements, r => r is DenyAnonymousAuthorizationRequirement);
     }
 
     [Fact]

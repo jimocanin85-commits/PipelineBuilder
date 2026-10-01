@@ -47,7 +47,16 @@ jobs:
 
       - name: Run the install script
         shell: pwsh
-        run: ./deploy/Install-PipelineBuilder.ps1 -PublishFolder publish -Port 8080
+        run: |
+          try {
+            ./deploy/Install-PipelineBuilder.ps1 -PublishFolder publish -Port 8080
+          }
+          catch {
+            # Show the failure on the run summary, including where in the script it happened.
+            $message = ($_ | Out-String) -replace "`r?`n", ' '
+            Write-Host "::error title=Install script::$message $($_.ScriptStackTrace -replace "`r?`n", ' <- ')"
+            exit 1
+          }
 
       - name: Check Windows login
         shell: pwsh
