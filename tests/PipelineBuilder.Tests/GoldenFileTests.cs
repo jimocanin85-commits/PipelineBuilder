@@ -25,11 +25,15 @@ public class GoldenFileTests
     private static readonly IPipelineGeneratorService Generator =
         new ServiceCollection().AddPipelineBuilderCore().BuildServiceProvider().GetRequiredService<IPipelineGeneratorService>();
 
+    /// <summary>The defaults plus every built-in template; each has a golden file named after it.</summary>
+    private static IReadOnlyList<string> CaseNames() =>
+        new[] { DefaultCase }.Concat(TemplateMarketplaceService.LoadBuiltIn().Select(t => t.Id)).ToList();
+
     public static TheoryData<string> Cases()
     {
-        var cases = new TheoryData<string> { DefaultCase };
-        foreach (var template in TemplateMarketplaceService.LoadBuiltIn())
-            cases.Add(template.Id);
+        var cases = new TheoryData<string>();
+        foreach (var name in CaseNames())
+            cases.Add(name);
         return cases;
     }
 
@@ -65,7 +69,7 @@ public class GoldenFileTests
         if (!Directory.Exists(RepositoryPaths.GoldenFolder))
             return; // nothing generated yet; the theory above reports the missing files
 
-        var names = Cases().Select(row => (string)row[0]).ToHashSet(StringComparer.Ordinal);
+        var names = CaseNames().ToHashSet(StringComparer.Ordinal);
         var orphans = Directory.EnumerateFiles(RepositoryPaths.GoldenFolder, "*.yml")
             .Select(Path.GetFileNameWithoutExtension)
             .Where(file => !names.Contains(file!))
