@@ -62,8 +62,8 @@ The wizard's **Validation** step lists what your particular pipeline still needs
 Quick start, locally:
 
 ```bash
-git clone https://github.com/jimocanin85-commits/SimlifiezYaml.git
-cd SimlifiezYaml
+git clone https://github.com/jimocanin85-commits/PipelineBuilder.git
+cd PipelineBuilder
 dotnet run --project src/PipelineBuilder.Web
 ```
 
