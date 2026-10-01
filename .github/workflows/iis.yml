@@ -69,6 +69,8 @@ jobs:
             exit 1
           }
 
+          trap { Write-Host "::error title=Windows login::$(($_ | Out-String) -replace "`r?`n", ' ')"; exit 1 }
+
           # Anonymous: refused with a Windows authentication challenge.
           $anonymous = Invoke-WebRequest $url -SkipHttpErrorCheck
           Write-Host "Anonymous: $($anonymous.StatusCode) $($anonymous.Headers['WWW-Authenticate'])"
