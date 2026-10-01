@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <RootNamespace>PipelineBuilder.Core</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <!-- Built-in template catalogue; more templates can be added with PipelineBuilderOptions.TemplatesFile. -->
+    <EmbeddedResource Include="Templates\templates.json" LogicalName="PipelineBuilder.Core.Templates.templates.json" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
+    <PackageReference Include="YamlDotNet" />
+  </ItemGroup>
+</Project>

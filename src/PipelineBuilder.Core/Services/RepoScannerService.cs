@@ -1,0 +1,98 @@
+using System.Text.RegularExpressions;
+using PipelineBuilder.Core.Abstractions;
+using PipelineBuilder.Core.Enums;
+using PipelineBuilder.Core.Models;
+
+namespace PipelineBuilder.Core.Services;
+
+public sealed class RepoScannerService : IRepoScannerService
+{
+    // Every suggested id must exist in TemplateMarketplaceService (covered by a test).
+    private static readonly (string Pattern, Action<RepoScanResultBuilder> Apply)[] Rules =
+    {
+        ("*.sln", b => { b.HasDotNet = true; b.Suggest("dotnet-web-app"); }),
+        ("*.csproj", b => b.HasDotNet = true),
+        ("*Tests*.csproj", b => b.HasTests = true),
+        ("web.config", b => b.Suggest("iis-onprem")),
+        ("Dockerfile", b => { b.HasDockerfile = true; b.Suggest("docker-build-push"); }),
+        ("package.json", b => { b.ProjectType = ProjectType.Node; b.Suggest("node-web-app"); }),
+        ("*.tf", b => { b.HasTerraform = true; b.Suggest("terraform-azure"); }),
+        ("*.bicep", b => b.HasBicep = true)
+    };
+
+    private static readonly string[] KubernetesFolders = { "k8s", "kubernetes", "manifests", "helm", "charts" };
+
+    public RepoScanResult ScanFileList(IReadOnlyList<string> relativePaths)
+    {
+        var builder = new RepoScanResultBuilder();
+        foreach (var path in relativePaths)
+        {
+            builder.DetectedFiles.Add(path);
+            foreach (var (pattern, apply) in Rules)
+            {
+                if (MatchesPattern(path, pattern))
+                    apply(builder);
+            }
+            if (IsKubernetesManifest(path))
+                builder.Suggest("aks-deploy");
+        }
+
+        builder.ProjectType ??= builder.HasDotNet ? ProjectType.DotNet
+            : builder.HasDockerfile ? ProjectType.Docker
+            : builder.HasTerraform ? ProjectType.Terraform
+            : ProjectType.Unknown;
+
+        if (builder.HasDockerfile && builder.HasDotNet)
+            builder.Suggest("hybrid-dotnet-docker");
+
+        return builder.Build();
+    }
+
+    /// <summary>YAML files inside a folder such as k8s/ or manifests/.</summary>
+    private static bool IsKubernetesManifest(string path)
+    {
+        var segments = path.Replace('\\', '/').Split('/');
+        var isYaml = segments[^1].EndsWith(".yaml", StringComparison.OrdinalIgnoreCase)
+                     || segments[^1].EndsWith(".yml", StringComparison.OrdinalIgnoreCase);
+        return isYaml && segments[..^1].Any(folder => KubernetesFolders.Contains(folder, StringComparer.OrdinalIgnoreCase));
+    }
+
+    /// <summary>
+    /// Matches a simple glob (<c>*</c> wildcards only) against the file name part of <paramref name="path"/>.
+    /// </summary>
+    private static bool MatchesPattern(string path, string pattern)
+    {
+        var fileName = path.Replace('\\', '/').Split('/').Last();
+        var regex = "^" + Regex.Escape(pattern).Replace("\\*", ".*") + "$";
+        return Regex.IsMatch(fileName, regex, RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+    }
+
+    private sealed class RepoScanResultBuilder
+    {
+        public ProjectType? ProjectType { get; set; }
+        public bool HasDotNet { get; set; }
+        public bool HasTests { get; set; }
+        public bool HasDockerfile { get; set; }
+        public bool HasTerraform { get; set; }
+        public bool HasBicep { get; set; }
+        public List<string> Suggested { get; } = new();
+        public List<string> DetectedFiles { get; } = new();
+
+        public void Suggest(string templateId)
+        {
+            if (!Suggested.Contains(templateId))
+                Suggested.Add(templateId);
+        }
+
+        public RepoScanResult Build() => new()
+        {
+            ProjectType = ProjectType ?? Enums.ProjectType.Unknown,
+            HasDockerfile = HasDockerfile,
+            HasTests = HasTests,
+            HasTerraform = HasTerraform,
+            HasBicep = HasBicep,
+            SuggestedTemplates = Suggested.Distinct().ToList(),
+            DetectedFiles = DetectedFiles
+        };
+    }
+}

@@ -1,0 +1,84 @@
+@inject WizardState Wizard
+@inject IJSRuntime JS
+
+<h2>Download / export</h2>
+@if (Wizard.BlockingErrors.Count > 0)
+{
+    <div class="generation-error">
+        <p class="severity-error">The pipeline could not be generated. Fix these settings:</p>
+        <IssueList Issues="Wizard.BlockingErrors" ShowGoTo="true" />
+    </div>
+}
+else if (Wizard.Result is { } result)
+{
+    var errors = result.ValidationResults.Count(v => v.Severity == ValidationSeverity.Error);
+    if (errors > 0)
+    {
+        <p class="severity-error">This pipeline has @errors validation error(s). You can still download it, but review the Validation step first.</p>
+    }
+
+    <p>Save the file as <code>azure-pipelines.yml</code> in your repository, then create a pipeline from it in Azure DevOps (Pipelines → New pipeline → Existing Azure Pipelines YAML file).</p>
+    <div class="actions">
+        <button type="button" class="btn-primary" id="download-yaml" @onclick="() => Download(PipelineFileName, result.Yaml, YamlMime)">Download azure-pipelines.yml</button>
+        <button type="button" class="btn-secondary" id="copy-yaml" @onclick="() => Copy(result.Yaml)">Copy YAML</button>
+    </div>
+
+    <h3>Settings</h3>
+    <p class="hint">Save your wizard settings to open and change this pipeline later (Project step → Open saved settings).</p>
+    <div class="actions">
+        <button type="button" class="btn-secondary" id="download-settings" @onclick="DownloadSettings">Download @PipelineDefinitionSerializer.FileName</button>
+    </div>
+
+    @if (!string.IsNullOrEmpty(result.DiagnosticScript))
+    {
+        <h3>Agent diagnostics script</h3>
+        <p class="hint">Run on each self-hosted agent or target server to check prerequisites.</p>
+        <div class="actions">
+            <button type="button" class="btn-secondary" id="download-diagnostics" @onclick="() => Download(DiagnosticsFileName, result.DiagnosticScript!, PowerShellMime)">Download @DiagnosticsFileName</button>
+        </div>
+        <pre class="yaml-preview">@result.DiagnosticScript</pre>
+    }
+
+    @if (_status != null)
+    {
+        <p class="status" role="status">@_status</p>
+    }
+}
+
+@code {
+    public const string PipelineFileName = "azure-pipelines.yml";
+    public const string DiagnosticsFileName = "agent-diagnostics.ps1";
+    private const string YamlMime = "application/x-yaml";
+    private const string PowerShellMime = "text/plain";
+
+    private string? _status;
+
+    private async Task Download(string fileName, string content, string mimeType)
+    {
+        try
+        {
+            await JS.InvokeVoidAsync("pipelineBuilder.downloadText", fileName, content, mimeType);
+            _status = $"Downloaded {fileName}.";
+        }
+        catch (JSException ex)
+        {
+            _status = $"Download failed: {ex.Message}";
+        }
+    }
+
+    private Task DownloadSettings() =>
+        Download(PipelineDefinitionSerializer.FileName, PipelineDefinitionSerializer.ToJson(Wizard.Definition), "application/json");
+
+    private async Task Copy(string content)
+    {
+        try
+        {
+            var copied = await JS.InvokeAsync<bool>("pipelineBuilder.copyText", content);
+            _status = copied ? "YAML copied to the clipboard." : "Copying is blocked by the browser; select the YAML on the preview step instead.";
+        }
+        catch (JSException ex)
+        {
+            _status = $"Copy failed: {ex.Message}";
+        }
+    }
+}
