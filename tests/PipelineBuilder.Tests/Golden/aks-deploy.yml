@@ -23,9 +23,6 @@ stages:
     pool:
       vmImage: 'ubuntu-latest'
     steps:
-          - powershell: |
-              Write-Warning 'Add the build and test commands for Docker projects here.'
-            displayName: 'Build and test (placeholder)'
           - task: Docker@2
             displayName: 'Build and push Docker image'
             inputs:
