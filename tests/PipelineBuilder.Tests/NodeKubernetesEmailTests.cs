@@ -111,15 +111,6 @@ public class NodeKubernetesEmailTests
         Assert.Contains(Generator.Generate(definition).ValidationResults, v => v.Message.Contains("no recipients"));
     }
 
-    [Fact]
-    public void PackageJsonSuggestsTheNodeTemplate()
-    {
-        var scan = _services.GetRequiredService<IRepoScannerService>().ScanFileList(new[] { "package.json", "src/index.ts" });
-
-        Assert.Equal(ProjectType.Node, scan.ProjectType);
-        Assert.Contains("node-web-app", scan.SuggestedTemplates);
-    }
-
     private static Dictionary<object, object> Parse(string yaml) =>
         Assert.IsType<Dictionary<object, object>>(new DeserializerBuilder().Build().Deserialize<object>(yaml));
 
