@@ -16,8 +16,7 @@ public class NodeKubernetesEmailTests
     private static PipelineDefinition Minimal() => new()
     {
         Name = "app",
-        Environments = new[] { "test", "prod" },
-        Governance = new GovernancePolicyConfig { RequireHealthCheck = false }
+        Environments = new[] { "test", "prod" }
     };
 
     [Fact]
@@ -44,7 +43,6 @@ public class NodeKubernetesEmailTests
     public void KubernetesDeploysManifestsWithTheBuiltImageAndRollsBack()
     {
         var definition = Minimal();
-        definition.DeploymentTarget = DeploymentTarget.Cloud;
         definition.Artifact = new ArtifactConfig { ArtifactType = ArtifactType.DockerImage, ArtifactName = "orders" };
         definition.Deployment = new DeploymentConfig { Kind = DeploymentKind.Kubernetes, KubernetesNamespace = "orders", KubernetesDeploymentName = "orders-api" };
         definition.Rollback = new RollbackConfig { Enabled = true };
@@ -69,7 +67,6 @@ public class NodeKubernetesEmailTests
     public void KubernetesNeverTargetsServerResources()
     {
         var definition = Minimal();
-        definition.DeploymentTarget = DeploymentTarget.OnPrem;
         definition.Artifact = new ArtifactConfig { ArtifactType = ArtifactType.DockerImage, ArtifactName = "orders" };
         definition.Deployment = new DeploymentConfig { Kind = DeploymentKind.Kubernetes };
 
@@ -112,15 +109,6 @@ public class NodeKubernetesEmailTests
         definition.Notifications = new[] { new NotificationConfig { NotificationType = NotificationType.Email, NotifyOnFailure = true } };
 
         Assert.Contains(Generator.Generate(definition).ValidationResults, v => v.Message.Contains("no recipients"));
-    }
-
-    [Fact]
-    public void PackageJsonSuggestsTheNodeTemplate()
-    {
-        var scan = _services.GetRequiredService<IRepoScannerService>().ScanFileList(new[] { "package.json", "src/index.ts" });
-
-        Assert.Equal(ProjectType.Node, scan.ProjectType);
-        Assert.Contains("node-web-app", scan.SuggestedTemplates);
     }
 
     private static Dictionary<object, object> Parse(string yaml) =>

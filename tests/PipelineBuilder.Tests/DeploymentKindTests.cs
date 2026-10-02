@@ -42,15 +42,14 @@ public class DeploymentKindTests
     }
 
     [Theory]
-    [InlineData(DeploymentKind.Iis, DeploymentTarget.OnPrem, true)]
-    [InlineData(DeploymentKind.Iis, DeploymentTarget.Hybrid, true)]
-    [InlineData(DeploymentKind.Iis, DeploymentTarget.Cloud, false)]
-    [InlineData(DeploymentKind.AzureAppService, DeploymentTarget.Hybrid, false)]
-    [InlineData(DeploymentKind.Custom, DeploymentTarget.OnPrem, true)]
-    [InlineData(DeploymentKind.Kubernetes, DeploymentTarget.OnPrem, false)]
-    public void ServerResourcesFollowTheKindAndTarget(DeploymentKind kind, DeploymentTarget target, bool expected)
+    [InlineData(DeploymentKind.Iis, true)]
+    [InlineData(DeploymentKind.WindowsService, true)]
+    [InlineData(DeploymentKind.DockerContainer, true)]
+    [InlineData(DeploymentKind.Custom, true)]
+    [InlineData(DeploymentKind.Kubernetes, false)]
+    public void ServerResourcesFollowTheKind(DeploymentKind kind, bool expected)
     {
-        var definition = new PipelineDefinition { DeploymentTarget = target, Deployment = new DeploymentConfig { Kind = kind } };
+        var definition = new PipelineDefinition { Deployment = new DeploymentConfig { Kind = kind } };
 
         Assert.Equal(expected, _kinds.UsesServerResources(definition));
     }
@@ -151,36 +150,6 @@ public class DeploymentKindTests
         Assert.Equal(warns, _kinds.For(DeploymentKind.Kubernetes).Validate(definition).Any());
     }
 
-    [Theory]
-    [InlineData(true, true)]
-    [InlineData(false, false)]
-    public void AppServiceExplainsItsRollbackOnlyWhenRollbackIsOn(bool rollback, bool explains)
-    {
-        var definition = new PipelineDefinition
-        {
-            Deployment = new DeploymentConfig { Kind = DeploymentKind.AzureAppService },
-            Rollback = new RollbackConfig { Enabled = rollback }
-        };
-
-        Assert.Equal(explains, _kinds.For(DeploymentKind.AzureAppService).Validate(definition).Any());
-    }
-
-    [Theory]
-    [InlineData(DeploymentStrategyType.SlotSwap, true)]
-    [InlineData(DeploymentStrategyType.Standard, false)]
-    public void AppServiceDeploysToTheStagingSlotOnlyForSlotSwap(DeploymentStrategyType strategy, bool toSlot)
-    {
-        var definition = new PipelineDefinition
-        {
-            Deployment = new DeploymentConfig { Kind = DeploymentKind.AzureAppService },
-            DeploymentStrategy = new DeploymentStrategyConfig { StrategyType = strategy }
-        };
-
-        var steps = string.Join("\n", _kinds.For(DeploymentKind.AzureAppService).GenerateDeploySteps(definition, "test", "$(Pipeline.Workspace)/drop"));
-
-        Assert.Equal(toSlot, steps.Contains("slotName", StringComparison.Ordinal));
-    }
-
     [Fact]
     public void TheBaseHandlerHasNoBackupRollbackOrChecks()
     {
@@ -190,16 +159,14 @@ public class DeploymentKindTests
         Assert.Empty(handler.GenerateBackupSteps(definition.Rollback, definition.Deployment, "test"));
         Assert.Empty(handler.GenerateRollbackSteps(definition.Rollback, definition.Deployment, "test"));
         Assert.Empty(handler.Validate(definition));
-        Assert.False(handler.DeploysFromAgentOnly);
+        Assert.True(handler.RunsOnServers);
         Assert.False(handler.NeedsRepositoryCheckout);
-        Assert.False(handler.SupportsSlotSwap);
     }
 
     private sealed class OwnIisHandler : DeploymentKindHandler
     {
         public override DeploymentKind Kind => DeploymentKind.Iis;
         public override RollbackTarget? RollbackTarget => Core.Enums.RollbackTarget.Iis;
-        public override bool RunsOnServers => true;
 
         public override IReadOnlyList<string> GenerateDeploySteps(PipelineDefinition definition, string environment, string packagePath) =>
             new[] { YamlBuilder.PowerShellStep("Write-Host 'deploying'", "Our own IIS deploy") };

@@ -11,8 +11,6 @@ namespace PipelineBuilder.Web.State;
 public sealed class WizardState
 {
     private KeyVaultConfig _keyVault = new();
-    private InfrastructureAsCodeConfig _iac = new() { WorkingDirectory = "infra" };
-    private AgentDiagnosticConfig _agentDiagnostics = new();
 
     private readonly IPipelineValidator _validator;
 
@@ -54,7 +52,7 @@ public sealed class WizardState
 
     /// <summary>
     /// Replaces all settings, e.g. with a saved settings file. The editable lists and the
-    /// Key Vault / IaC / diagnostics sections are rebuilt from <paramref name="definition"/>.
+    /// Key Vault section is rebuilt from <paramref name="definition"/>.
     /// </summary>
     public void Load(PipelineDefinition definition)
     {
@@ -70,12 +68,9 @@ public sealed class WizardState
         definition.Notifications = Notifications;
 
         _keyVault = definition.KeyVault ?? new KeyVaultConfig { ServiceConnection = definition.AzureServiceConnection };
-        _iac = definition.IaC ?? new InfrastructureAsCodeConfig { WorkingDirectory = "infra", ServiceConnection = definition.AzureServiceConnection };
-        _agentDiagnostics = definition.AgentDiagnostics ?? new AgentDiagnosticConfig();
 
         Result = null;
         BlockingErrors = Array.Empty<ValidationResult>();
-        ScanResult = null;
         NotifyChanged();
     }
 
@@ -90,8 +85,6 @@ public sealed class WizardState
             .ToList();
 
     public bool HasErrors(WizardStep step) => IssuesFor(step).Any(v => v.Severity == ValidationSeverity.Error);
-    public RepoScanResult? ScanResult { get; set; }
-    public string RepoPathsInput { get; set; } = "src/MyApp/MyApp.csproj\nDockerfile\ntests/MyApp.Tests/MyApp.Tests.csproj";
 
     public PipelineDependencyGraph DependencyGraph => PipelineDependencyGraph.FromDefinition(Definition);
 
@@ -119,50 +112,12 @@ public sealed class WizardState
         set => Definition.Trigger.PathFilters = SplitList(value);
     }
 
-    public string RequiredVariableGroups
-    {
-        get => string.Join(", ", Definition.Governance.RequiredVariableGroups);
-        set => Definition.Governance.RequiredVariableGroups = SplitList(value);
-    }
-
-    public string ForbiddenTasks
-    {
-        get => string.Join(", ", Definition.Governance.ForbiddenTasks);
-        set => Definition.Governance.ForbiddenTasks = SplitList(value);
-    }
-
-    public string RequiredTasks
-    {
-        get => string.Join(", ", Definition.Governance.RequiredTasks);
-        set => Definition.Governance.RequiredTasks = SplitList(value);
-    }
-
-    public string DeploymentFolders
-    {
-        get => string.Join("\n", _agentDiagnostics.DeploymentFolders);
-        set => _agentDiagnostics.DeploymentFolders = SplitLines(value);
-    }
-
-    public AgentDiagnosticConfig AgentDiagnostics => _agentDiagnostics;
     public KeyVaultConfig KeyVault => _keyVault;
-    public InfrastructureAsCodeConfig IaC => _iac;
 
     public bool KeyVaultEnabled
     {
         get => Definition.KeyVault != null;
         set => Definition.KeyVault = value ? _keyVault : null;
-    }
-
-    public bool IaCEnabled
-    {
-        get => Definition.IaC != null;
-        set => Definition.IaC = value ? _iac : null;
-    }
-
-    public bool AgentDiagnosticsEnabled
-    {
-        get => Definition.AgentDiagnostics != null;
-        set => Definition.AgentDiagnostics = value ? _agentDiagnostics : null;
     }
 
     /// <summary>Sets the Azure service connection everywhere it is used.</summary>
@@ -174,7 +129,6 @@ public sealed class WizardState
             var connection = string.IsNullOrWhiteSpace(value) ? "$(AZURE_SERVICE_CONNECTION)" : value.Trim();
             Definition.AzureServiceConnection = connection;
             _keyVault.ServiceConnection = connection;
-            _iac.ServiceConnection = connection;
         }
     }
 
@@ -185,27 +139,14 @@ public sealed class WizardState
         Result = BlockingErrors.Count == 0 ? generator.Generate(Definition) : null;
     }
 
-    public void ScanRepository(IRepoScannerService scanner)
-    {
-        ScanResult = scanner.ScanFileList(SplitLines(RepoPathsInput));
-        if (ScanResult.ProjectType != ProjectType.Unknown)
-            Definition.ProjectType = ScanResult.ProjectType;
-    }
-
-    public bool ApplyTemplate(ITemplateMarketplaceService marketplace, string templateId)
-    {
-        var applied = marketplace.ApplyTo(templateId, Definition);
-        if (applied && Definition.IaC != null)
-            _iac = Definition.IaC;
-        return applied;
-    }
+    public bool ApplyTemplate(ITemplateMarketplaceService marketplace, string templateId) =>
+        marketplace.ApplyTo(templateId, Definition);
 
     public static PipelineDefinition CreateDefault() => new()
     {
         Name = "enterprise-pipeline",
         ProjectType = ProjectType.DotNet,
         BuildAgent = BuildAgentType.MicrosoftHosted,
-        DeploymentTarget = DeploymentTarget.OnPrem,
         Environments = new[] { "test", "preprod", "prod" },
         DotNetProjectPath = "**/*.csproj",
         TestProjectPath = "**/*Tests*.csproj",
@@ -224,26 +165,9 @@ public sealed class WizardState
         Notifications = new[]
         {
             new NotificationConfig { NotificationType = NotificationType.TeamsWebhook, TeamsWebhookVariable = "TEAMS_WEBHOOK_URL", NotifyOnFailure = true }
-        },
-        Governance = new GovernancePolicyConfig
-        {
-            RequiredApprovals = true,
-            RequireHealthCheck = true,
-            RequireRollback = true,
-            RequiredVariableGroups = new[] { "vg-test" },
-            ForbiddenTasks = new[] { "CmdLine@2" }
-        },
-        AgentDiagnostics = new AgentDiagnosticConfig
-        {
-            CheckWinRm = true,
-            CheckIisModule = true,
-            DeploymentFolders = new[] { @"D:\deploy", @"C:\inetpub\wwwroot" }
         }
     };
 
     private static IReadOnlyList<string> SplitList(string? value) =>
         (value ?? string.Empty).Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-
-    private static IReadOnlyList<string> SplitLines(string? value) =>
-        (value ?? string.Empty).Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
 }

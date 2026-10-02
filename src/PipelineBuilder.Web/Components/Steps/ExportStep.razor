@@ -29,16 +29,6 @@ else if (Wizard.Result is { } result)
         <button type="button" class="btn-secondary" id="download-settings" @onclick="DownloadSettings">Download @PipelineDefinitionSerializer.FileName</button>
     </div>
 
-    @if (!string.IsNullOrEmpty(result.DiagnosticScript))
-    {
-        <h3>Agent diagnostics script</h3>
-        <p class="hint">Run on each self-hosted agent or target server to check prerequisites.</p>
-        <div class="actions">
-            <button type="button" class="btn-secondary" id="download-diagnostics" @onclick="() => Download(DiagnosticsFileName, result.DiagnosticScript!, PowerShellMime)">Download @DiagnosticsFileName</button>
-        </div>
-        <pre class="yaml-preview">@result.DiagnosticScript</pre>
-    }
-
     @if (_status != null)
     {
         <p class="status" role="status">@_status</p>
@@ -47,9 +37,7 @@ else if (Wizard.Result is { } result)
 
 @code {
     public const string PipelineFileName = "azure-pipelines.yml";
-    public const string DiagnosticsFileName = "agent-diagnostics.ps1";
     private const string YamlMime = "application/x-yaml";
-    private const string PowerShellMime = "text/plain";
 
     private string? _status;
 

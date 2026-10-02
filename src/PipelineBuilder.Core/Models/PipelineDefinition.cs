@@ -17,7 +17,6 @@ public sealed class PipelineDefinition
     public ProjectType ProjectType { get; set; }
     public BuildAgentType BuildAgent { get; set; } = BuildAgentType.MicrosoftHosted;
     public string? PoolName { get; set; }
-    public DeploymentTarget DeploymentTarget { get; set; }
     public TriggerConfig Trigger { get; set; } = TriggerConfig.Default;
 
     /// <summary>Branch that production deployments are restricted to.</summary>
@@ -36,10 +35,7 @@ public sealed class PipelineDefinition
     public RollbackConfig Rollback { get; set; } = new();
     public IReadOnlyList<HealthCheckConfig> HealthChecks { get; set; } = Array.Empty<HealthCheckConfig>();
     public IReadOnlyList<NotificationConfig> Notifications { get; set; } = Array.Empty<NotificationConfig>();
-    public InfrastructureAsCodeConfig? IaC { get; set; }
     public DeploymentStrategyConfig DeploymentStrategy { get; set; } = new();
-    public GovernancePolicyConfig Governance { get; set; } = new();
-    public AgentDiagnosticConfig? AgentDiagnostics { get; set; }
     public string? DotNetProjectPath { get; set; }
     /// <summary>Node.js version for Node projects (NodeTool version spec).</summary>
     public string NodeVersion { get; set; } = "24.x";
@@ -56,5 +52,4 @@ public sealed class GeneratedPipeline
     public string Yaml { get; set; } = string.Empty;
     public IReadOnlyList<YamlBlockExplanation> Explanations { get; set; } = Array.Empty<YamlBlockExplanation>();
     public IReadOnlyList<ValidationResult> ValidationResults { get; set; } = Array.Empty<ValidationResult>();
-    public string? DiagnosticScript { get; set; }
 }

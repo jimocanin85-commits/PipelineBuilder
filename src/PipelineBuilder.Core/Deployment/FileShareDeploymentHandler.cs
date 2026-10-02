@@ -9,7 +9,6 @@ public sealed class FileShareDeploymentHandler : DeploymentKindHandler
 {
     public override DeploymentKind Kind => DeploymentKind.FileShare;
     public override RollbackTarget? RollbackTarget => Enums.RollbackTarget.FileShare;
-    public override bool RunsOnServers => true;
 
     public override IReadOnlyList<string> GenerateDeploySteps(PipelineDefinition definition, string environment, string packagePath) => new[]
     {

@@ -24,10 +24,9 @@ public class VariableGroupServiceTests
     }
 
     [Fact]
-    public void Validate_RequiredGroupMissing_ReturnsError()
+    public void Validate_GroupWithoutAName_ReturnsError()
     {
-        var governance = new GovernancePolicyConfig { RequiredVariableGroups = new[] { "vg-prod" } };
-        var results = _sut.Validate(Array.Empty<VariableGroupConfig>(), governance);
+        var results = _sut.Validate(new[] { new VariableGroupConfig { Name = " " } });
         Assert.Contains(results, r => r.Severity == ValidationSeverity.Error);
     }
 }

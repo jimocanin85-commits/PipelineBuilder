@@ -30,8 +30,7 @@ public class GeneratedYamlTests
         foreach (var strategy in Enum.GetValues<DeploymentStrategyType>())
         foreach (var artifact in Enum.GetValues<ArtifactType>())
         foreach (var kind in Enum.GetValues<DeploymentKind>())
-        foreach (var target in Enum.GetValues<DeploymentTarget>())
-            yield return new object[] { strategy, artifact, kind, target };
+            yield return new object[] { strategy, artifact, kind };
     }
 
     public static IEnumerable<object[]> AllRollbackTargets() =>
@@ -40,13 +39,12 @@ public class GeneratedYamlTests
     [Theory]
     [MemberData(nameof(AllOptionCombinations))]
     public void GeneratedYaml_IsValidForEveryOptionCombination(
-        DeploymentStrategyType strategy, ArtifactType artifact, DeploymentKind kind, DeploymentTarget target)
+        DeploymentStrategyType strategy, ArtifactType artifact, DeploymentKind kind)
     {
         var definition = FullDefinition();
         definition.DeploymentStrategy = new DeploymentStrategyConfig { StrategyType = strategy };
         definition.Artifact = new ArtifactConfig { ArtifactType = artifact, ArtifactName = "drop" };
         definition.Deployment = new DeploymentConfig { Kind = kind };
-        definition.DeploymentTarget = target;
 
         AssertValidPipeline(_generator.Generate(definition).Yaml);
     }
@@ -112,7 +110,7 @@ public class GeneratedYamlTests
 
         var preProd = Assert.Single(stages, s => (string)s["stage"] == "Deploy_pre_prod");
         var job = DeployJob(preProd);
-        Assert.Equal("pre-prod", (string)job["environment"]);
+        Assert.Equal("pre-prod", (string)Assert.IsType<Dictionary<object, object>>(job["environment"])["name"]);
         Assert.Equal("DeployTopre_prod", (string)job["deployment"]);
     }
 
@@ -191,30 +189,9 @@ public class GeneratedYamlTests
     }
 
     [Fact]
-    public void GeneratedYaml_InfrastructureRunsPerEnvironmentBeforeDeploy()
-    {
-        var yaml = _generator.Generate(FullDefinition()).Yaml;
-        var root = Parse(yaml);
-
-        Assert.DoesNotContain(StagesOf(root), s => (string)s["stage"] == "Infrastructure");
-        foreach (var env in new[] { "test", "pre_prod", "prod" })
-        {
-            var stage = StageNamed(root, $"Deploy_{env}");
-            var infra = Assert.Single(JobsOf(stage), j => JobName(j) == "Infrastructure");
-            Assert.Equal("Infrastructure", Assert.Single(DependenciesOf(DeployJob(stage))));
-
-            var steps = DeploySteps(infra);
-            Assert.Equal("self", (string)steps[0]["checkout"]);
-            Assert.Contains(steps, s => s.GetValueOrDefault("task") as string == "TerraformTaskV4@4"
-                                        && (string)Inputs(s)["command"] == "apply");
-        }
-    }
-
-    [Fact]
-    public void GeneratedYaml_OnPremIisDeploysToServersAndRollsBackOnFailure()
+    public void GeneratedYaml_IisDeploysToServersAndRollsBackOnFailure()
     {
         var definition = FullDefinition();
-        definition.DeploymentTarget = DeploymentTarget.OnPrem;
         definition.Deployment = new DeploymentConfig { Kind = DeploymentKind.Iis, WebsiteName = "MyApp" };
 
         var root = Parse(_generator.Generate(definition).Yaml);
@@ -241,7 +218,6 @@ public class GeneratedYamlTests
     public void GeneratedYaml_RollingStrategyUsesNativeRollingOnServers()
     {
         var definition = FullDefinition();
-        definition.DeploymentTarget = DeploymentTarget.OnPrem;
         definition.Deployment = new DeploymentConfig { Kind = DeploymentKind.WindowsService };
         definition.DeploymentStrategy = new DeploymentStrategyConfig { StrategyType = DeploymentStrategyType.Rolling, BatchSize = 2 };
 
@@ -345,7 +321,6 @@ public class GeneratedYamlTests
         Name = "enterprise-pipeline",
         ProjectType = ProjectType.DotNet,
         BuildAgent = BuildAgentType.MicrosoftHosted,
-        DeploymentTarget = DeploymentTarget.Hybrid,
         Environments = new[] { "test", "pre-prod", "prod" },
         VariableGroups = new[]
         {
@@ -353,7 +328,6 @@ public class GeneratedYamlTests
             new VariableGroupConfig { Name = "vg-prod", Scope = VariableGroupScope.Environment, EnvironmentName = "prod" }
         },
         KeyVault = new KeyVaultConfig { KeyVaultName = "kv-test" },
-        IaC = new InfrastructureAsCodeConfig { Tool = IaCTool.Terraform, WorkingDirectory = "infra" },
         Rollback = new RollbackConfig { Enabled = true, BackupPath = @"D:\backups", Target = RollbackTarget.Iis },
         HealthChecks = new[]
         {

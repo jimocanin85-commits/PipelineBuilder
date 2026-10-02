@@ -36,7 +36,7 @@ public sealed class VariableGroupService : IVariableGroupService
         return sb.ToString().TrimEnd();
     }
 
-    public IReadOnlyList<ValidationResult> Validate(IReadOnlyList<VariableGroupConfig> groups, GovernancePolicyConfig? governance)
+    public IReadOnlyList<ValidationResult> Validate(IReadOnlyList<VariableGroupConfig> groups)
     {
         var results = new List<ValidationResult>();
         foreach (var g in groups.Where(x => string.IsNullOrWhiteSpace(x.Name)))
@@ -62,22 +62,6 @@ public sealed class VariableGroupService : IVariableGroupService
             });
         }
 
-        if (governance?.RequiredVariableGroups.Count > 0)
-        {
-            foreach (var required in governance.RequiredVariableGroups)
-            {
-                if (!groups.Any(g => g.Name.Equals(required, StringComparison.OrdinalIgnoreCase)))
-                {
-                    results.Add(new ValidationResult
-                    {
-                        Severity = ValidationSeverity.Error,
-                        Message = $"Required variable group '{required}' is missing.",
-                        AffectedField = "VariableGroups",
-                        SuggestedFix = $"Add variable group '{required}' at pipeline or stage scope."
-                    });
-                }
-            }
-        }
         return results;
     }
 }

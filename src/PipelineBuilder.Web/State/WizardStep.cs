@@ -1,6 +1,6 @@
 namespace PipelineBuilder.Web.State;
 
-/// <summary>The wizard's steps, in order. The number is shown in the navigation.</summary>
+/// <summary>The wizard's steps, in order.</summary>
 public enum WizardStep
 {
     ProjectType = 1,
@@ -14,8 +14,7 @@ public enum WizardStep
     RollbackSettings = 9,
     HealthChecks = 10,
     Notifications = 11,
-    GovernancePolicies = 12,
-    YamlPreview = 13,
-    ValidationResults = 14,
-    DownloadExport = 15
+    YamlPreview = 12,
+    ValidationResults = 13,
+    DownloadExport = 14
 }

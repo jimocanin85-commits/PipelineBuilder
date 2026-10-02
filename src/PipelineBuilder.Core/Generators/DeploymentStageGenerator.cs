@@ -9,7 +9,6 @@ namespace PipelineBuilder.Core.Generators;
 /// <summary>
 /// Generates one <c>Deploy_{env}</c> stage per environment. Each stage contains:
 /// <list type="bullet">
-/// <item>an optional <c>Infrastructure</c> job (IaC for that environment), which runs first;</item>
 /// <item>a <c>deployment</c> job targeting the Azure DevOps environment (so approvals and checks
 /// apply) that loads Key Vault secrets, backs up, deploys and health-checks;</item>
 /// <item>an <c>on: failure</c> hook on that job which rolls back on the same server.</item>
@@ -20,27 +19,21 @@ public sealed class DeploymentStageGenerator
     private readonly IArtifactYamlService _artifactService;
     private readonly IHealthCheckYamlService _healthCheckService;
     private readonly IDeploymentKinds _deploymentKinds;
-    private readonly IDeploymentStrategyService _strategyService;
     private readonly IVariableGroupService _variableGroupService;
     private readonly IKeyVaultYamlService _keyVaultService;
-    private readonly IIacYamlService _iacService;
 
     public DeploymentStageGenerator(
         IArtifactYamlService artifactService,
         IHealthCheckYamlService healthCheckService,
         IDeploymentKinds deploymentKinds,
-        IDeploymentStrategyService strategyService,
         IVariableGroupService variableGroupService,
-        IKeyVaultYamlService keyVaultService,
-        IIacYamlService iacService)
+        IKeyVaultYamlService keyVaultService)
     {
         _artifactService = artifactService;
         _healthCheckService = healthCheckService;
         _deploymentKinds = deploymentKinds;
-        _strategyService = strategyService;
         _variableGroupService = variableGroupService;
         _keyVaultService = keyVaultService;
-        _iacService = iacService;
     }
 
     public string Generate(PipelineDefinition definition)
@@ -69,51 +62,14 @@ public sealed class DeploymentStageGenerator
                 sb.Append("  variables:\n").Append(_variableGroupService.GenerateStageVariables(envGroups)).Append('\n');
 
             sb.Append("  jobs:\n");
-            var hasInfrastructure = definition.IaC != null;
-            if (hasInfrastructure)
-                sb.Append(InfrastructureJob(definition, env)).Append('\n');
-            sb.Append(DeploymentJob(definition, env, envId, hasInfrastructure)).Append('\n');
+            sb.Append(DeploymentJob(definition, env, envId)).Append('\n');
 
             previousStage = stageName;
         }
         return sb.ToString().TrimEnd();
     }
 
-    private string InfrastructureJob(PipelineDefinition definition, string env)
-    {
-        var iac = definition.IaC!;
-        var steps = string.Join("\n", _iacService.GenerateIacSteps(iac, env));
-        var pool = PoolConfigurationHelper.GeneratePoolConfiguration(definition.BuildAgent, definition.PoolName);
-
-        if (!iac.ApplyOnApproval)
-        {
-            return $"""
-  - job: Infrastructure
-    displayName: {YamlBuilder.YamlString($"Infrastructure ({env})")}
-    pool:
-      {pool}
-    steps:
-{YamlBuilder.Indent(steps, 4)}
-""";
-        }
-
-        // A deployment job targeting the environment, so its approvals gate the infrastructure change.
-        return $"""
-  - deployment: Infrastructure
-    displayName: {YamlBuilder.YamlString($"Infrastructure ({env})")}
-    pool:
-      {pool}
-    environment: {env}
-    strategy:
-      runOnce:
-        deploy:
-          steps:
-          - checkout: self
-{YamlBuilder.Indent(steps, 6)}
-""";
-    }
-
-    private string DeploymentJob(PipelineDefinition definition, string env, string envId, bool dependsOnInfrastructure)
+    private string DeploymentJob(PipelineDefinition definition, string env, string envId)
     {
         var kind = _deploymentKinds.For(definition.Deployment.Kind);
         var serverResources = _deploymentKinds.UsesServerResources(definition);
@@ -127,9 +83,7 @@ public sealed class DeploymentStageGenerator
             deploySteps.Add(_keyVaultService.GeneratePreJobSteps(definition.KeyVault));
         deploySteps.AddRange(_deploymentKinds.GenerateBackupSteps(definition, env));
 
-        var deployTask = string.Join("\n", kind.GenerateDeploySteps(definition, env, packagePath));
-        deploySteps.AddRange(_strategyService.GenerateStrategySteps(
-            definition.DeploymentStrategy, env, deployTask, definition.Deployment.WebAppNameOrDefault, definition.AzureServiceConnection));
+        deploySteps.AddRange(kind.GenerateDeploySteps(definition, env, packagePath));
 
         foreach (var hc in definition.HealthChecks.Where(h => h.Enabled))
             deploySteps.AddRange(_healthCheckService.GenerateHealthCheckSteps(ForEnvironment(hc, env)));
@@ -141,8 +95,6 @@ public sealed class DeploymentStageGenerator
         var sb = new StringBuilder();
         sb.Append($"  - deployment: DeployTo{envId}\n");
         sb.Append($"    displayName: {YamlBuilder.YamlString($"Deploy to {env}")}\n");
-        if (dependsOnInfrastructure)
-            sb.Append("    dependsOn: Infrastructure\n");
 
         if (serverResources)
         {

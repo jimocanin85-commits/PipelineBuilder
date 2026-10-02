@@ -1,15 +1,6 @@
 @inject WizardState Wizard
-@inject IDeploymentStrategyService Strategies
 
 <h2>Deployment</h2>
-<label for="target">Where the app runs</label>
-<InputSelect id="target" @bind-Value="Wizard.Definition.DeploymentTarget" class="form-control">
-    @foreach (var d in Enum.GetValues<DeploymentTarget>())
-    {
-        <option value="@d">@d</option>
-    }
-</InputSelect>
-
 <label for="kind">Deploy as</label>
 <InputSelect id="kind" @bind-Value="Wizard.Definition.Deployment.Kind" class="form-control">
     @foreach (var k in Enum.GetValues<DeploymentKind>())
@@ -33,10 +24,6 @@
     case DeploymentKind.FileShare:
         <label for="share">Target folder or share</label>
         <InputText id="share" @bind-Value="Wizard.Definition.Deployment.TargetPath" class="form-control" placeholder="\\server\share\app" />
-        break;
-    case DeploymentKind.AzureAppService:
-        <label for="webapp">App Service name</label>
-        <InputText id="webapp" @bind-Value="Wizard.Definition.Deployment.WebAppName" class="form-control" placeholder="$(WEBAPP_NAME)" />
         break;
     case DeploymentKind.DockerContainer:
         <label for="container">Container name</label>
@@ -67,40 +54,10 @@
         <option value="@s">@s</option>
     }
 </InputSelect>
-@switch (Wizard.Definition.DeploymentStrategy.StrategyType)
+@if (Wizard.Definition.DeploymentStrategy.StrategyType == DeploymentStrategyType.Rolling)
 {
-    case DeploymentStrategyType.Rolling:
-        <label for="batch">Servers updated at a time</label>
-        <InputNumber id="batch" @bind-Value="Wizard.Definition.DeploymentStrategy.BatchSize" class="form-control" />
-        break;
-    case DeploymentStrategyType.Canary:
-        <label for="canary">Canary traffic (%)</label>
-        <InputNumber id="canary" @bind-Value="Wizard.Definition.DeploymentStrategy.CanaryPercentage" class="form-control" />
-        break;
-    case DeploymentStrategyType.SlotSwap:
-        <label for="slot">Staging slot name</label>
-        <InputText id="slot" @bind-Value="Wizard.Definition.DeploymentStrategy.SlotName" class="form-control" placeholder="staging" />
-        break;
-}
-<p class="hint">@Strategies.GetStrategyNote(Wizard.Definition.DeploymentStrategy)</p>
-
-<h3>Infrastructure as code</h3>
-<label><InputCheckbox @bind-Value="Wizard.IaCEnabled" /> Provision infrastructure in each environment before deploying</label>
-@if (Wizard.IaCEnabled)
-{
-    <div class="card">
-        <label for="iac-tool">Tool</label>
-        <InputSelect id="iac-tool" @bind-Value="Wizard.IaC.Tool" class="form-control">
-            @foreach (var t in Enum.GetValues<IaCTool>())
-            {
-                <option value="@t">@t</option>
-            }
-        </InputSelect>
-        <label for="iac-dir">Working directory</label>
-        <InputText id="iac-dir" @bind-Value="Wizard.IaC.WorkingDirectory" class="form-control" placeholder="infra" />
-        <label><InputCheckbox @bind-Value="Wizard.IaC.PlanOnly" /> Plan only (never apply)</label>
-        <label><InputCheckbox @bind-Value="Wizard.IaC.ApplyOnApproval" /> Gate infrastructure changes with the environment's approvals</label>
-    </div>
+    <label for="batch">Servers updated at a time</label>
+    <InputNumber id="batch" @bind-Value="Wizard.Definition.DeploymentStrategy.BatchSize" class="form-control" />
 }
 
 <div class="info-box">Empty fields use pipeline variables (shown as placeholders), which you can define in a variable group.</div>

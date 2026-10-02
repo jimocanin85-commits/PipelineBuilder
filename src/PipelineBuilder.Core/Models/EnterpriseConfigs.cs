@@ -48,9 +48,6 @@ public sealed class DeploymentConfig
     /// <summary>IIS website name (Iis).</summary>
     public string? WebsiteName { get; set; }
 
-    /// <summary>Azure App Service name (AzureAppService).</summary>
-    public string? WebAppName { get; set; }
-
     /// <summary>Container name (DockerContainer).</summary>
     public string? ContainerName { get; set; }
 
@@ -75,8 +72,6 @@ public sealed class DeploymentConfig
     public string ServiceNameOrDefault => string.IsNullOrWhiteSpace(ServiceName) ? "$(SERVICE_NAME)" : ServiceName;
     [JsonIgnore]
     public string WebsiteNameOrDefault => string.IsNullOrWhiteSpace(WebsiteName) ? "Default Web Site" : WebsiteName;
-    [JsonIgnore]
-    public string WebAppNameOrDefault => string.IsNullOrWhiteSpace(WebAppName) ? "$(WEBAPP_NAME)" : WebAppName;
     [JsonIgnore]
     public string KubernetesServiceConnectionOrDefault => string.IsNullOrWhiteSpace(KubernetesServiceConnection) ? "$(K8S_SERVICE_CONNECTION)" : KubernetesServiceConnection;
     [JsonIgnore]
@@ -132,57 +127,11 @@ public sealed class NotificationConfig
     public bool NotifyOnFailure { get; set; } = true;
 }
 
-public sealed class InfrastructureAsCodeConfig
-{
-    public IaCTool Tool { get; set; } = IaCTool.Terraform;
-    public string WorkingDirectory { get; set; } = string.Empty;
-    public bool PlanOnly { get; set; }
-    public bool ApplyOnApproval { get; set; } = true;
-    public string ServiceConnection { get; set; } = "$(AZURE_SERVICE_CONNECTION)";
-    public string? BackendConfig { get; set; }
-}
-
 public sealed class DeploymentStrategyConfig
 {
     public DeploymentStrategyType StrategyType { get; set; } = DeploymentStrategyType.Standard;
     public int BatchSize { get; set; } = 1;
-    public int CanaryPercentage { get; set; } = 10;
-    public string? SlotName { get; set; } = "staging";
     public bool RollbackOnFailure { get; set; } = true;
-}
-
-public sealed class GovernancePolicyConfig
-{
-    public bool RequiredApprovals { get; set; } = true;
-    public IReadOnlyList<string> RequiredVariableGroups { get; set; } = Array.Empty<string>();
-    public IReadOnlyList<string> ForbiddenTasks { get; set; } = Array.Empty<string>();
-    public IReadOnlyList<string> RequiredTasks { get; set; } = Array.Empty<string>();
-    public string? NamingConvention { get; set; }
-    public bool RequireHealthCheck { get; set; } = true;
-    public bool RequireRollback { get; set; }
-}
-
-public sealed class RepoScanResult
-{
-    public ProjectType ProjectType { get; set; }
-    public string? FrameworkVersion { get; set; }
-    public bool HasDockerfile { get; set; }
-    public bool HasTests { get; set; }
-    public bool HasTerraform { get; set; }
-    public bool HasBicep { get; set; }
-    public IReadOnlyList<string> SuggestedTemplates { get; set; } = Array.Empty<string>();
-    public IReadOnlyList<string> DetectedFiles { get; set; } = Array.Empty<string>();
-}
-
-public sealed class AgentDiagnosticConfig
-{
-    public bool CheckPowerShellVersion { get; set; } = true;
-    public bool CheckWinRm { get; set; } = true;
-    public bool CheckDocker { get; set; }
-    public bool CheckIisModule { get; set; } = true;
-    public bool CheckNetworkAccess { get; set; } = true;
-    public bool CheckPermissions { get; set; } = true;
-    public IReadOnlyList<string> DeploymentFolders { get; set; } = Array.Empty<string>();
 }
 
 public sealed class SecretGovernanceResult

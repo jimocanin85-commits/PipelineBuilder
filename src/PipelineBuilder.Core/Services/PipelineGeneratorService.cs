@@ -19,7 +19,6 @@ public sealed class PipelineGeneratorService : IPipelineGeneratorService
     private readonly NotificationStepGenerator _notificationGenerator;
     private readonly IPipelineValidator _validator;
     private readonly IYamlExplanationService _explanationService;
-    private readonly IAgentDiagnosticsService _agentDiagnosticsService;
     private readonly ILogger<PipelineGeneratorService> _logger;
 
     public PipelineGeneratorService(
@@ -29,7 +28,6 @@ public sealed class PipelineGeneratorService : IPipelineGeneratorService
         NotificationStepGenerator notificationGenerator,
         IPipelineValidator validator,
         IYamlExplanationService explanationService,
-        IAgentDiagnosticsService agentDiagnosticsService,
         ILogger<PipelineGeneratorService> logger)
     {
         _variableGroupService = variableGroupService;
@@ -38,7 +36,6 @@ public sealed class PipelineGeneratorService : IPipelineGeneratorService
         _notificationGenerator = notificationGenerator;
         _validator = validator;
         _explanationService = explanationService;
-        _agentDiagnosticsService = agentDiagnosticsService;
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
@@ -73,12 +70,8 @@ public sealed class PipelineGeneratorService : IPipelineGeneratorService
                 "PipelineBuilder generated an invalid pipeline. This is a bug; please report it with your settings file.\n  - " +
                 string.Join("\n  - ", yamlProblems));
 
-        // Governance, deployment advice, secrets and Key Vault findings about the generated pipeline.
+        // Deployment advice, variable group, secrets and Key Vault findings about the generated pipeline.
         var validation = _validator.ValidateGenerated(definition, yaml);
-
-        string? diagnosticScript = null;
-        if (definition.AgentDiagnostics != null)
-            diagnosticScript = _agentDiagnosticsService.GenerateDiagnosticScript(definition.AgentDiagnostics);
 
         var errorCount = validation.Count(v => v.Severity == ValidationSeverity.Error);
         var warningCount = validation.Count(v => v.Severity == ValidationSeverity.Warning);
@@ -90,8 +83,7 @@ public sealed class PipelineGeneratorService : IPipelineGeneratorService
         {
             Yaml = yaml,
             Explanations = _explanationService.ExplainYaml(yaml),
-            ValidationResults = validation,
-            DiagnosticScript = diagnosticScript
+            ValidationResults = validation
         };
     }
 

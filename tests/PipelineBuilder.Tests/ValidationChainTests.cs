@@ -41,15 +41,14 @@ public class ValidationChainTests
     public void GeneratedFindingsCarryTheirRuleId()
     {
         var definition = WizardState.CreateDefault();
-        definition.HealthChecks = Array.Empty<HealthCheckConfig>();
-        definition.Governance.ForbiddenTasks = new[] { "DotNetCoreCLI@2" };
+        definition.Deployment = new DeploymentConfig { Kind = DeploymentKind.Custom };
         var generator = new ServiceCollection().AddPipelineBuilderCore().BuildServiceProvider().GetRequiredService<IPipelineGeneratorService>();
 
         var findings = generator.Generate(definition).ValidationResults;
 
-        Assert.Contains(findings, f => f.RuleId == "governance.health-check");
-        Assert.Contains(findings, f => f.RuleId == "governance.forbidden-tasks");
-        Assert.Contains(findings, f => f.RuleId == "governance.approvals");
+        Assert.Contains(findings, f => f.RuleId == "deployment.kind");
+        Assert.Contains(findings, f => f.RuleId == "deployment.server-resources");
+        Assert.Contains(findings, f => f.RuleId == "environments.approvals");
         Assert.All(findings, f => Assert.False(string.IsNullOrEmpty(f.RuleId)));
         Assert.DoesNotContain(findings, f => f.RuleId!.StartsWith("input.", StringComparison.Ordinal));
     }
@@ -104,28 +103,5 @@ public class ValidationChainTests
         Assert.Throws<ArgumentException>(() => new ValidationRule(" ", ValidationStage.Input, _ => Array.Empty<ValidationResult>()));
         Assert.Throws<ArgumentNullException>(() => new ValidationRule("house.rule", ValidationStage.Input, null!));
         Assert.Throws<ArgumentNullException>(() => _validator.ValidateGenerated(null!, ""));
-    }
-
-    [Theory]
-    [InlineData("[", ValidationSeverity.Error, "regex is invalid")]
-    [InlineData("^team-", ValidationSeverity.Warning, "does not match naming convention")]
-    public void TheNamingConventionIsChecked(string pattern, ValidationSeverity severity, string message)
-    {
-        var definition = WizardState.CreateDefault();
-        definition.Governance.NamingConvention = pattern;
-
-        var finding = Assert.Single(_validator.ValidateGenerated(definition, "steps: []"), f => f.RuleId == "governance.naming-convention");
-
-        Assert.Equal(severity, finding.Severity);
-        Assert.Contains(message, finding.Message);
-    }
-
-    [Fact]
-    public void AMatchingNameHasNoNamingFinding()
-    {
-        var definition = WizardState.CreateDefault();
-        definition.Governance.NamingConvention = "^enterprise-";
-
-        Assert.DoesNotContain(_validator.ValidateGenerated(definition, "steps: []"), f => f.RuleId == "governance.naming-convention");
     }
 }

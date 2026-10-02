@@ -1,39 +1,15 @@
 @inject WizardState Wizard
 @inject ITemplateMarketplaceService Marketplace
-@inject IRepoScannerService RepoScanner
 
 <h2>Template</h2>
-
-<h3>Scan your repository</h3>
-<p class="hint">Paste your repository's file list (one path per line, e.g. from <code>git ls-files</code>) to detect the project type and get template suggestions.</p>
-<InputTextArea @bind-Value="Wizard.RepoPathsInput" class="form-control" rows="5" />
-<button type="button" class="btn-secondary" @onclick="Scan">Scan</button>
-
-@if (Wizard.ScanResult is { } scan)
-{
-    <div class="card scan-result">
-        <p>Detected: <strong>@scan.ProjectType</strong>
-            @if (scan.HasTests) { <span class="tag">tests</span> }
-            @if (scan.HasDockerfile) { <span class="tag">Dockerfile</span> }
-            @if (scan.HasTerraform) { <span class="tag">Terraform</span> }
-            @if (scan.HasBicep) { <span class="tag">Bicep</span> }
-        </p>
-        @if (scan.SuggestedTemplates.Count > 0)
-        {
-            <p>Suggested: @string.Join(", ", scan.SuggestedTemplates)</p>
-        }
-    </div>
-}
 
 <h3>Start from a template</h3>
 <ul class="template-list">
     @foreach (var t in Marketplace.GetAllTemplates())
     {
-        var suggested = Wizard.ScanResult?.SuggestedTemplates.Contains(t.Id) == true;
         var applied = Wizard.Definition.TemplateId == t.Id;
-        <li class="@(suggested ? "suggested" : "")">
-            <strong>@t.Name</strong> — @t.Description <em>(@t.RiskLevel risk)</em>
-            @if (suggested) { <span class="tag">suggested</span> }
+        <li>
+            <strong>@t.Name</strong> — @t.Description
             <button type="button" class="btn-secondary" data-template="@t.Id" @onclick="() => Apply(t.Id)">@(applied ? "Applied" : "Apply")</button>
         </li>
     }
@@ -45,8 +21,6 @@
 
 @code {
     private string? _message;
-
-    private void Scan() => Wizard.ScanRepository(RepoScanner);
 
     private void Apply(string templateId)
     {

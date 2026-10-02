@@ -7,7 +7,7 @@ public interface IVariableGroupService
 {
     string GeneratePipelineVariables(PipelineDefinition definition);
     string GenerateStageVariables(IReadOnlyList<VariableGroupConfig> groups);
-    IReadOnlyList<ValidationResult> Validate(IReadOnlyList<VariableGroupConfig> groups, GovernancePolicyConfig? governance);
+    IReadOnlyList<ValidationResult> Validate(IReadOnlyList<VariableGroupConfig> groups);
 }
 
 public interface IKeyVaultYamlService
@@ -38,17 +38,14 @@ public interface IDeploymentKindHandler
     /// <summary>The rollback target this kind backs up and restores; null when the user chooses one (Custom).</summary>
     RollbackTarget? RollbackTarget { get; }
 
-    /// <summary>Deploys to servers registered in an Azure DevOps environment when the target is on-premises or hybrid.</summary>
+    /// <summary>
+    /// Deploys on the servers registered in each Azure DevOps environment (Virtual machine resources).
+    /// False means the deploy job runs on a pipeline agent, e.g. to reach a Kubernetes cluster.
+    /// </summary>
     bool RunsOnServers { get; }
-
-    /// <summary>Always deploys from a pipeline agent, even on-premises (e.g. to a Kubernetes cluster).</summary>
-    bool DeploysFromAgentOnly { get; }
 
     /// <summary>The deploy job checks out the repository (e.g. for Kubernetes manifests).</summary>
     bool NeedsRepositoryCheckout { get; }
-
-    /// <summary>Works with the slot-swap strategy.</summary>
-    bool SupportsSlotSwap { get; }
 
     /// <summary>Steps that deploy the downloaded package to the target.</summary>
     IReadOnlyList<string> GenerateDeploySteps(PipelineDefinition definition, string environment, string packagePath);
@@ -91,40 +88,19 @@ public interface INotificationYamlService
     IReadOnlyList<string> GenerateNotificationSteps(NotificationConfig config, bool succeeded);
 }
 
-public interface IIacYamlService
-{
-    IReadOnlyList<string> GenerateIacSteps(InfrastructureAsCodeConfig config, string environment);
-}
-
-public interface IDeploymentStrategyService
-{
-    IReadOnlyList<string> GenerateStrategySteps(DeploymentStrategyConfig config, string environment, string deploymentTaskYaml, string webAppName = "$(WEBAPP_NAME)", string azureServiceConnection = "$(AZURE_SERVICE_CONNECTION)");
-    string GetStrategyNote(DeploymentStrategyConfig config);
-}
-
 /// <summary>The one entry point for validation findings: a chain of rules, each with an id.</summary>
 public interface IPipelineValidator
 {
     /// <summary>Problems in the settings that block generation. Needs no generated YAML, so it is always current.</summary>
     IReadOnlyList<ValidationResult> ValidateInput(PipelineDefinition definition);
 
-    /// <summary>Findings about the generated pipeline: governance policy, deployment advice, secrets, Key Vault.</summary>
+    /// <summary>Findings about the generated pipeline: deployment advice, variable groups, secrets, Key Vault.</summary>
     IReadOnlyList<ValidationResult> ValidateGenerated(PipelineDefinition definition, string yaml);
-}
-
-public interface IRepoScannerService
-{
-    RepoScanResult ScanFileList(IReadOnlyList<string> relativePaths);
 }
 
 public interface IYamlExplanationService
 {
     IReadOnlyList<YamlBlockExplanation> ExplainYaml(string yaml);
-}
-
-public interface IAgentDiagnosticsService
-{
-    string GenerateDiagnosticScript(AgentDiagnosticConfig config);
 }
 
 public interface ISecretsGovernanceService
@@ -144,7 +120,7 @@ public interface ITemplateMarketplaceService
     PipelineTemplate? GetById(string id);
 
     /// <summary>
-    /// Applies a template's settings (project type, target, artifact, deployment kind, stages)
+    /// Applies a template's settings (project type, artifact, deployment kind, environments)
     /// to <paramref name="definition"/>. Returns false if the template id is unknown.
     /// </summary>
     bool ApplyTo(string templateId, PipelineDefinition definition);

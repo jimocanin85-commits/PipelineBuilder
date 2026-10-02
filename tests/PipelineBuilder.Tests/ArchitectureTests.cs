@@ -44,8 +44,7 @@ public class ArchitectureTests
     /// </summary>
     private static readonly Dictionary<string, int> KnownHubs = new(StringComparer.Ordinal)
     {
-        ["DeploymentStageGenerator"] = 7,
-        ["PipelineGeneratorService"] = 8,
+        ["PipelineGeneratorService"] = 7,
     };
 
     [Fact]

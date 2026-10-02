@@ -9,7 +9,6 @@ public sealed class DockerContainerDeploymentHandler : DeploymentKindHandler
 {
     public override DeploymentKind Kind => DeploymentKind.DockerContainer;
     public override RollbackTarget? RollbackTarget => Enums.RollbackTarget.DockerContainer;
-    public override bool RunsOnServers => true;
 
     public override IReadOnlyList<string> GenerateDeploySteps(PipelineDefinition definition, string environment, string packagePath) => new[]
     {

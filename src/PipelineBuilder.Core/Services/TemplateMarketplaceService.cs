@@ -55,21 +55,12 @@ public sealed class TemplateMarketplaceService : ITemplateMarketplaceService
         var s = template.Settings;
         definition.TemplateId = template.Id;
         if (s.ProjectType is { } projectType) definition.ProjectType = projectType;
-        if (s.DeploymentTarget is { } target) definition.DeploymentTarget = target;
         if (s.Environments is { Count: > 0 } environments) definition.Environments = environments.ToList();
         if (s.ArtifactType is { } artifactType) definition.Artifact.ArtifactType = artifactType;
         if (s.DeploymentKind is { } kind) definition.Deployment.Kind = kind;
         if (s.Strategy is { } strategy) definition.DeploymentStrategy.StrategyType = strategy;
         if (s.RollbackEnabled is { } rollback) definition.Rollback.Enabled = rollback;
         if (s.CustomDeployScript is { } script) definition.Deployment.CustomScript = script;
-        if (s.IacTool is { } tool)
-        {
-            definition.IaC ??= new InfrastructureAsCodeConfig();
-            definition.IaC.Tool = tool;
-            definition.IaC.WorkingDirectory = s.IacWorkingDirectory ?? definition.IaC.WorkingDirectory;
-            definition.IaC.ServiceConnection = definition.AzureServiceConnection;
-        }
-
         return true;
     }
 
