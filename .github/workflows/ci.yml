@@ -13,7 +13,7 @@ jobs:
   build-and-test:
     runs-on: ubuntu-latest
     env:
-      # Minimum coverage (docs/ARCHITECTURE.md, goal M3). Raise these when coverage rises; never lower them.
+      # Minimum coverage. Raise these when coverage rises; never lower them.
       MIN_LINE_COVERAGE: 90
       MIN_BRANCH_COVERAGE: 80
     steps:

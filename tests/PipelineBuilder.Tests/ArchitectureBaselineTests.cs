@@ -6,7 +6,7 @@ using Xunit;
 namespace PipelineBuilder.Tests;
 
 /// <summary>
-/// Ratchets for the architecture goals that are not met yet (docs/ARCHITECTURE.md, "Measurements").
+/// Ratchets for the architecture goals that are not met yet (see docs/ARCHITECTURE.md for the rules).
 /// Each number is today's value: the test fails if it grows, and also when it shrinks, so the baseline
 /// is lowered in the same pull request that improves it. Never raise a baseline.
 /// </summary>
