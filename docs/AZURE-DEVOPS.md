@@ -11,9 +11,10 @@ The wizard's **Validation** step lists what your pipeline needs. This page is th
 
 | You chose | You need |
 |---|---|
-| IIS, Windows service, file share or Docker on your own servers | The servers registered as **Virtual machine resources** in each environment |
+| Anything on your own servers (Windows or Linux) | The servers registered as **Virtual machine resources** in each environment |
+| A Linux service | The agent's user may run `systemctl` with `sudo` without a password, and owns the install folder |
 | Key Vault | An **Azure Resource Manager service connection** |
-| Docker image | A **Docker registry service connection** |
+| Docker | A **Docker registry service connection**; the servers use it to log in and pull the image |
 | Kubernetes | A **Kubernetes service connection**, and your manifests in the repository |
 | Self-hosted build agent | The agent pool |
 
@@ -23,7 +24,7 @@ A field you leave empty in the wizard becomes a pipeline variable. Define the on
 
 | Variable | Used for |
 |---|---|
-| `DEPLOY_PATH`, `SERVICE_NAME` | Windows service and file share |
+| `DEPLOY_PATH`, `SERVICE_NAME` | Windows service, Linux service and file share |
 | `CONTAINER_NAME`, `DOCKER_REGISTRY` | Docker |
 | `K8S_SERVICE_CONNECTION`, `K8S_NAMESPACE`, `K8S_DEPLOYMENT` | Kubernetes |
 | `AZURE_SERVICE_CONNECTION`, `DOCKER_SERVICE_CONNECTION` | Service connection names |

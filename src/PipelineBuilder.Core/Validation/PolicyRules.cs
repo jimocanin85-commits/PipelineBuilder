@@ -33,6 +33,7 @@ internal sealed class PolicyRules
             Rule("deployment.kind", rules.KindSpecific),
             Rule("deployment.server-resources", rules.ServerResources),
             Rule("deployment.rolling-without-servers", rules.RollingWithoutServers),
+            Rule("healthchecks.windows-only", rules.WindowsOnlyHealthChecks),
             Rule("notifications.email-recipients", EmailRecipients),
             Rule("variables.groups", rules.VariableGroups),
             Rule("secrets.plain-text", rules.PlainTextSecrets),
@@ -84,6 +85,19 @@ internal sealed class PolicyRules
                 "Rolling deployments need servers registered in the environment; this pipeline deploys everything at once.",
                 nameof(PipelineDefinition.DeploymentStrategy),
                 "Choose the Standard strategy, or a deployment kind that runs on your servers.");
+        }
+    }
+
+    private IEnumerable<ValidationResult> WindowsOnlyHealthChecks(ValidationContext context)
+    {
+        var definition = context.Definition;
+        if (_deploymentKinds.ShellFor(definition) == ScriptShell.Bash
+            && definition.HealthChecks.Any(h => h.Enabled && h.HealthCheckType == HealthCheckType.IisAppPool))
+        {
+            yield return Finding(ValidationSeverity.Warning,
+                "IIS app pool checks only run on Windows servers, so this check is skipped.",
+                nameof(PipelineDefinition.HealthChecks),
+                "Remove the check, or use an HTTP or service check.");
         }
     }
 

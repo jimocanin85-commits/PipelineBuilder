@@ -5,10 +5,16 @@
     "category": "Iis",
     "description": "A .NET web app on IIS on your Windows servers",
     "riskLevel": "Medium",
-    "tags": [ "windows", "iis" ],
+    "tags": [
+      "windows",
+      "iis"
+    ],
     "settings": {
       "projectType": "DotNet",
-      "environments": [ "test", "prod" ],
+      "environments": [
+        "test",
+        "prod"
+      ],
       "artifactType": "PipelineArtifact",
       "deploymentKind": "Iis",
       "rollbackEnabled": true
@@ -20,12 +26,60 @@
     "category": "WindowsService",
     "description": "A .NET Windows service on your Windows servers",
     "riskLevel": "Medium",
-    "tags": [ "windows", "service" ],
+    "tags": [
+      "windows",
+      "service"
+    ],
     "settings": {
       "projectType": "DotNet",
-      "environments": [ "test", "prod" ],
+      "environments": [
+        "test",
+        "prod"
+      ],
       "artifactType": "PipelineArtifact",
       "deploymentKind": "WindowsService",
+      "rollbackEnabled": true
+    }
+  },
+  {
+    "id": "linux-service",
+    "name": "Linux service",
+    "category": "DotNet",
+    "description": "A .NET app as a systemd service on your Linux servers",
+    "riskLevel": "Medium",
+    "tags": [
+      "linux",
+      "dotnet"
+    ],
+    "settings": {
+      "projectType": "DotNet",
+      "environments": [
+        "test",
+        "prod"
+      ],
+      "artifactType": "PipelineArtifact",
+      "deploymentKind": "LinuxService",
+      "rollbackEnabled": true
+    }
+  },
+  {
+    "id": "node-linux-service",
+    "name": "Node.js on Linux",
+    "category": "Node",
+    "description": "A Node.js app as a systemd service on your Linux servers",
+    "riskLevel": "Medium",
+    "tags": [
+      "linux",
+      "node"
+    ],
+    "settings": {
+      "projectType": "Node",
+      "environments": [
+        "test",
+        "prod"
+      ],
+      "artifactType": "PipelineArtifact",
+      "deploymentKind": "LinuxService",
       "rollbackEnabled": true
     }
   },
@@ -35,11 +89,14 @@
     "category": "Docker",
     "description": "Build an image from your Dockerfile and run it on your servers",
     "riskLevel": "Low",
-    "tags": [ "docker" ],
+    "tags": [
+      "docker"
+    ],
     "settings": {
       "projectType": "Docker",
       "artifactType": "DockerImage",
-      "deploymentKind": "DockerContainer"
+      "deploymentKind": "DockerContainer",
+      "serverOs": "Linux"
     }
   },
   {
@@ -48,12 +105,20 @@
     "category": "Docker",
     "description": "Build and test a .NET app, then run it as a container on your servers",
     "riskLevel": "Medium",
-    "tags": [ "dotnet", "docker" ],
+    "tags": [
+      "dotnet",
+      "docker"
+    ],
     "settings": {
       "projectType": "DotNet",
-      "environments": [ "test", "preprod", "prod" ],
+      "environments": [
+        "test",
+        "preprod",
+        "prod"
+      ],
       "artifactType": "DockerImage",
-      "deploymentKind": "DockerContainer"
+      "deploymentKind": "DockerContainer",
+      "serverOs": "Linux"
     }
   },
   {
@@ -62,10 +127,16 @@
     "category": "Kubernetes",
     "description": "Build an image and apply your manifests to a cluster, with rollout undo on failure",
     "riskLevel": "High",
-    "tags": [ "kubernetes", "docker" ],
+    "tags": [
+      "kubernetes",
+      "docker"
+    ],
     "settings": {
       "projectType": "Docker",
-      "environments": [ "test", "prod" ],
+      "environments": [
+        "test",
+        "prod"
+      ],
       "artifactType": "DockerImage",
       "deploymentKind": "Kubernetes"
     }

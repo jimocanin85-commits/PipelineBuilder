@@ -33,6 +33,31 @@ if (-not (Test-Path $backup)) {
 }
 """;
 
+    /// <summary>Sets <c>envRoot</c> and <c>backup</c> on a Linux server.</summary>
+    public static string BashHeader(RollbackConfig config, string environment) => $$"""
+{{BashSnippets.Strict}}
+envRoot={{YamlBuilder.BashLiteral(config.LinuxBackupRootOrDefault.TrimEnd('/') + "/" + environment)}}
+backup="$envRoot/$(Build.BuildId)"
+""";
+
+    /// <summary>Keeps the newest <see cref="RollbackConfig.RetentionCount"/> backups of the environment (bash).</summary>
+    public static string BashPrune(RollbackConfig config)
+    {
+        var skip = Math.Max(1, config.RetentionCount) + 1;
+        return $$"""
+if [ -d "$envRoot" ]; then
+  ls -1dt "$envRoot"/*/ 2>/dev/null | tail -n +{{skip}} | xargs -r rm -rf || true
+fi
+""";
+    }
+
+    public const string BashRequireBackup = """
+if [ ! -d "$backup" ]; then
+  echo "##vso[task.logissue type=warning]No backup found at $backup (first deployment?). Nothing to roll back."
+  exit 0
+fi
+""";
+
     /// <summary>The configured target folder as a PowerShell literal, or <c>$null</c> to look it up.</summary>
     public static string TargetOrNull(DeploymentConfig deployment) =>
         string.IsNullOrWhiteSpace(deployment.TargetPath) ? "$null" : YamlBuilder.PsLiteral(deployment.TargetPath);

@@ -47,6 +47,9 @@ public interface IDeploymentKindHandler
     /// <summary>The deploy job checks out the repository (e.g. for Kubernetes manifests).</summary>
     bool NeedsRepositoryCheckout { get; }
 
+    /// <summary>The shell scripts run in where this kind deploys: PowerShell on Windows, bash on Linux servers.</summary>
+    ScriptShell Shell(DeploymentConfig deployment);
+
     /// <summary>Steps that deploy the downloaded package to the target.</summary>
     IReadOnlyList<string> GenerateDeploySteps(PipelineDefinition definition, string environment, string packagePath);
 
@@ -71,6 +74,9 @@ public interface IDeploymentKinds
     /// <summary>True when deployments run on servers registered in the environment rather than on an agent pool.</summary>
     bool UsesServerResources(PipelineDefinition definition);
 
+    /// <summary>The shell for script steps in the deploy job (health checks, custom scripts).</summary>
+    ScriptShell ShellFor(PipelineDefinition definition);
+
     /// <summary>Backup steps for the deploy job, from the kind's own handler or, for Custom, the chosen rollback target's.</summary>
     IReadOnlyList<string> GenerateBackupSteps(PipelineDefinition definition, string environment);
 
@@ -80,7 +86,7 @@ public interface IDeploymentKinds
 
 public interface IHealthCheckYamlService
 {
-    IReadOnlyList<string> GenerateHealthCheckSteps(HealthCheckConfig config);
+    IReadOnlyList<string> GenerateHealthCheckSteps(HealthCheckConfig config, ScriptShell shell = ScriptShell.PowerShell);
 }
 
 public interface INotificationYamlService

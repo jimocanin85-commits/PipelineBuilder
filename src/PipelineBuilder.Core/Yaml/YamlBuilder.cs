@@ -1,5 +1,6 @@
 using System.Text;
 using System.Text.RegularExpressions;
+using PipelineBuilder.Core.Enums;
 
 namespace PipelineBuilder.Core.Yaml;
 
@@ -69,12 +70,27 @@ public static class YamlBuilder
     /// Emits a <c>powershell:</c> step. The script is written verbatim as a literal block scalar.
     /// </summary>
     public static string PowerShellStep(string script, string displayName, int indent = 4, string? condition = null,
-        IReadOnlyDictionary<string, string>? env = null)
+        IReadOnlyDictionary<string, string>? env = null) =>
+        BlockStep("powershell", script, displayName, indent, condition, env);
+
+    /// <summary>
+    /// Emits a <c>bash:</c> step, for deployments on Linux servers. The script is written verbatim.
+    /// </summary>
+    public static string BashStep(string script, string displayName, int indent = 4, string? condition = null,
+        IReadOnlyDictionary<string, string>? env = null) =>
+        BlockStep("bash", script, displayName, indent, condition, env);
+
+    /// <summary>A script step in the shell of the machine it runs on.</summary>
+    public static string ShellStep(ScriptShell shell, string script, string displayName) =>
+        shell == ScriptShell.Bash ? BashStep(script, displayName) : PowerShellStep(script, displayName);
+
+    private static string BlockStep(string keyword, string script, string displayName, int indent, string? condition,
+        IReadOnlyDictionary<string, string>? env)
     {
         var pad = new string(' ', indent);
         var body = new string(' ', indent + 4);
         var sb = new StringBuilder();
-        sb.Append(pad).Append("- powershell: |\n");
+        sb.Append(pad).Append("- ").Append(keyword).Append(": |\n");
         foreach (var line in NormalizeNewLines(script).TrimEnd('\n').Split('\n'))
         {
             if (string.IsNullOrWhiteSpace(line))
@@ -118,6 +134,17 @@ public static class YamlBuilder
         // PowerShell also treats the typographic quotes ‘ ’ ‚ ‛ as single quotes.
         var escaped = Regex.Replace(singleLine, "['‘’‚‛]", m => m.Value + m.Value);
         return "'" + escaped + "'";
+    }
+
+    /// <summary>
+    /// Quotes a value as a bash single-quoted string, where nothing is expanded. A single quote
+    /// inside the value is written as <c>'\''</c>. Azure DevOps macros <c>$(Name)</c> are still
+    /// replaced by the agent before bash runs.
+    /// </summary>
+    public static string BashLiteral(string? value)
+    {
+        var singleLine = NormalizeNewLines(value ?? string.Empty).Replace("\n", " ");
+        return "'" + singleLine.Replace("'", "'\\''") + "'";
     }
 
     /// <summary>

@@ -8,7 +8,7 @@ Two projects:
 ```
 Web  →  Core
         ├─ Generators/    the build, deploy and notify stages
-        ├─ Deployment/    one class per deployment type (IIS, Docker, ...)
+        ├─ Deployment/    one class per deployment type (IIS, Linux service, Docker, ...)
         ├─ Validation/    the checks
         ├─ Services/      smaller YAML pieces (artifacts, health checks, ...)
         └─ Models/, Yaml/ the settings and YAML helpers

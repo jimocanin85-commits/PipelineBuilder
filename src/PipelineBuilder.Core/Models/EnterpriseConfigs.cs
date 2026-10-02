@@ -39,10 +39,13 @@ public sealed class DeploymentConfig
 {
     public DeploymentKind Kind { get; set; } = DeploymentKind.Custom;
 
+    /// <summary>Operating system of the servers. Used by Docker and Custom; the other kinds imply it.</summary>
+    public ServerOs ServerOs { get; set; } = ServerOs.Windows;
+
     /// <summary>Folder the app is deployed to (IIS site folder, service folder or file share).</summary>
     public string? TargetPath { get; set; }
 
-    /// <summary>Windows service name (WindowsService).</summary>
+    /// <summary>Service name: a Windows service (WindowsService) or a systemd unit (LinuxService).</summary>
     public string? ServiceName { get; set; }
 
     /// <summary>IIS website name (Iis).</summary>
@@ -50,6 +53,12 @@ public sealed class DeploymentConfig
 
     /// <summary>Container name (DockerContainer).</summary>
     public string? ContainerName { get; set; }
+
+    /// <summary>Published ports, each as <c>host:container</c>, e.g. <c>8080:80</c> (DockerContainer).</summary>
+    public IReadOnlyList<string> ContainerPorts { get; set; } = Array.Empty<string>();
+
+    /// <summary>Environment variables for the container, each as <c>NAME=value</c> (DockerContainer).</summary>
+    public IReadOnlyList<string> ContainerEnvironment { get; set; } = Array.Empty<string>();
 
     /// <summary>Script run by the Custom deploy step. Defaults to a placeholder.</summary>
     public string? CustomScript { get; set; }
@@ -98,9 +107,13 @@ public sealed class RollbackConfig
     /// </summary>
     public RollbackTarget Target { get; set; } = RollbackTarget.Iis;
 
-    /// <summary>Root folder for backups. Each environment and build gets its own subfolder.</summary>
+    /// <summary>Root folder for backups on Windows servers. Each environment and build gets its own subfolder.</summary>
     [JsonIgnore]
     public string BackupRootOrDefault => string.IsNullOrWhiteSpace(BackupPath) ? @"D:\backups" : BackupPath;
+
+    /// <summary>Root folder for backups on Linux servers.</summary>
+    [JsonIgnore]
+    public string LinuxBackupRootOrDefault => string.IsNullOrWhiteSpace(BackupPath) ? "/var/backups/pipelinebuilder" : BackupPath;
 }
 
 public sealed class HealthCheckConfig

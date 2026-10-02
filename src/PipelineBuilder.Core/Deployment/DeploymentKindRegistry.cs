@@ -33,6 +33,7 @@ public sealed class DeploymentKindRegistry : IDeploymentKinds
         new FileShareDeploymentHandler(),
         new DockerContainerDeploymentHandler(),
         new KubernetesDeploymentHandler(),
+        new LinuxServiceDeploymentHandler(),
     };
 
     /// <summary>A registry with the built-in handlers, for use without dependency injection.</summary>
@@ -45,6 +46,9 @@ public sealed class DeploymentKindRegistry : IDeploymentKinds
 
     public bool UsesServerResources(PipelineDefinition definition) =>
         For(definition.Deployment.Kind).RunsOnServers;
+
+    public ScriptShell ShellFor(PipelineDefinition definition) =>
+        For(definition.Deployment.Kind).Shell(definition.Deployment);
 
     public IReadOnlyList<string> GenerateBackupSteps(PipelineDefinition definition, string environment)
     {

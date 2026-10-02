@@ -46,72 +46,68 @@ stages:
         deploy:
           steps:
           - download: none
-          - powershell: |
-              $ErrorActionPreference = 'Stop'
-              $envRoot = Join-Path 'D:\backups' 'test'
-              $backup = Join-Path $envRoot '$(Build.BuildId)'
-              # Windows PowerShell 5.1 turns redirected native stderr into errors under 'Stop'.
-              $ErrorActionPreference = 'Continue'
-              $name = '$(CONTAINER_NAME)'
-              $info = docker inspect $name 2>$null | ConvertFrom-Json
-              $global:LASTEXITCODE = 0
-              if ($info) {
-                New-Item -ItemType Directory -Force -Path $backup | Out-Null
-                Set-Content -Path (Join-Path $backup 'image.txt') -Value $info[0].Config.Image
-                Write-Host "Recorded running image $($info[0].Config.Image)"
-              } else {
-                Write-Host "Nothing to back up: container $name is not running"
-              }
-              Get-ChildItem -Path $envRoot -Directory | Sort-Object LastWriteTime -Descending |
-                Select-Object -Skip 5 | Remove-Item -Recurse -Force
+          - bash: |
+              set -euo pipefail
+              envRoot='/var/backups/pipelinebuilder/test'
+              backup="$envRoot/$(Build.BuildId)"
+              name='$(CONTAINER_NAME)'
+              image=`docker inspect --format '{{.Config.Image}}' "$name" 2>/dev/null || true`
+              if [ -n "$image" ]; then
+                mkdir -p "$backup"
+                echo "$image" > "$backup/image.txt"
+                echo "Recorded running image $image"
+              else
+                echo "Nothing to back up: container $name is not running"
+              fi
+              if [ -d "$envRoot" ]; then
+                ls -1dt "$envRoot"/*/ 2>/dev/null | tail -n +6 | xargs -r rm -rf || true
+              fi
             displayName: 'Record running container image before deploy'
-          - powershell: |
-              # Windows PowerShell 5.1 turns redirected native stderr into errors under 'Stop'.
-              $ErrorActionPreference = 'Continue'
-              $image = '$(DOCKER_REGISTRY)/drop:$(Build.BuildId)'
-              $name = '$(CONTAINER_NAME)'
-              docker pull $image
-              if ($LASTEXITCODE -ne 0) { throw "Command failed with exit code $LASTEXITCODE" }
-              docker rm -f $name 2>$null
-              docker run -d --name $name --restart unless-stopped $image
-              if ($LASTEXITCODE -ne 0) { throw "Command failed with exit code $LASTEXITCODE" }
-              Write-Host "Container $name is running $image"
+          - task: Docker@2
+            displayName: 'Log in to the container registry'
+            inputs:
+              command: 'login'
+              containerRegistry: '$(DOCKER_SERVICE_CONNECTION)'
+          - bash: |
+              set -euo pipefail
+              image='$(DOCKER_REGISTRY)/drop:$(Build.BuildId)'
+              name='$(CONTAINER_NAME)'
+              docker pull "$image"
+              docker rm -f "$name" >/dev/null 2>&1 || true
+              docker run -d --name "$name" --restart unless-stopped "$image"
+              echo "Container $name is running $image"
             displayName: 'Run Docker container (test)'
-          - powershell: |
-              $uri = 'https://myapp-test.contoso.com/health'
-              $expected = 200
-              $timeout = 30
-              $retries = 3
-              for ($i = 1; $i -le $retries; $i++) {
-                try {
-                  $r = Invoke-WebRequest -Uri $uri -UseBasicParsing -TimeoutSec $timeout
-                  if ($r.StatusCode -eq $expected) { Write-Host 'Health check passed'; exit 0 }
-                } catch { Write-Warning "Attempt $i failed: $_" }
-                Start-Sleep -Seconds 5
-              }
-              Write-Error 'HTTP health check failed'
+          - bash: |
+              uri='https://myapp-test.contoso.com/health'
+              expected=200
+              timeout=30
+              retries=3
+              for i in `seq 1 $retries`; do
+                code=`curl -s -o /dev/null -w '%{http_code}' --max-time $timeout "$uri" || true`
+                if [ "$code" = "$expected" ]; then echo 'Health check passed'; exit 0; fi
+                echo "Attempt $i failed: HTTP $code"
+                sleep 5
+              done
+              echo '##vso[task.logissue type=error]HTTP health check failed'
               exit 1
             displayName: 'HTTP endpoint health check'
         on:
           failure:
             steps:
-            - powershell: |
-                $ErrorActionPreference = 'Stop'
-                $envRoot = Join-Path 'D:\backups' 'test'
-                $backup = Join-Path $envRoot '$(Build.BuildId)'
-                # Windows PowerShell 5.1 turns redirected native stderr into errors under 'Stop'.
-                $ErrorActionPreference = 'Continue'
-                $record = Join-Path $backup 'image.txt'
-                if (-not (Test-Path $record)) {
-                  Write-Warning "No previous image recorded at $record. Nothing to roll back."
+            - bash: |
+                set -euo pipefail
+                envRoot='/var/backups/pipelinebuilder/test'
+                backup="$envRoot/$(Build.BuildId)"
+                record="$backup/image.txt"
+                if [ ! -f "$record" ]; then
+                  echo "##vso[task.logissue type=warning]No previous image recorded at $record. Nothing to roll back."
                   exit 0
-                }
-                $image = (Get-Content -Path $record -Raw).Trim()
-                $name = '$(CONTAINER_NAME)'
-                docker rm -f $name 2>$null
-                docker run -d --name $name --restart unless-stopped $image
-                if ($LASTEXITCODE -ne 0) { throw "Command failed with exit code $LASTEXITCODE" }
-                Write-Host "Rolled back container $name to $image"
+                fi
+                image=`cat "$record"`
+                name='$(CONTAINER_NAME)'
+                docker rm -f "$name" >/dev/null 2>&1 || true
+                docker run -d --name "$name" --restart unless-stopped "$image"
+                echo "Rolled back container $name to $image"
               displayName: 'Roll back Docker container'
 - stage: Deploy_preprod
   displayName: 'Deploy preprod'
@@ -128,72 +124,68 @@ stages:
         deploy:
           steps:
           - download: none
-          - powershell: |
-              $ErrorActionPreference = 'Stop'
-              $envRoot = Join-Path 'D:\backups' 'preprod'
-              $backup = Join-Path $envRoot '$(Build.BuildId)'
-              # Windows PowerShell 5.1 turns redirected native stderr into errors under 'Stop'.
-              $ErrorActionPreference = 'Continue'
-              $name = '$(CONTAINER_NAME)'
-              $info = docker inspect $name 2>$null | ConvertFrom-Json
-              $global:LASTEXITCODE = 0
-              if ($info) {
-                New-Item -ItemType Directory -Force -Path $backup | Out-Null
-                Set-Content -Path (Join-Path $backup 'image.txt') -Value $info[0].Config.Image
-                Write-Host "Recorded running image $($info[0].Config.Image)"
-              } else {
-                Write-Host "Nothing to back up: container $name is not running"
-              }
-              Get-ChildItem -Path $envRoot -Directory | Sort-Object LastWriteTime -Descending |
-                Select-Object -Skip 5 | Remove-Item -Recurse -Force
+          - bash: |
+              set -euo pipefail
+              envRoot='/var/backups/pipelinebuilder/preprod'
+              backup="$envRoot/$(Build.BuildId)"
+              name='$(CONTAINER_NAME)'
+              image=`docker inspect --format '{{.Config.Image}}' "$name" 2>/dev/null || true`
+              if [ -n "$image" ]; then
+                mkdir -p "$backup"
+                echo "$image" > "$backup/image.txt"
+                echo "Recorded running image $image"
+              else
+                echo "Nothing to back up: container $name is not running"
+              fi
+              if [ -d "$envRoot" ]; then
+                ls -1dt "$envRoot"/*/ 2>/dev/null | tail -n +6 | xargs -r rm -rf || true
+              fi
             displayName: 'Record running container image before deploy'
-          - powershell: |
-              # Windows PowerShell 5.1 turns redirected native stderr into errors under 'Stop'.
-              $ErrorActionPreference = 'Continue'
-              $image = '$(DOCKER_REGISTRY)/drop:$(Build.BuildId)'
-              $name = '$(CONTAINER_NAME)'
-              docker pull $image
-              if ($LASTEXITCODE -ne 0) { throw "Command failed with exit code $LASTEXITCODE" }
-              docker rm -f $name 2>$null
-              docker run -d --name $name --restart unless-stopped $image
-              if ($LASTEXITCODE -ne 0) { throw "Command failed with exit code $LASTEXITCODE" }
-              Write-Host "Container $name is running $image"
+          - task: Docker@2
+            displayName: 'Log in to the container registry'
+            inputs:
+              command: 'login'
+              containerRegistry: '$(DOCKER_SERVICE_CONNECTION)'
+          - bash: |
+              set -euo pipefail
+              image='$(DOCKER_REGISTRY)/drop:$(Build.BuildId)'
+              name='$(CONTAINER_NAME)'
+              docker pull "$image"
+              docker rm -f "$name" >/dev/null 2>&1 || true
+              docker run -d --name "$name" --restart unless-stopped "$image"
+              echo "Container $name is running $image"
             displayName: 'Run Docker container (preprod)'
-          - powershell: |
-              $uri = 'https://myapp-preprod.contoso.com/health'
-              $expected = 200
-              $timeout = 30
-              $retries = 3
-              for ($i = 1; $i -le $retries; $i++) {
-                try {
-                  $r = Invoke-WebRequest -Uri $uri -UseBasicParsing -TimeoutSec $timeout
-                  if ($r.StatusCode -eq $expected) { Write-Host 'Health check passed'; exit 0 }
-                } catch { Write-Warning "Attempt $i failed: $_" }
-                Start-Sleep -Seconds 5
-              }
-              Write-Error 'HTTP health check failed'
+          - bash: |
+              uri='https://myapp-preprod.contoso.com/health'
+              expected=200
+              timeout=30
+              retries=3
+              for i in `seq 1 $retries`; do
+                code=`curl -s -o /dev/null -w '%{http_code}' --max-time $timeout "$uri" || true`
+                if [ "$code" = "$expected" ]; then echo 'Health check passed'; exit 0; fi
+                echo "Attempt $i failed: HTTP $code"
+                sleep 5
+              done
+              echo '##vso[task.logissue type=error]HTTP health check failed'
               exit 1
             displayName: 'HTTP endpoint health check'
         on:
           failure:
             steps:
-            - powershell: |
-                $ErrorActionPreference = 'Stop'
-                $envRoot = Join-Path 'D:\backups' 'preprod'
-                $backup = Join-Path $envRoot '$(Build.BuildId)'
-                # Windows PowerShell 5.1 turns redirected native stderr into errors under 'Stop'.
-                $ErrorActionPreference = 'Continue'
-                $record = Join-Path $backup 'image.txt'
-                if (-not (Test-Path $record)) {
-                  Write-Warning "No previous image recorded at $record. Nothing to roll back."
+            - bash: |
+                set -euo pipefail
+                envRoot='/var/backups/pipelinebuilder/preprod'
+                backup="$envRoot/$(Build.BuildId)"
+                record="$backup/image.txt"
+                if [ ! -f "$record" ]; then
+                  echo "##vso[task.logissue type=warning]No previous image recorded at $record. Nothing to roll back."
                   exit 0
-                }
-                $image = (Get-Content -Path $record -Raw).Trim()
-                $name = '$(CONTAINER_NAME)'
-                docker rm -f $name 2>$null
-                docker run -d --name $name --restart unless-stopped $image
-                if ($LASTEXITCODE -ne 0) { throw "Command failed with exit code $LASTEXITCODE" }
-                Write-Host "Rolled back container $name to $image"
+                fi
+                image=`cat "$record"`
+                name='$(CONTAINER_NAME)'
+                docker rm -f "$name" >/dev/null 2>&1 || true
+                docker run -d --name "$name" --restart unless-stopped "$image"
+                echo "Rolled back container $name to $image"
               displayName: 'Roll back Docker container'
 - stage: Deploy_prod
   displayName: 'Deploy prod'
@@ -212,72 +204,68 @@ stages:
         deploy:
           steps:
           - download: none
-          - powershell: |
-              $ErrorActionPreference = 'Stop'
-              $envRoot = Join-Path 'D:\backups' 'prod'
-              $backup = Join-Path $envRoot '$(Build.BuildId)'
-              # Windows PowerShell 5.1 turns redirected native stderr into errors under 'Stop'.
-              $ErrorActionPreference = 'Continue'
-              $name = '$(CONTAINER_NAME)'
-              $info = docker inspect $name 2>$null | ConvertFrom-Json
-              $global:LASTEXITCODE = 0
-              if ($info) {
-                New-Item -ItemType Directory -Force -Path $backup | Out-Null
-                Set-Content -Path (Join-Path $backup 'image.txt') -Value $info[0].Config.Image
-                Write-Host "Recorded running image $($info[0].Config.Image)"
-              } else {
-                Write-Host "Nothing to back up: container $name is not running"
-              }
-              Get-ChildItem -Path $envRoot -Directory | Sort-Object LastWriteTime -Descending |
-                Select-Object -Skip 5 | Remove-Item -Recurse -Force
+          - bash: |
+              set -euo pipefail
+              envRoot='/var/backups/pipelinebuilder/prod'
+              backup="$envRoot/$(Build.BuildId)"
+              name='$(CONTAINER_NAME)'
+              image=`docker inspect --format '{{.Config.Image}}' "$name" 2>/dev/null || true`
+              if [ -n "$image" ]; then
+                mkdir -p "$backup"
+                echo "$image" > "$backup/image.txt"
+                echo "Recorded running image $image"
+              else
+                echo "Nothing to back up: container $name is not running"
+              fi
+              if [ -d "$envRoot" ]; then
+                ls -1dt "$envRoot"/*/ 2>/dev/null | tail -n +6 | xargs -r rm -rf || true
+              fi
             displayName: 'Record running container image before deploy'
-          - powershell: |
-              # Windows PowerShell 5.1 turns redirected native stderr into errors under 'Stop'.
-              $ErrorActionPreference = 'Continue'
-              $image = '$(DOCKER_REGISTRY)/drop:$(Build.BuildId)'
-              $name = '$(CONTAINER_NAME)'
-              docker pull $image
-              if ($LASTEXITCODE -ne 0) { throw "Command failed with exit code $LASTEXITCODE" }
-              docker rm -f $name 2>$null
-              docker run -d --name $name --restart unless-stopped $image
-              if ($LASTEXITCODE -ne 0) { throw "Command failed with exit code $LASTEXITCODE" }
-              Write-Host "Container $name is running $image"
+          - task: Docker@2
+            displayName: 'Log in to the container registry'
+            inputs:
+              command: 'login'
+              containerRegistry: '$(DOCKER_SERVICE_CONNECTION)'
+          - bash: |
+              set -euo pipefail
+              image='$(DOCKER_REGISTRY)/drop:$(Build.BuildId)'
+              name='$(CONTAINER_NAME)'
+              docker pull "$image"
+              docker rm -f "$name" >/dev/null 2>&1 || true
+              docker run -d --name "$name" --restart unless-stopped "$image"
+              echo "Container $name is running $image"
             displayName: 'Run Docker container (prod)'
-          - powershell: |
-              $uri = 'https://myapp-prod.contoso.com/health'
-              $expected = 200
-              $timeout = 30
-              $retries = 3
-              for ($i = 1; $i -le $retries; $i++) {
-                try {
-                  $r = Invoke-WebRequest -Uri $uri -UseBasicParsing -TimeoutSec $timeout
-                  if ($r.StatusCode -eq $expected) { Write-Host 'Health check passed'; exit 0 }
-                } catch { Write-Warning "Attempt $i failed: $_" }
-                Start-Sleep -Seconds 5
-              }
-              Write-Error 'HTTP health check failed'
+          - bash: |
+              uri='https://myapp-prod.contoso.com/health'
+              expected=200
+              timeout=30
+              retries=3
+              for i in `seq 1 $retries`; do
+                code=`curl -s -o /dev/null -w '%{http_code}' --max-time $timeout "$uri" || true`
+                if [ "$code" = "$expected" ]; then echo 'Health check passed'; exit 0; fi
+                echo "Attempt $i failed: HTTP $code"
+                sleep 5
+              done
+              echo '##vso[task.logissue type=error]HTTP health check failed'
               exit 1
             displayName: 'HTTP endpoint health check'
         on:
           failure:
             steps:
-            - powershell: |
-                $ErrorActionPreference = 'Stop'
-                $envRoot = Join-Path 'D:\backups' 'prod'
-                $backup = Join-Path $envRoot '$(Build.BuildId)'
-                # Windows PowerShell 5.1 turns redirected native stderr into errors under 'Stop'.
-                $ErrorActionPreference = 'Continue'
-                $record = Join-Path $backup 'image.txt'
-                if (-not (Test-Path $record)) {
-                  Write-Warning "No previous image recorded at $record. Nothing to roll back."
+            - bash: |
+                set -euo pipefail
+                envRoot='/var/backups/pipelinebuilder/prod'
+                backup="$envRoot/$(Build.BuildId)"
+                record="$backup/image.txt"
+                if [ ! -f "$record" ]; then
+                  echo "##vso[task.logissue type=warning]No previous image recorded at $record. Nothing to roll back."
                   exit 0
-                }
-                $image = (Get-Content -Path $record -Raw).Trim()
-                $name = '$(CONTAINER_NAME)'
-                docker rm -f $name 2>$null
-                docker run -d --name $name --restart unless-stopped $image
-                if ($LASTEXITCODE -ne 0) { throw "Command failed with exit code $LASTEXITCODE" }
-                Write-Host "Rolled back container $name to $image"
+                fi
+                image=`cat "$record"`
+                name='$(CONTAINER_NAME)'
+                docker rm -f "$name" >/dev/null 2>&1 || true
+                docker run -d --name "$name" --restart unless-stopped "$image"
+                echo "Rolled back container $name to $image"
               displayName: 'Roll back Docker container'
 - stage: Notify_Failure
   displayName: 'Notify on failure'

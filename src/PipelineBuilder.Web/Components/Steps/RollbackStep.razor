@@ -17,7 +17,7 @@
         </InputSelect>
     }
     <label for="backup-path">Backup folder on the target server</label>
-    <InputText id="backup-path" @bind-Value="Wizard.Definition.Rollback.BackupPath" class="form-control" placeholder="D:\backups" />
+    <InputText id="backup-path" @bind-Value="Wizard.Definition.Rollback.BackupPath" class="form-control" placeholder="D:\backups or /var/backups/pipelinebuilder" />
     <label for="retention">Backups to keep per environment</label>
     <InputNumber id="retention" @bind-Value="Wizard.Definition.Rollback.RetentionCount" class="form-control" />
     <label for="rollback-script">Custom rollback script (optional, replaces the built-in rollback)</label>
