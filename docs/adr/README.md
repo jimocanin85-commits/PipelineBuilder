@@ -9,3 +9,4 @@ Short records of decisions that shape the code: the context, the decision and wh
 | [0003](0003-golden-files.md) | Golden files for generated pipelines | Accepted |
 | [0004](0004-measured-architecture-goals.md) | Architecture goals are measured and ratcheted in tests | Accepted |
 | [0005](0005-one-handler-per-deployment-kind.md) | One handler per deployment kind | Accepted |
+| [0006](0006-one-validation-chain.md) | One validation chain of rules with ids | Accepted |

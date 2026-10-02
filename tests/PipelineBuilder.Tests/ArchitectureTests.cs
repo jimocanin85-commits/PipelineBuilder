@@ -30,6 +30,7 @@ public class ArchitectureTests
     {
         "PipelineBuilder.Core.Services",
         "PipelineBuilder.Core.Deployment",
+        "PipelineBuilder.Core.Validation",
         "PipelineBuilder.Core.Generators",
         "PipelineBuilder.Web.State",
         "PipelineBuilder.Web.Security",
@@ -44,7 +45,7 @@ public class ArchitectureTests
     private static readonly Dictionary<string, int> KnownHubs = new(StringComparer.Ordinal)
     {
         ["DeploymentStageGenerator"] = 7,
-        ["PipelineGeneratorService"] = 9,
+        ["PipelineGeneratorService"] = 8,
     };
 
     [Fact]
@@ -68,6 +69,18 @@ public class ArchitectureTests
             .ToList();
 
         Assert.True(offenders.Count == 0, $"Core files that use ASP.NET Core or Web: {string.Join(", ", offenders)}");
+    }
+
+    /// <summary>Goal M8: Core lets failures surface as exceptions; the host logs them once.</summary>
+    [Fact]
+    public void CoreDoesNotLogAndRethrow()
+    {
+        var offenders = SourceFiles(Path.Combine("src", "PipelineBuilder.Core"))
+            .Where(f => HasCatchThatLogsAndRethrows(File.ReadAllText(f)))
+            .Select(Relative)
+            .ToList();
+
+        Assert.True(offenders.Count == 0, $"Core files that catch, log and rethrow: {string.Join(", ", offenders)}");
     }
 
     [Fact]
@@ -134,6 +147,31 @@ public class ArchitectureTests
         }
 
         Assert.True(violations.Count == 0, string.Join("\n", violations));
+    }
+
+    private static bool HasCatchThatLogsAndRethrows(string source)
+    {
+        for (var at = source.IndexOf("catch", StringComparison.Ordinal); at >= 0; at = source.IndexOf("catch", at + 5, StringComparison.Ordinal))
+        {
+            var open = source.IndexOf('{', at);
+            if (open < 0)
+                break;
+
+            // The catch block: from its opening brace to the matching closing brace.
+            var depth = 0;
+            var end = open;
+            for (; end < source.Length; end++)
+            {
+                if (source[end] == '{') depth++;
+                else if (source[end] == '}' && --depth == 0) break;
+            }
+
+            var block = source[open..Math.Min(end + 1, source.Length)];
+            if (Regex.IsMatch(block, @"\.Log(Error|Warning|Critical)\(") && Regex.IsMatch(block, @"\bthrow;"))
+                return true;
+        }
+
+        return false;
     }
 
     internal static IEnumerable<string> SourceFiles(string relativeFolder)

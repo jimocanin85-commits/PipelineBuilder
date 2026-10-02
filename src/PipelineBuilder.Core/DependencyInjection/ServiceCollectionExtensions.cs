@@ -6,6 +6,7 @@ using PipelineBuilder.Core.Abstractions;
 using PipelineBuilder.Core.Deployment;
 using PipelineBuilder.Core.Generators;
 using PipelineBuilder.Core.Services;
+using PipelineBuilder.Core.Validation;
 
 namespace PipelineBuilder.Core.DependencyInjection;
 
@@ -33,19 +34,25 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<INotificationYamlService, NotificationYamlService>();
         services.AddSingleton<IIacYamlService, IacYamlService>();
         services.AddSingleton<IDeploymentStrategyService, DeploymentStrategyService>();
-        services.AddSingleton<IGovernanceValidationService, GovernanceValidationService>();
         services.AddSingleton<IRepoScannerService, RepoScannerService>();
         services.AddSingleton<IYamlExplanationService, YamlExplanationService>();
         services.AddSingleton<IAgentDiagnosticsService, AgentDiagnosticsService>();
         services.AddSingleton<ISecretsGovernanceService, SecretsGovernanceService>();
         services.AddSingleton<IEnvironmentYamlService, EnvironmentYamlService>();
         services.AddSingleton<ITemplateMarketplaceService, TemplateMarketplaceService>();
+        // One validation chain: the built-in rules, then any ValidationRule the host has registered.
+        services.AddSingleton<IPipelineValidator>(provider => new PipelineValidator(
+            BuiltInRules.Create(
+                    provider.GetRequiredService<IDeploymentKinds>(),
+                    provider.GetRequiredService<IVariableGroupService>(),
+                    provider.GetRequiredService<ISecretsGovernanceService>(),
+                    provider.GetRequiredService<IKeyVaultYamlService>())
+                .Concat(provider.GetServices<ValidationRule>())));
         services.AddSingleton<IPipelineGeneratorService, PipelineGeneratorService>();
 
         services.AddSingleton<BuildStageGenerator>();
         services.AddSingleton<DeploymentStageGenerator>();
         services.AddSingleton<NotificationStepGenerator>();
-        services.AddSingleton<GovernanceValidator>();
 
         return services;
     }

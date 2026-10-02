@@ -16,6 +16,7 @@ Core · application         PipelineGeneratorService: validate → build YAML �
 Core · stage generators    Generators/ (build, deployment, notification, governance)
 and services               Services/ (artifact, health check, IaC, Key Vault, ...)
                            Deployment/ (one handler per deployment kind + the registry)
+                           Validation/ (the chain of validation rules)
   │
   ▼
 Core · foundation          Models/, Enums/, Yaml/ (YamlBuilder, GeneratedYamlValidator, PipelineTaskInventory)
@@ -26,16 +27,18 @@ Dependencies point down only.
 
 | Layer | Namespaces | May use |
 |---|---|---|
-| Web | `PipelineBuilder.Web.*` | Core through `PipelineBuilder.Core.Abstractions` (injected), plus the static helpers in Models (settings file, validation) |
-| Application, generators, services | `PipelineBuilder.Core.Services`, `.Generators`, `.Deployment`, `.Abstractions`, `.DependencyInjection` | Each other and the foundation |
+| Web | `PipelineBuilder.Web.*` | Core through `PipelineBuilder.Core.Abstractions` (injected), plus the static settings-file helper in Models |
+| Application, generators, services | `PipelineBuilder.Core.Services`, `.Generators`, `.Deployment`, `.Validation`, `.Abstractions`, `.DependencyInjection` | Each other and the foundation |
 | Foundation | `PipelineBuilder.Core.Models`, `.Enums`, `.Yaml` | Only each other and .NET |
 
 ## How a pipeline is generated
 
-1. The wizard edits a `PipelineDefinition` held by `WizardState`, and validates each step with `PipelineDefinitionValidator.ValidateDetailed`.
-2. `IPipelineGeneratorService.Generate` validates the definition again and assembles the YAML from the stage generators.
+1. The wizard edits a `PipelineDefinition` held by `WizardState`, and shows each step's blocking problems from `IPipelineValidator.ValidateInput`.
+2. `IPipelineGeneratorService.Generate` runs the input rules again (blocking problems throw) and assembles the YAML from the stage generators.
 3. `GeneratedYamlValidator` parses the result. YAML that Azure DevOps would reject is never handed out ([ADR 0002](adr/0002-yaml-as-text-with-a-parse-check.md)).
-4. Governance and Key Vault checks add findings, and the result is returned with explanations and the optional agent diagnostics script.
+4. `IPipelineValidator.ValidateGenerated` adds the governance, deployment, secrets and Key Vault findings, and the result is returned with explanations and the optional agent diagnostics script.
+
+Core does not catch and log failures; they surface as exceptions and the host logs them once (in the wizard, Blazor logs the unhandled exception).
 
 ## Rules and where they are enforced
 
@@ -45,6 +48,8 @@ Dependencies point down only.
 | The foundation does not depend on higher layers | `ArchitectureTests.FoundationDependsOnlyOnFoundation`, `FoundationSourceDoesNotImportHigherLayers` |
 | Components inject Core only through `Core.Abstractions` | `ArchitectureTests.WebComponentsInjectOnlyCoreAbstractions` |
 | A class has at most 5 constructor dependencies (two known exceptions are listed in the test) | `ArchitectureTests.ClassesHaveAtMostFiveConstructorDependencies` |
+| Core does not catch, log and rethrow | `ArchitectureTests.CoreDoesNotLogAndRethrow` |
+| Validation rule ids are unique, and every finding carries one | `PipelineValidator`, `ValidationChainTests` |
 | The generated pipelines change only on purpose | `GoldenFileTests` ([ADR 0003](adr/0003-golden-files.md)) |
 | Coverage does not drop | CI: `MIN_LINE_COVERAGE` and `MIN_BRANCH_COVERAGE` in `.github/workflows/ci.yml` |
 | No new warnings | `TreatWarningsAsErrors` in `Directory.Build.props` |
@@ -61,6 +66,17 @@ To add a deployment kind:
 4. Add a template or test case, and regenerate the golden files.
 
 A host can also replace a built-in handler by registering its own `IDeploymentKindHandler` after `AddPipelineBuilderCore()`.
+
+## Validation
+
+All findings come from one chain of rules, `PipelineValidator` (`IPipelineValidator`), described in [ADR 0006](adr/0006-one-validation-chain.md). Each rule has an id, and every finding carries the id of its rule (`ValidationResult.RuleId`).
+
+| Stage | Ids | When | Effect |
+|---|---|---|---|
+| Input | `input.*` | Before generation, and live in the wizard | Blocks generation |
+| Generated | `governance.*`, `deployment.*`, `notifications.*`, `variables.*`, `secrets.*`, `keyvault.*` | After generation | Shown on the Validation step and on the step each finding belongs to |
+
+To add a rule, add a line and a method to `InputRules` or `PolicyRules` in `src/PipelineBuilder.Core/Validation/`. Checks that belong to one deployment kind go in that kind's handler. A host can add its own by registering a `ValidationRule` after `AddPipelineBuilderCore()`.
 
 ## Golden files
 
@@ -82,9 +98,9 @@ The architecture is moving towards one entry point into Core and one class per d
 | M3 | Coverage cannot drop | CI thresholds | Done | Line ≥ 90 %, branch ≥ 80 % | 1 |
 | M4 | The architecture is written down | This page and [ADRs](adr/README.md) | Done | | 1 |
 | M5 | A new deployment kind is one class | Files that branch on `DeploymentKind` | Done: 7 → 1 (the wizard's field list) | At most 2 | 2 |
-| M6 | Validation has one entry point | Places that produce validation findings | 6 | 1 chain of rules | 2 |
-| M7 | No class is a hub | Constructor dependencies | Up to 9 (deployment stage generator 8 → 7) | At most 5 | 2 |
-| M8 | Errors are logged once | catch-log-rethrow blocks in Core | 1 | 0, Web logs at the boundary | 2 |
+| M6 | Validation has one entry point | Places that produce validation findings | Done: 6 → 1 chain, 25 rules with ids | 1 chain of rules | 2 |
+| M7 | No class is a hub | Constructor dependencies | Generator 9 → 8, deployment stage generator 8 → 7 | At most 5 | 2 |
+| M8 | Errors are logged once | catch-log-rethrow blocks in Core | Done: 2 → 0 | 0, the host logs at the boundary | 2 |
 | M9 | The domain model is immutable | Public setters on `PipelineDefinition` | 25 | 0 | 3 |
 | M10 | Wizard state is separate from the forms | Lines in `WizardState`, text proxies | 246, 8 | Under 150, 0 | 3 |
 | M11 | Indentation is handled in one place | Hand-written indentation in generators | 80 `Append` calls | 0, via a `YamlWriter` | 3 |
