@@ -14,8 +14,11 @@ public sealed class WizardState
     private InfrastructureAsCodeConfig _iac = new() { WorkingDirectory = "infra" };
     private AgentDiagnosticConfig _agentDiagnostics = new();
 
-    public WizardState()
+    private readonly IPipelineValidator _validator;
+
+    public WizardState(IPipelineValidator validator)
     {
+        _validator = validator;
         Definition = CreateDefault();
         Load(Definition);
     }
@@ -81,7 +84,7 @@ public sealed class WizardState
     /// from the last generated pipeline.
     /// </summary>
     public IReadOnlyList<ValidationResult> IssuesFor(WizardStep step) =>
-        PipelineDefinitionValidator.ValidateDetailed(Definition)
+        _validator.ValidateInput(Definition)
             .Concat(Result?.ValidationResults.Where(v => v.Severity != ValidationSeverity.Info) ?? Enumerable.Empty<ValidationResult>())
             .Where(v => StepMap.ForField(v.AffectedField) == step)
             .ToList();
@@ -178,7 +181,7 @@ public sealed class WizardState
     public void Generate(IPipelineGeneratorService generator)
     {
         // Invalid settings: show the problems (with links to their steps) instead of generating.
-        BlockingErrors = PipelineDefinitionValidator.ValidateDetailed(Definition);
+        BlockingErrors = _validator.ValidateInput(Definition);
         Result = BlockingErrors.Count == 0 ? generator.Generate(Definition) : null;
     }
 

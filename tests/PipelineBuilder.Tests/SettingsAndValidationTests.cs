@@ -3,6 +3,7 @@ using PipelineBuilder.Core.Abstractions;
 using PipelineBuilder.Core.DependencyInjection;
 using PipelineBuilder.Core.Enums;
 using PipelineBuilder.Core.Models;
+using PipelineBuilder.Core.Validation;
 using PipelineBuilder.Web.State;
 using Xunit;
 
@@ -93,7 +94,7 @@ public class SettingsAndValidationTests
             IaC = new InfrastructureAsCodeConfig { Tool = IaCTool.Terraform, WorkingDirectory = "" }
         };
 
-        var errors = PipelineDefinitionValidator.ValidateDetailed(definition);
+        var errors = PipelineValidator.CreateDefault().ValidateInput(definition);
 
         Assert.True(errors.Count >= 10, $"Expected every rule to fire, got {errors.Count}");
         Assert.All(errors, e => Assert.NotNull(StepMap.ForField(e.AffectedField)));

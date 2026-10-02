@@ -1,23 +1,31 @@
+using Microsoft.Extensions.DependencyInjection;
+using PipelineBuilder.Core.Abstractions;
+using PipelineBuilder.Core.DependencyInjection;
 using PipelineBuilder.Core.Enums;
 using PipelineBuilder.Core.Models;
+using PipelineBuilder.Core.Validation;
 using PipelineBuilder.Core.Yaml;
 using Xunit;
 
 namespace PipelineBuilder.Tests;
 
+/// <summary>The input rules: problems in the settings that block generation.</summary>
 public class PipelineDefinitionValidatorTests
 {
+    private static IReadOnlyList<string> Validate(PipelineDefinition definition) =>
+        PipelineValidator.CreateDefault().ValidateInput(definition).Select(r => r.Message).ToList();
+
     [Fact]
     public void RejectsNullDefinition()
     {
-        Assert.Throws<ArgumentNullException>(() => PipelineDefinitionValidator.Validate(null!));
+        Assert.Throws<ArgumentNullException>(() => Validate(null!));
     }
 
     [Fact]
     public void RejectsEmptyName()
     {
         var definition = new PipelineDefinition { Name = "" };
-        var errors = PipelineDefinitionValidator.Validate(definition);
+        var errors = Validate(definition);
         Assert.Contains(errors, e => e.Contains("Pipeline name is required"));
     }
 
@@ -25,7 +33,7 @@ public class PipelineDefinitionValidatorTests
     public void RejectsExcessivelyLongName()
     {
         var definition = new PipelineDefinition { Name = new string('x', 300) };
-        var errors = PipelineDefinitionValidator.Validate(definition);
+        var errors = Validate(definition);
         Assert.Contains(errors, e => e.Contains("255 characters"));
     }
 
@@ -37,7 +45,7 @@ public class PipelineDefinitionValidatorTests
             Name = "test",
             Environments = Array.Empty<string>()
         };
-        var errors = PipelineDefinitionValidator.Validate(definition);
+        var errors = Validate(definition);
         Assert.Contains(errors, e => e.Contains("at least one environment", StringComparison.OrdinalIgnoreCase));
     }
 
@@ -49,7 +57,7 @@ public class PipelineDefinitionValidatorTests
             Name = "test",
             Environments = new[] { "", "test" }
         };
-        var errors = PipelineDefinitionValidator.Validate(definition);
+        var errors = Validate(definition);
         Assert.Contains(errors, e => e.Contains("Environment names cannot be empty"));
     }
 
@@ -61,7 +69,7 @@ public class PipelineDefinitionValidatorTests
             Name = "test",
             Environments = new[] { "test@invalid", "Test_Name" }  // Invalid chars
         };
-        var errors = PipelineDefinitionValidator.Validate(definition);
+        var errors = Validate(definition);
         Assert.Contains(errors, e => e.Contains("invalid characters"));
     }
 
@@ -74,7 +82,7 @@ public class PipelineDefinitionValidatorTests
             BuildAgent = BuildAgentType.SelfHosted,
             PoolName = ""
         };
-        var errors = PipelineDefinitionValidator.Validate(definition);
+        var errors = Validate(definition);
         Assert.Contains(errors, e => e.Contains("Pool name is required"));
     }
 
@@ -90,7 +98,7 @@ public class PipelineDefinitionValidatorTests
                 CanaryPercentage = 150
             }
         };
-        var errors = PipelineDefinitionValidator.Validate(definition);
+        var errors = Validate(definition);
         Assert.Contains(errors, e => e.Contains("between 0 and 100"));
     }
 
@@ -102,7 +110,7 @@ public class PipelineDefinitionValidatorTests
             Name = "test",
             Governance = new GovernancePolicyConfig { NamingConvention = "[invalid(regex" }
         };
-        var errors = PipelineDefinitionValidator.Validate(definition);
+        var errors = Validate(definition);
         Assert.Contains(errors, e => e.Contains("valid regular expression"));
     }
 
@@ -117,7 +125,7 @@ public class PipelineDefinitionValidatorTests
                 new HealthCheckConfig { Enabled = true, HealthCheckType = HealthCheckType.HttpEndpoint, Url = null }
             }
         };
-        var errors = PipelineDefinitionValidator.Validate(definition);
+        var errors = Validate(definition);
         Assert.Contains(errors, e => e.Contains("HTTP health check requires"));
     }
 
@@ -125,7 +133,10 @@ public class PipelineDefinitionValidatorTests
     public void ThrowsOnInvalid()
     {
         var definition = new PipelineDefinition { Name = "" };
-        Assert.Throws<ArgumentException>(() => PipelineDefinitionValidator.ValidateOrThrow(definition));
+        var generator = new ServiceCollection().AddPipelineBuilderCore().BuildServiceProvider().GetRequiredService<IPipelineGeneratorService>();
+
+        var ex = Assert.Throws<ArgumentException>(() => generator.Generate(definition));
+        Assert.Contains("Pipeline name is required", ex.Message);
     }
 
     [Fact]
@@ -137,7 +148,7 @@ public class PipelineDefinitionValidatorTests
             Environments = new[] { "test", "prod" },
             BuildAgent = BuildAgentType.MicrosoftHosted
         };
-        var errors = PipelineDefinitionValidator.Validate(definition);
+        var errors = Validate(definition);
         Assert.Empty(errors);
     }
 }

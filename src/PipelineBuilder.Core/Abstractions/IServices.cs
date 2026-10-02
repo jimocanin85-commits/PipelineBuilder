@@ -102,9 +102,14 @@ public interface IDeploymentStrategyService
     string GetStrategyNote(DeploymentStrategyConfig config);
 }
 
-public interface IGovernanceValidationService
+/// <summary>The one entry point for validation findings: a chain of rules, each with an id.</summary>
+public interface IPipelineValidator
 {
-    IReadOnlyList<ValidationResult> Validate(PipelineDefinition definition, string yaml);
+    /// <summary>Problems in the settings that block generation. Needs no generated YAML, so it is always current.</summary>
+    IReadOnlyList<ValidationResult> ValidateInput(PipelineDefinition definition);
+
+    /// <summary>Findings about the generated pipeline: governance policy, deployment advice, secrets, Key Vault.</summary>
+    IReadOnlyList<ValidationResult> ValidateGenerated(PipelineDefinition definition, string yaml);
 }
 
 public interface IRepoScannerService
