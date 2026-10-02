@@ -117,7 +117,7 @@ public class GeneratedYamlTests
         var job = DeployJob(root);
         Assert.Equal(PipelineYaml.Environment, (string)Assert.IsType<Dictionary<object, object>>(job["environment"])["name"]);
         Assert.Equal("Deploy", (string)job["deployment"]);
-        Assert.Equal(1, System.Text.RegularExpressions.Regex.Matches(yaml, "- stage: Deploy_").Count);
+        Assert.Single(System.Text.RegularExpressions.Regex.Matches(yaml, "- stage: Deploy_"));
     }
 
     [Fact]
