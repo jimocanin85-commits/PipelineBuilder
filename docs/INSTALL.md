@@ -176,7 +176,7 @@ Settings go in `appsettings.Production.json` in the install folder (`C:\inetpub\
 |---|---|
 | `Authentication:Mode` | Empty (default) means Windows login everywhere except Development. `Windows` means always. `None` turns login off, so only use it behind another access control. |
 | `Authentication:AllowedGroups` | AD groups (`DOMAIN\Group`) allowed to use the app. When empty, any signed-in domain user can. |
-| `PipelineBuilder:TemplatesFile` | Optional JSON file with your own templates (see README → Templates) |
+| `PipelineBuilder:TemplatesFile` | Optional JSON file with your own templates, in the same format as `src/PipelineBuilder.Core/Templates/templates.json`. A template with the same `id` replaces the built-in one. |
 
 As environment variables, use `__` instead of `:`, e.g. `Authentication__Mode`.
 
@@ -206,4 +206,4 @@ Remove-Item C:\inetpub\PipelineBuilder -Recurse -Force
 
 ## 3. Before the first generated pipeline runs
 
-The YAML that PipelineBuilder generates expects some setup in Azure DevOps: environments with approvals, registered servers for on-premises deployments, service connections, and the pipeline variables your settings use. The README section [Prerequisites → To use the generated pipeline in Azure DevOps](../README.md#to-use-the-generated-pipeline-in-azure-devops) lists them. The wizard's **Validation** step shows what your particular pipeline still needs.
+The YAML that PipelineBuilder generates expects some setup in Azure DevOps: environments with approvals, registered servers for on-premises deployments, service connections, and the pipeline variables your settings use. [AZURE-DEVOPS.md](AZURE-DEVOPS.md) lists them. The wizard's **Validation** step shows what your particular pipeline still needs.
