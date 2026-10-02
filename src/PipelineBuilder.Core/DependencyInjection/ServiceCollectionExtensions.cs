@@ -32,11 +32,7 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IArtifactYamlService, ArtifactYamlService>();
         services.AddSingleton<IHealthCheckYamlService, HealthCheckYamlService>();
         services.AddSingleton<INotificationYamlService, NotificationYamlService>();
-        services.AddSingleton<IIacYamlService, IacYamlService>();
-        services.AddSingleton<IDeploymentStrategyService, DeploymentStrategyService>();
-        services.AddSingleton<IRepoScannerService, RepoScannerService>();
         services.AddSingleton<IYamlExplanationService, YamlExplanationService>();
-        services.AddSingleton<IAgentDiagnosticsService, AgentDiagnosticsService>();
         services.AddSingleton<ISecretsGovernanceService, SecretsGovernanceService>();
         services.AddSingleton<IEnvironmentYamlService, EnvironmentYamlService>();
         services.AddSingleton<ITemplateMarketplaceService, TemplateMarketplaceService>();

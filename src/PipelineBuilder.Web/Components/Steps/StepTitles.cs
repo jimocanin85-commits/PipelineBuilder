@@ -17,7 +17,6 @@ public static class StepTitles
         WizardStep.RollbackSettings => "Rollback",
         WizardStep.HealthChecks => "Health checks",
         WizardStep.Notifications => "Notifications",
-        WizardStep.GovernancePolicies => "Governance",
         WizardStep.YamlPreview => "YAML preview",
         WizardStep.ValidationResults => "Validation",
         WizardStep.DownloadExport => "Export",

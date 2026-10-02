@@ -20,7 +20,6 @@ public class SettingsAndValidationTests
         definition.Name = "orders-api";
         definition.ReleaseBranch = "release";
         definition.KeyVault = new KeyVaultConfig { KeyVaultName = "kv-orders" };
-        definition.IaC = new InfrastructureAsCodeConfig { Tool = IaCTool.Bicep, WorkingDirectory = "infra", PlanOnly = true };
         definition.Deployment = new DeploymentConfig { Kind = DeploymentKind.WindowsService, ServiceName = "Orders", TargetPath = @"D:\apps\orders" };
         definition.Trigger = new TriggerConfig { IncludeBranches = new[] { "main" }, PathFilters = new[] { "src/*" } };
         return definition;
@@ -72,7 +71,7 @@ public class SettingsAndValidationTests
     [InlineData("HealthChecks", WizardStep.HealthChecks)]
     [InlineData("Deployment", WizardStep.DeploymentTarget)]
     [InlineData("KeyVault", WizardStep.VariableGroupsAndKeyVault)]
-    [InlineData("NamingConvention", WizardStep.GovernancePolicies)]
+    [InlineData("Rollback", WizardStep.RollbackSettings)]
     public void ValidationFieldsMapToWizardSteps(string field, WizardStep step)
     {
         Assert.Equal(step, StepMap.ForField(field));
@@ -87,21 +86,19 @@ public class SettingsAndValidationTests
             Environments = new[] { "Bad Name", "test", "test" },
             ReleaseBranch = "",
             BuildAgent = BuildAgentType.SelfHosted,
+            ProjectType = ProjectType.Docker,
             Artifact = new ArtifactConfig { ArtifactName = "" },
-            DeploymentStrategy = new DeploymentStrategyConfig { StrategyType = DeploymentStrategyType.Canary, CanaryPercentage = 200 },
-            Governance = new GovernancePolicyConfig { NamingConvention = "[" },
-            HealthChecks = new[] { new HealthCheckConfig { Enabled = true, Url = "not a url" } },
-            IaC = new InfrastructureAsCodeConfig { Tool = IaCTool.Terraform, WorkingDirectory = "" }
+            HealthChecks = new[] { new HealthCheckConfig { Enabled = true, Url = "not a url" } }
         };
 
         var errors = PipelineValidator.CreateDefault().ValidateInput(definition);
 
-        Assert.True(errors.Count >= 10, $"Expected every rule to fire, got {errors.Count}");
+        Assert.True(errors.Count >= 8, $"Expected every rule to fire, got {errors.Count}");
         Assert.All(errors, e => Assert.NotNull(StepMap.ForField(e.AffectedField)));
     }
 
     [Fact]
-    public void GovernanceFindingsBelongToSteps()
+    public void FindingsAboutTheGeneratedPipelineBelongToSteps()
     {
         var definition = WizardState.CreateDefault();
         definition.HealthChecks = Array.Empty<HealthCheckConfig>();

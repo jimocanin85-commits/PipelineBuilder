@@ -11,21 +11,16 @@ public sealed class YamlExplanationService : IYamlExplanationService
         ["PublishPipelineArtifact@1"] = "PublishPipelineArtifact@1 publishes files from the staging directory as a pipeline artifact for downstream deployment jobs.",
         ["DownloadPipelineArtifact@2"] = "DownloadPipelineArtifact@2 retrieves a previously published pipeline artifact into the agent workspace.",
         ["AzureKeyVault@2"] = "AzureKeyVault@2 downloads secrets from Azure Key Vault and maps them to pipeline variables before subsequent tasks run.",
-        ["AzureAppServiceManage@0"] = "AzureAppServiceManage@0 manages Azure App Service including start, stop, and slot swap operations.",
-        ["TerraformTaskV4@4"] = "TerraformTaskV4@4 executes Terraform init, plan, or apply using the configured Azure backend and service connection.",
         ["Docker@2"] = "Docker@2 builds and optionally pushes container images to a container registry.",
         ["ArchiveFiles@2"] = "ArchiveFiles@2 compresses build output into a zip package for deployment.",
         ["PublishBuildArtifacts@1"] = "PublishBuildArtifacts@1 publishes build output to Azure DevOps build artifacts (classic).",
         ["DownloadBuildArtifacts@1"] = "DownloadBuildArtifacts@1 downloads build artifacts from the current or specified build.",
-        ["AzureCLI@2"] = "AzureCLI@2 runs Azure CLI or PowerShell scripts authenticated via a service connection.",
         ["IISWebAppDeploymentOnMachineGroup@0"] = "IISWebAppDeploymentOnMachineGroup@0 deploys a web package to an IIS website on the server the deployment job runs on.",
-        ["AzureWebApp@1"] = "AzureWebApp@1 deploys the package to an Azure App Service (optionally to a deployment slot).",
         ["KubernetesManifest@1"] = "KubernetesManifest@1 applies Kubernetes manifests and substitutes the container image built by this run.",
         ["Kubernetes@1"] = "Kubernetes@1 runs a kubectl command (here: rollout undo) against the cluster in the service connection.",
         ["NodeTool@0"] = "NodeTool@0 installs the requested Node.js version on the agent.",
         ["Npm@1"] = "Npm@1 runs npm commands such as ci, build and test.",
-        ["CopyFiles@2"] = "CopyFiles@2 copies the build output into the artifact staging folder.",
-        ["AzureResourceManagerTemplateDeployment@3"] = "Deploys an ARM template to a resource group using an Azure Resource Manager service connection."
+        ["CopyFiles@2"] = "CopyFiles@2 copies the build output into the artifact staging folder."
     };
 
     public IReadOnlyList<YamlBlockExplanation> ExplainYaml(string yaml)

@@ -9,7 +9,6 @@ public sealed class IisDeploymentHandler : DeploymentKindHandler
 {
     public override DeploymentKind Kind => DeploymentKind.Iis;
     public override RollbackTarget? RollbackTarget => Enums.RollbackTarget.Iis;
-    public override bool RunsOnServers => true;
 
     public override IReadOnlyList<string> GenerateDeploySteps(PipelineDefinition definition, string environment, string packagePath) => new[]
     {

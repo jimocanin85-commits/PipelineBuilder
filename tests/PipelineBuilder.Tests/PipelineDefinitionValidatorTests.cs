@@ -87,31 +87,16 @@ public class PipelineDefinitionValidatorTests
     }
 
     [Fact]
-    public void RejectsInvalidCanaryPercentage()
+    public void RejectsADockerProjectWithoutADockerImage()
     {
         var definition = new PipelineDefinition
         {
             Name = "test",
-            DeploymentStrategy = new DeploymentStrategyConfig
-            {
-                StrategyType = DeploymentStrategyType.Canary,
-                CanaryPercentage = 150
-            }
+            ProjectType = ProjectType.Docker,
+            Artifact = new ArtifactConfig { ArtifactType = ArtifactType.ZipPackage }
         };
         var errors = Validate(definition);
-        Assert.Contains(errors, e => e.Contains("between 0 and 100"));
-    }
-
-    [Fact]
-    public void RejectsInvalidRegex()
-    {
-        var definition = new PipelineDefinition
-        {
-            Name = "test",
-            Governance = new GovernancePolicyConfig { NamingConvention = "[invalid(regex" }
-        };
-        var errors = Validate(definition);
-        Assert.Contains(errors, e => e.Contains("valid regular expression"));
+        Assert.Contains(errors, e => e.Contains("packaged as a Docker image"));
     }
 
     [Fact]

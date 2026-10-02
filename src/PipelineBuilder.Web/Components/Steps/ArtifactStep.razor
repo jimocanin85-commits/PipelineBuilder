@@ -19,11 +19,6 @@
         <InputText id="dockerfile" @bind-Value="Wizard.Definition.Artifact.PackagePath" class="form-control" placeholder="**/Dockerfile" />
         <p class="hint">Images are tagged with the build ID and pushed through the registry connection set on the Identity step.</p>
         break;
-    case ArtifactType.NuGetPackage:
-        <label for="pack-projects">Projects to pack</label>
-        <InputText id="pack-projects" @bind-Value="Wizard.Definition.Artifact.PackagePath" class="form-control" placeholder="**/*.csproj;!**/*Tests*.csproj" />
-        <p class="hint">Packages are pushed to the feed in the <code>NUGET_FEED</code> variable.</p>
-        break;
     default:
         <p class="hint">The app is published with <code>dotnet publish</code> and uploaded as the artifact; deploy jobs download it automatically.</p>
         break;

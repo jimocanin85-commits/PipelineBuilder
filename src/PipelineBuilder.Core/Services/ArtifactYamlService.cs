@@ -13,8 +13,8 @@ public sealed class ArtifactYamlService : IArtifactYamlService
     public IReadOnlyList<string> GenerateBuildOutputSteps(PipelineDefinition definition)
     {
         var config = definition.Artifact;
-        if (config.ArtifactType is ArtifactType.DockerImage or ArtifactType.NuGetPackage)
-            return Array.Empty<string>(); // these package straight from source
+        if (config.ArtifactType == ArtifactType.DockerImage)
+            return Array.Empty<string>(); // the image is built straight from source
 
         if (definition.ProjectType == ProjectType.Node)
         {
@@ -30,16 +30,7 @@ public sealed class ArtifactYamlService : IArtifactYamlService
         }
 
         if (definition.ProjectType != ProjectType.DotNet)
-        {
-            return new[]
-            {
-                YamlBuilder.PowerShellStep(
-                    $"Write-Warning 'Add the build/copy commands for {definition.ProjectType} projects here. " +
-                    $"Put the deployable output in {PublishOutput}.'\n" +
-                    $"New-Item -ItemType Directory -Force -Path \"{PublishOutput}\" | Out-Null",
-                    "Prepare build output (placeholder)")
-            };
-        }
+            return Array.Empty<string>(); // Docker projects are packaged as an image (see the input rules)
 
         var projectPath = definition.DotNetProjectPath;
         var publishWebProjects = string.IsNullOrWhiteSpace(projectPath) || projectPath == "**/*.csproj";
@@ -107,33 +98,14 @@ public sealed class ArtifactYamlService : IArtifactYamlService
                     ["tags"] = "$(Build.BuildId)"
                 }, "Build and push Docker image")
             },
-            ArtifactType.NuGetPackage => new[]
-            {
-                YamlBuilder.Task("DotNetCoreCLI@2", new Dictionary<string, string>
-                {
-                    ["command"] = "pack",
-                    ["packagesToPack"] = config.PackagePath ?? "**/*.csproj;!**/*Tests*.csproj",
-                    ["configuration"] = "$(BuildConfiguration)",
-                    ["nobuild"] = "true",
-                    ["packDirectory"] = "$(Build.ArtifactStagingDirectory)/packages"
-                }, "Pack NuGet packages"),
-                // dotnet push works on Linux agents; NuGetCommand@2 needs Mono there.
-                YamlBuilder.Task("DotNetCoreCLI@2", new Dictionary<string, string>
-                {
-                    ["command"] = "push",
-                    ["packagesToPush"] = "$(Build.ArtifactStagingDirectory)/packages/*.nupkg",
-                    ["nuGetFeedType"] = "internal",
-                    ["publishVstsFeed"] = "$(NUGET_FEED)"
-                }, "Push NuGet packages")
-            },
             _ => Array.Empty<string>()
         };
     }
 
     public IReadOnlyList<string> GenerateDownloadSteps(ArtifactConfig config, string? environment = null)
     {
-        if (config.ArtifactType is ArtifactType.DockerImage or ArtifactType.NuGetPackage)
-            return Array.Empty<string>(); // nothing to download: the image/package lives in a registry/feed
+        if (config.ArtifactType == ArtifactType.DockerImage)
+            return Array.Empty<string>(); // nothing to download: the image lives in a registry
 
         var display = environment != null ? $"Download artifact for {environment}" : "Download artifact";
         return config.ArtifactType switch

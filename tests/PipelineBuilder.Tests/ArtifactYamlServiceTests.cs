@@ -12,7 +12,7 @@ public class ArtifactYamlServiceTests
     [Theory]
     [InlineData(ArtifactType.PipelineArtifact, "PublishPipelineArtifact@1")]
     [InlineData(ArtifactType.DockerImage, "Docker@2")]
-    [InlineData(ArtifactType.NuGetPackage, "command: 'push'")]
+    [InlineData(ArtifactType.ZipPackage, "ArchiveFiles@2")]
     public void GeneratePublishSteps_ContainsExpectedTask(ArtifactType type, string task)
     {
         var steps = _sut.GeneratePublishSteps(new ArtifactConfig { ArtifactType = type, ArtifactName = "drop" });

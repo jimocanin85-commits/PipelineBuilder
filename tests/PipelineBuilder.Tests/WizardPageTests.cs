@@ -52,19 +52,6 @@ public class WizardPageTests : BunitContext
     }
 
     [Fact]
-    public void DiagnosticsScriptCanBeDownloaded()
-    {
-        var cut = Render<Home>();
-        GoTo(cut, WizardStep.DownloadExport);
-
-        cut.Find("#download-diagnostics").Click();
-
-        var invocation = JSInterop.VerifyInvoke("pipelineBuilder.downloadText");
-        Assert.Equal(ExportStep.DiagnosticsFileName, invocation.Arguments[0]);
-        Assert.Contains("Test-Path", (string)invocation.Arguments[1]!);
-    }
-
-    [Fact]
     public void CopyButtonUsesTheClipboard()
     {
         var cut = Render<Home>();
@@ -117,25 +104,13 @@ public class WizardPageTests : BunitContext
         var cut = Render<Home>();
         GoTo(cut, WizardStep.PipelineTemplate);
 
-        cut.Find("button[data-template='dotnet-web-app']").Click();
+        cut.Find("button[data-template='aks-deploy']").Click();
         Assert.Contains("Template applied", cut.Markup);
 
         GoTo(cut, WizardStep.YamlPreview);
         var yaml = cut.Find(".yaml-preview").TextContent;
-        Assert.Contains("AzureWebApp@1", yaml);
+        Assert.Contains("KubernetesManifest@1", yaml);
         Assert.DoesNotContain("IISWebAppDeploymentOnMachineGroup@0", yaml);
-    }
-
-    [Fact]
-    public void RepositoryScanDetectsTheProject()
-    {
-        var cut = Render<Home>();
-        GoTo(cut, WizardStep.PipelineTemplate);
-
-        cut.Find("textarea").Change("main.tf\nmodules/network/main.tf");
-        cut.Find("button.btn-secondary").Click(); // Scan
-
-        Assert.Contains("Terraform", cut.Find(".scan-result").TextContent);
     }
 
     [Fact]

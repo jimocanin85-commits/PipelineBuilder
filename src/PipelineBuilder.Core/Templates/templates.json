@@ -1,67 +1,14 @@
 [
   {
-    "id": "dotnet-web-app",
-    "name": ".NET Web Application",
-    "category": "DotNet",
-    "description": "Build, test, and deploy ASP.NET Core to Azure App Service",
-    "riskLevel": "Low",
-    "tags": [
-      "dotnet",
-      "web",
-      "azure"
-    ],
-    "settings": {
-      "projectType": "DotNet",
-      "deploymentTarget": "Cloud",
-      "environments": [
-        "test",
-        "prod"
-      ],
-      "artifactType": "PipelineArtifact",
-      "deploymentKind": "AzureAppService",
-      "strategy": "Standard"
-    }
-  },
-  {
-    "id": "node-web-app",
-    "name": "Node.js Web Application",
-    "category": "Node",
-    "description": "Install, build and test a Node.js app with npm and deploy it to Azure App Service",
-    "riskLevel": "Low",
-    "tags": [
-      "node",
-      "web",
-      "azure"
-    ],
-    "settings": {
-      "projectType": "Node",
-      "deploymentTarget": "Cloud",
-      "environments": [
-        "test",
-        "prod"
-      ],
-      "artifactType": "PipelineArtifact",
-      "deploymentKind": "AzureAppService",
-      "strategy": "Standard"
-    }
-  },
-  {
     "id": "iis-onprem",
-    "name": "IIS On-Premises",
+    "name": "IIS website",
     "category": "Iis",
-    "description": "Deploy to IIS on your own servers, with backup, health checks and rollback",
+    "description": "A .NET web app on IIS on your Windows servers",
     "riskLevel": "Medium",
-    "tags": [
-      "iis",
-      "onprem"
-    ],
+    "tags": [ "windows", "iis" ],
     "settings": {
       "projectType": "DotNet",
-      "deploymentTarget": "OnPrem",
-      "environments": [
-        "test",
-        "prod"
-      ],
+      "environments": [ "test", "prod" ],
       "artifactType": "PipelineArtifact",
       "deploymentKind": "Iis",
       "rollbackEnabled": true
@@ -69,21 +16,14 @@
   },
   {
     "id": "windows-service-onprem",
-    "name": "Windows Service On-Premises",
+    "name": "Windows service",
     "category": "WindowsService",
-    "description": "Deploy a Windows service to servers registered in each environment, with rollback",
+    "description": "A .NET Windows service on your Windows servers",
     "riskLevel": "Medium",
-    "tags": [
-      "windows-service",
-      "onprem"
-    ],
+    "tags": [ "windows", "service" ],
     "settings": {
       "projectType": "DotNet",
-      "deploymentTarget": "OnPrem",
-      "environments": [
-        "test",
-        "prod"
-      ],
+      "environments": [ "test", "prod" ],
       "artifactType": "PipelineArtifact",
       "deploymentKind": "WindowsService",
       "rollbackEnabled": true
@@ -91,85 +31,43 @@
   },
   {
     "id": "docker-build-push",
-    "name": "Docker Build and Run",
+    "name": "Docker container",
     "category": "Docker",
-    "description": "Build a container image, push it to your registry and run it on your servers",
+    "description": "Build an image from your Dockerfile and run it on your servers",
     "riskLevel": "Low",
-    "tags": [
-      "docker"
-    ],
+    "tags": [ "docker" ],
     "settings": {
       "projectType": "Docker",
-      "deploymentTarget": "Hybrid",
       "artifactType": "DockerImage",
       "deploymentKind": "DockerContainer"
     }
   },
   {
     "id": "hybrid-dotnet-docker",
-    "name": "Hybrid .NET + Docker",
-    "category": "Hybrid",
-    "description": "Build and test a .NET app, containerize it and run it on your servers",
+    "name": ".NET app in Docker",
+    "category": "Docker",
+    "description": "Build and test a .NET app, then run it as a container on your servers",
     "riskLevel": "Medium",
-    "tags": [
-      "dotnet",
-      "docker",
-      "hybrid"
-    ],
+    "tags": [ "dotnet", "docker" ],
     "settings": {
       "projectType": "DotNet",
-      "deploymentTarget": "Hybrid",
-      "environments": [
-        "test",
-        "preprod",
-        "prod"
-      ],
+      "environments": [ "test", "preprod", "prod" ],
       "artifactType": "DockerImage",
       "deploymentKind": "DockerContainer"
     }
   },
   {
     "id": "aks-deploy",
-    "name": "AKS Deployment",
-    "category": "Aks",
-    "description": "Build a container image and deploy your Kubernetes manifests to AKS, with rollout undo on failure",
+    "name": "Kubernetes",
+    "category": "Kubernetes",
+    "description": "Build an image and apply your manifests to a cluster, with rollout undo on failure",
     "riskLevel": "High",
-    "tags": [
-      "kubernetes",
-      "aks",
-      "docker"
-    ],
+    "tags": [ "kubernetes", "docker" ],
     "settings": {
       "projectType": "Docker",
-      "deploymentTarget": "Cloud",
-      "environments": [
-        "test",
-        "prod"
-      ],
+      "environments": [ "test", "prod" ],
       "artifactType": "DockerImage",
       "deploymentKind": "Kubernetes"
-    }
-  },
-  {
-    "id": "terraform-azure",
-    "name": "Terraform Azure",
-    "category": "Terraform",
-    "description": "Plan and apply Terraform for Azure resources in each environment",
-    "riskLevel": "High",
-    "tags": [
-      "terraform",
-      "iac"
-    ],
-    "settings": {
-      "projectType": "Terraform",
-      "deploymentTarget": "Cloud",
-      "environments": [
-        "test",
-        "prod"
-      ],
-      "deploymentKind": "Custom",
-      "iacTool": "Terraform",
-      "iacWorkingDirectory": "infra"
     }
   }
 ]

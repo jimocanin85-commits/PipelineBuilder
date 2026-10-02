@@ -18,10 +18,8 @@ internal static class InputRules
         Rule("input.release-branch", ReleaseBranch),
         Rule("input.pool-name", PoolName),
         Rule("input.artifact", Artifact),
-        Rule("input.canary-percentage", CanaryPercentage),
-        Rule("input.naming-convention", NamingConvention),
+        Rule("input.docker-artifact", DockerArtifact),
         Rule("input.health-check-url", HealthCheckUrl),
-        Rule("input.terraform-directory", TerraformDirectory),
     };
 
     private static ValidationRule Rule(string id, Func<ValidationContext, IEnumerable<ValidationResult>> check) =>
@@ -81,31 +79,11 @@ internal static class InputRules
             yield return Error(nameof(PipelineDefinition.Artifact), "Artifact name is required.");
     }
 
-    private static IEnumerable<ValidationResult> CanaryPercentage(ValidationContext context)
+    private static IEnumerable<ValidationResult> DockerArtifact(ValidationContext context)
     {
-        var strategy = context.Definition.DeploymentStrategy;
-        if (strategy?.StrategyType == DeploymentStrategyType.Canary && strategy.CanaryPercentage is < 0 or > 100)
-            yield return Error(nameof(PipelineDefinition.DeploymentStrategy), "Canary deployment percentage must be between 0 and 100.");
-    }
-
-    private static IEnumerable<ValidationResult> NamingConvention(ValidationContext context)
-    {
-        var pattern = context.Definition.Governance?.NamingConvention;
-        if (!string.IsNullOrWhiteSpace(pattern) && !IsRegex(pattern))
-            yield return Error(nameof(GovernancePolicyConfig.NamingConvention), "Governance naming convention is not a valid regular expression.");
-    }
-
-    private static bool IsRegex(string pattern)
-    {
-        try
-        {
-            _ = Regex.IsMatch("test", pattern);
-            return true;
-        }
-        catch (RegexParseException)
-        {
-            return false;
-        }
+        var definition = context.Definition;
+        if (definition.ProjectType == ProjectType.Docker && definition.Artifact?.ArtifactType != ArtifactType.DockerImage)
+            yield return Error(nameof(PipelineDefinition.Artifact), "A Docker project is packaged as a Docker image.", "Set the artifact type to DockerImage.");
     }
 
     private static IEnumerable<ValidationResult> HealthCheckUrl(ValidationContext context)
@@ -116,12 +94,5 @@ internal static class InputRules
             if (hc.Enabled && hc.HealthCheckType == HealthCheckType.HttpEndpoint && !Uri.TryCreate(url, UriKind.Absolute, out _))
                 yield return Error(nameof(PipelineDefinition.HealthChecks), "HTTP health check requires a valid endpoint URL.", "e.g. https://myapp-{environment}.contoso.com/health");
         }
-    }
-
-    private static IEnumerable<ValidationResult> TerraformDirectory(ValidationContext context)
-    {
-        var iac = context.Definition.IaC;
-        if (iac != null && iac.Tool == IaCTool.Terraform && string.IsNullOrWhiteSpace(iac.WorkingDirectory))
-            yield return Error(nameof(PipelineDefinition.IaC), "Terraform IaC requires a working directory.");
     }
 }

@@ -27,10 +27,10 @@ On the Export step you can also save your settings, and open them later to chang
 | | |
 |---|---|
 | Build | .NET, Node.js |
-| Deploy to | IIS, Windows service, file share, Azure App Service, Docker, Kubernetes, or your own script |
-| Strategy | Standard, rolling, slot swap |
-| Safety | Backup and rollback, health checks, secret scan, your own governance rules |
-| Extras | Key Vault, Terraform/Bicep/ARM, notifications by Teams, email or webhook |
+| Deploy to | IIS, Windows service, file share, Docker, Kubernetes, or your own script |
+| Strategy | Standard, rolling |
+| Safety | Backup and rollback, health checks, secret scan |
+| Extras | Key Vault, notifications by Teams, email or webhook |
 
 ## Install on a server
 

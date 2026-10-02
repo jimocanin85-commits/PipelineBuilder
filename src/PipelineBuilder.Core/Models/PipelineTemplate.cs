@@ -19,13 +19,10 @@ public sealed class PipelineTemplate
 public sealed class TemplateSettings
 {
     public ProjectType? ProjectType { get; set; }
-    public DeploymentTarget? DeploymentTarget { get; set; }
     public IReadOnlyList<string>? Environments { get; set; }
     public ArtifactType? ArtifactType { get; set; }
     public DeploymentKind? DeploymentKind { get; set; }
     public DeploymentStrategyType? Strategy { get; set; }
     public bool? RollbackEnabled { get; set; }
-    public IaCTool? IacTool { get; set; }
-    public string? IacWorkingDirectory { get; set; }
     public string? CustomDeployScript { get; set; }
 }

@@ -12,10 +12,9 @@ The wizard's **Validation** step lists what your pipeline needs. This page is th
 | You chose | You need |
 |---|---|
 | IIS, Windows service, file share or Docker on your own servers | The servers registered as **Virtual machine resources** in each environment |
-| App Service, Key Vault, Bicep, ARM or Terraform | An **Azure Resource Manager service connection** |
+| Key Vault | An **Azure Resource Manager service connection** |
 | Docker image | A **Docker registry service connection** |
 | Kubernetes | A **Kubernetes service connection**, and your manifests in the repository |
-| Terraform | The Terraform extension from the Marketplace, and a storage account for the state |
 | Self-hosted build agent | The agent pool |
 
 ## Variables
@@ -25,13 +24,9 @@ A field you leave empty in the wizard becomes a pipeline variable. Define the on
 | Variable | Used for |
 |---|---|
 | `DEPLOY_PATH`, `SERVICE_NAME` | Windows service and file share |
-| `WEBAPP_NAME`, `RESOURCE_GROUP` | App Service, slot swap, Bicep, ARM |
 | `CONTAINER_NAME`, `DOCKER_REGISTRY` | Docker |
 | `K8S_SERVICE_CONNECTION`, `K8S_NAMESPACE`, `K8S_DEPLOYMENT` | Kubernetes |
 | `AZURE_SERVICE_CONNECTION`, `DOCKER_SERVICE_CONNECTION` | Service connection names |
-| `TF_STATE_RG`, `TF_STATE_STORAGE`, `TF_STATE_CONTAINER` | Terraform state |
-| `AZURE_SUBSCRIPTION_ID`, `AZURE_LOCATION` | ARM |
-| `NUGET_FEED` | NuGet packages |
 | `TEAMS_WEBHOOK_URL`, `CUSTOM_WEBHOOK_URL` | Notifications |
 | `SMTP_HOST`, `SMTP_PORT`, `SMTP_USERNAME`, `SMTP_PASSWORD`, `EMAIL_FROM` | Email |
 

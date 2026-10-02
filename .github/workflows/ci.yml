@@ -34,7 +34,14 @@ jobs:
 
       # Warnings are errors (Directory.Build.props), so this step fails on any new warning.
       - name: Build
-        run: dotnet build PipelineBuilder.sln --configuration Release --no-restore
+        run: |
+          set -o pipefail
+          # Show every compile error in one annotation (GitHub lists only the first ten otherwise).
+          dotnet build PipelineBuilder.sln --configuration Release --no-restore 2>&1 | tee build.log || {
+            errors=$(grep -E ": error " build.log | sed -E 's#^/home/runner/work/[^/]+/[^/]+/##; s# \[/home/runner.*$##' | sort -u | head -80)
+            echo "::error title=Build errors::${errors//$'\n'/%0A}"
+            exit 1
+          }
 
       - name: Test
         run: >-

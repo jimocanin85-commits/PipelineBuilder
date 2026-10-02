@@ -23,7 +23,7 @@ public sealed class BuildStageGenerator
         {
             ProjectType.DotNet => DotNetSteps(definition),
             ProjectType.Node => NodeSteps(definition),
-            _ => PlaceholderSteps(definition)
+            _ => Array.Empty<string>() // Docker projects build inside the image
         });
         steps.AddRange(_artifactService.GenerateBuildOutputSteps(definition));
         steps.AddRange(_artifactService.GeneratePublishSteps(definition.Artifact));
@@ -87,12 +87,5 @@ public sealed class BuildStageGenerator
             ["command"] = "custom",
             ["customCommand"] = "run test --if-present"
         }, "Run tests", env: ci);
-    }
-
-    private static IEnumerable<string> PlaceholderSteps(PipelineDefinition definition)
-    {
-        yield return YamlBuilder.PowerShellStep(
-            $"Write-Warning 'Add the build and test commands for {definition.ProjectType} projects here.'",
-            "Build and test (placeholder)");
     }
 }

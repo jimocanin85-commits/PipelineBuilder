@@ -16,21 +16,5 @@
 }
 else
 {
-    <p class="hint">Microsoft-hosted jobs run on <code>windows-latest</code>.</p>
-}
-
-<h3>Agent diagnostics</h3>
-<label><InputCheckbox @bind-Value="Wizard.AgentDiagnosticsEnabled" /> Generate a PowerShell script that checks self-hosted agents and servers</label>
-@if (Wizard.AgentDiagnosticsEnabled)
-{
-    <div class="card">
-        <label><InputCheckbox @bind-Value="Wizard.AgentDiagnostics.CheckPowerShellVersion" /> PowerShell version</label>
-        <label><InputCheckbox @bind-Value="Wizard.AgentDiagnostics.CheckWinRm" /> WinRM</label>
-        <label><InputCheckbox @bind-Value="Wizard.AgentDiagnostics.CheckIisModule" /> IIS WebAdministration module</label>
-        <label><InputCheckbox @bind-Value="Wizard.AgentDiagnostics.CheckDocker" /> Docker</label>
-        <label><InputCheckbox @bind-Value="Wizard.AgentDiagnostics.CheckNetworkAccess" /> Network access to Azure DevOps</label>
-        <label><InputCheckbox @bind-Value="Wizard.AgentDiagnostics.CheckPermissions" /> Account the agent runs as</label>
-        <label for="diag-folders">Folders that must exist (one per line)</label>
-        <InputTextArea id="diag-folders" @bind-Value="Wizard.DeploymentFolders" class="form-control" rows="3" />
-    </div>
+    <p class="hint">The build runs on <code>ubuntu-latest</code>.</p>
 }

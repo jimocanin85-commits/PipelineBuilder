@@ -5,8 +5,8 @@ using PipelineBuilder.Core.Yaml;
 namespace PipelineBuilder.Core.Deployment;
 
 /// <summary>
-/// Runs the user's own deploy script (or a placeholder). The user chooses the rollback target, and
-/// backup and rollback come from that target's handler.
+/// Runs the user's own deploy script (or a placeholder) on the registered servers. The user chooses
+/// the rollback target, and backup and rollback come from that target's handler.
 /// </summary>
 public sealed class CustomDeploymentHandler : DeploymentKindHandler
 {
@@ -28,7 +28,7 @@ public sealed class CustomDeploymentHandler : DeploymentKindHandler
             yield return Finding(ValidationSeverity.Warning,
                 "No deployment kind is selected, so the deploy step is only a placeholder.",
                 nameof(PipelineDefinition.Deployment),
-                "Choose IIS, Windows service, file share, App Service or Docker, or provide a custom deploy script.");
+                "Choose a deployment kind, or provide a custom deploy script.");
         }
     }
 }

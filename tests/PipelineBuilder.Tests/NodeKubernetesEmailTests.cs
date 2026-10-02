@@ -16,8 +16,7 @@ public class NodeKubernetesEmailTests
     private static PipelineDefinition Minimal() => new()
     {
         Name = "app",
-        Environments = new[] { "test", "prod" },
-        Governance = new GovernancePolicyConfig { RequireHealthCheck = false }
+        Environments = new[] { "test", "prod" }
     };
 
     [Fact]
@@ -44,7 +43,6 @@ public class NodeKubernetesEmailTests
     public void KubernetesDeploysManifestsWithTheBuiltImageAndRollsBack()
     {
         var definition = Minimal();
-        definition.DeploymentTarget = DeploymentTarget.Cloud;
         definition.Artifact = new ArtifactConfig { ArtifactType = ArtifactType.DockerImage, ArtifactName = "orders" };
         definition.Deployment = new DeploymentConfig { Kind = DeploymentKind.Kubernetes, KubernetesNamespace = "orders", KubernetesDeploymentName = "orders-api" };
         definition.Rollback = new RollbackConfig { Enabled = true };
@@ -69,7 +67,6 @@ public class NodeKubernetesEmailTests
     public void KubernetesNeverTargetsServerResources()
     {
         var definition = Minimal();
-        definition.DeploymentTarget = DeploymentTarget.OnPrem;
         definition.Artifact = new ArtifactConfig { ArtifactType = ArtifactType.DockerImage, ArtifactName = "orders" };
         definition.Deployment = new DeploymentConfig { Kind = DeploymentKind.Kubernetes };
 

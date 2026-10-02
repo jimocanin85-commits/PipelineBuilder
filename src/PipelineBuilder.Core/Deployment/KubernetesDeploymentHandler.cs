@@ -12,7 +12,7 @@ public sealed class KubernetesDeploymentHandler : DeploymentKindHandler
 {
     public override DeploymentKind Kind => DeploymentKind.Kubernetes;
     public override RollbackTarget? RollbackTarget => Enums.RollbackTarget.Kubernetes;
-    public override bool DeploysFromAgentOnly => true;
+    public override bool RunsOnServers => false;
     public override bool NeedsRepositoryCheckout => true;
 
     public override IReadOnlyList<string> GenerateDeploySteps(PipelineDefinition definition, string environment, string packagePath) => new[]

@@ -27,7 +27,7 @@ public class PipelineGeneratorTests
         Assert.Contains("stage: Build", result.Yaml);
         Assert.DoesNotContain("stage: Test", result.Yaml);
         Assert.Contains("- stage: Deploy_test\n  displayName: 'Deploy test'\n  dependsOn: Build", result.Yaml.ReplaceLineEndings("\n"));
-        Assert.Contains("environment: test", result.Yaml);
+        Assert.Contains("      name: test", result.Yaml);
         Assert.Contains("- group: 'vg-test'", result.Yaml);
         Assert.NotEmpty(result.Explanations);
     }
@@ -56,7 +56,6 @@ public class PipelineGeneratorTests
         VariableGroups = new[] { new VariableGroupConfig { Name = "vg-test", Scope = VariableGroupScope.Pipeline } },
         Artifact = new ArtifactConfig { ArtifactName = "drop" },
         Rollback = new RollbackConfig { Enabled = true, Target = RollbackTarget.Iis },
-        HealthChecks = new[] { new HealthCheckConfig { Enabled = true, Url = "https://localhost/health" } },
-        Governance = new GovernancePolicyConfig { RequiredVariableGroups = new[] { "vg-test" } }
+        HealthChecks = new[] { new HealthCheckConfig { Enabled = true, Url = "https://localhost/health" } }
     };
 }

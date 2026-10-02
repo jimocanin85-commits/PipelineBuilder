@@ -31,7 +31,6 @@ public sealed class DeploymentKindRegistry : IDeploymentKinds
         new IisDeploymentHandler(),
         new WindowsServiceDeploymentHandler(),
         new FileShareDeploymentHandler(),
-        new AzureAppServiceDeploymentHandler(),
         new DockerContainerDeploymentHandler(),
         new KubernetesDeploymentHandler(),
     };
@@ -44,13 +43,8 @@ public sealed class DeploymentKindRegistry : IDeploymentKinds
     public IDeploymentKindHandler For(DeploymentKind kind) =>
         _handlers.TryGetValue(kind, out var handler) ? handler : _handlers[DeploymentKind.Custom];
 
-    public bool UsesServerResources(PipelineDefinition definition)
-    {
-        var handler = For(definition.Deployment.Kind);
-        return !handler.DeploysFromAgentOnly
-               && (definition.DeploymentTarget == DeploymentTarget.OnPrem
-                   || (definition.DeploymentTarget == DeploymentTarget.Hybrid && handler.RunsOnServers));
-    }
+    public bool UsesServerResources(PipelineDefinition definition) =>
+        For(definition.Deployment.Kind).RunsOnServers;
 
     public IReadOnlyList<string> GenerateBackupSteps(PipelineDefinition definition, string environment)
     {

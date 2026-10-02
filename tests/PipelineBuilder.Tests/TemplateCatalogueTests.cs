@@ -22,7 +22,7 @@ public class TemplateCatalogueTests
     {
         var templates = TemplateMarketplaceService.LoadBuiltIn();
 
-        Assert.True(templates.Count >= 7);
+        Assert.True(templates.Count >= 5);
         Assert.All(templates, t =>
         {
             Assert.False(string.IsNullOrWhiteSpace(t.Name));
@@ -53,7 +53,6 @@ public class TemplateCatalogueTests
 
         Assert.Equal("keep-me", definition.Name);
         Assert.Equal(DeploymentKind.Iis, definition.Deployment.Kind);
-        Assert.Equal(DeploymentTarget.OnPrem, definition.DeploymentTarget);
         Assert.Equal(new[] { "test", "prod" }, definition.Environments);
     }
 
@@ -67,7 +66,7 @@ public class TemplateCatalogueTests
               { "id": "iis-onprem", "name": "Our IIS", "description": "Company standard", "category": "Iis",
                 "settings": { "deploymentKind": "Iis", "environments": ["dev", "prod"] } },
               { "id": "file-share", "name": "File share", "description": "Copy to a share", "category": "FileShare",
-                "settings": { "deploymentTarget": "OnPrem", "deploymentKind": "FileShare" } },
+                "settings": { "deploymentKind": "FileShare" } },
             ]
             """);
         try

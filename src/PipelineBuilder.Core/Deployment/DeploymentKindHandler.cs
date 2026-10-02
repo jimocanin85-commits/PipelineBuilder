@@ -9,10 +9,8 @@ public abstract class DeploymentKindHandler : IDeploymentKindHandler
 {
     public abstract DeploymentKind Kind { get; }
     public abstract RollbackTarget? RollbackTarget { get; }
-    public virtual bool RunsOnServers => false;
-    public virtual bool DeploysFromAgentOnly => false;
+    public virtual bool RunsOnServers => true;
     public virtual bool NeedsRepositoryCheckout => false;
-    public virtual bool SupportsSlotSwap => false;
 
     public abstract IReadOnlyList<string> GenerateDeploySteps(PipelineDefinition definition, string environment, string packagePath);
 

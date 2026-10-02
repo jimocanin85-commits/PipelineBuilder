@@ -9,7 +9,6 @@ public sealed class WindowsServiceDeploymentHandler : DeploymentKindHandler
 {
     public override DeploymentKind Kind => DeploymentKind.WindowsService;
     public override RollbackTarget? RollbackTarget => Enums.RollbackTarget.WindowsService;
-    public override bool RunsOnServers => true;
 
     public override IReadOnlyList<string> GenerateDeploySteps(PipelineDefinition definition, string environment, string packagePath)
     {
