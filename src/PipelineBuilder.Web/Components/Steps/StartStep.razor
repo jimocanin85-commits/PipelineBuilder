@@ -56,7 +56,7 @@
     }
 </div>
 
-<PipelineSummary />
+<PipelineSummary Pipeline="Pipeline" />
 
 <div class="load-settings">
     <label for="settings-file">Open saved settings</label>
@@ -68,6 +68,9 @@
 </div>
 
 @code {
+    /// <summary>The generated pipeline, passed in so this step is redrawn whenever it changes.</summary>
+    [Parameter] public GeneratedPipeline? Pipeline { get; set; }
+
     private void Apply(string templateId)
     {
         Wizard.ApplyTemplate(Marketplace, templateId);

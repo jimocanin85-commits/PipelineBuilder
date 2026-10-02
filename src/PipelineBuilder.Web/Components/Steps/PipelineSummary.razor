@@ -1,7 +1,7 @@
 @inject WizardState Wizard
 
 @* The pipeline at a glance: its stages, and what it needs in Azure DevOps. *@
-@if (Wizard.Result is { } result)
+@if (Pipeline is { } result)
 {
     <div class="result">
         <h3>Your Azure DevOps pipeline</h3>
@@ -34,6 +34,9 @@
 }
 
 @code {
+    /// <summary>The generated pipeline. A parameter, so the summary is redrawn whenever the settings change.</summary>
+    [Parameter] public GeneratedPipeline? Pipeline { get; set; }
+
     private static string NotificationName(NotificationType type) => type switch
     {
         NotificationType.TeamsWebhook => "Teams",

@@ -33,7 +33,7 @@
             @switch (Wizard.CurrentStep)
             {
                 case WizardStep.Start:
-                    <StartStep />
+                    <StartStep Pipeline="Wizard.Result" />
                     break;
                 case WizardStep.Target:
                     <TargetStep />
@@ -42,7 +42,7 @@
                     <SafetyStep />
                     break;
                 case WizardStep.Result:
-                    <ResultStep />
+                    <ResultStep Pipeline="Wizard.Result" />
                     break;
             }
         </EditForm>

@@ -9,7 +9,7 @@
         <IssueList Issues="Wizard.BlockingErrors" ShowGoTo="true" />
     </div>
 }
-else if (Wizard.Result is { } result)
+else if (Pipeline is { } result)
 {
     var issues = result.ValidationResults.Where(v => v.Severity != ValidationSeverity.Info).OrderByDescending(v => v.Severity).ToList();
     if (issues.Count > 0)
@@ -17,7 +17,7 @@ else if (Wizard.Result is { } result)
         <IssueList Issues="issues" ShowGoTo="true" />
     }
 
-    <PipelineSummary />
+    <PipelineSummary Pipeline="result" />
 
     <div class="file">
         <div class="file-head">
@@ -50,6 +50,9 @@ else if (Wizard.Result is { } result)
 @code {
     public const string PipelineFileName = "azure-pipelines.yml";
     private const string YamlMime = "application/x-yaml";
+
+    /// <summary>The generated pipeline, passed in so this step is redrawn whenever it changes.</summary>
+    [Parameter] public GeneratedPipeline? Pipeline { get; set; }
 
     private string? _status;
 

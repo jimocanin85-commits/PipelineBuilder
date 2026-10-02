@@ -2,7 +2,9 @@ using Bunit;
 using Microsoft.AspNetCore.Components.Forms;
 using Microsoft.Extensions.DependencyInjection;
 using PipelineBuilder.Core.DependencyInjection;
+using PipelineBuilder.Core.Enums;
 using PipelineBuilder.Core.Models;
+using PipelineBuilder.Core.Services;
 using PipelineBuilder.Web.Components.Pages;
 using PipelineBuilder.Web.Components.Steps;
 using PipelineBuilder.Web.State;
@@ -259,6 +261,208 @@ public class WizardPageTests : BunitContext
 
         Assert.Contains("Could not open the file", cut.Markup);
         Assert.Equal("my-app", cut.Find("#pipeline-name").GetAttribute("value"));
+    }
+
+    public static IEnumerable<object[]> TemplateIds() => TemplateMarketplaceService.LoadBuiltIn().Select(t => new object[] { t.Id });
+
+    [Theory]
+    [MemberData(nameof(TemplateIds))]
+    public void EveryTemplateWorksThroughAllSteps(string templateId)
+    {
+        var cut = Render<Home>();
+
+        cut.Find($"button[data-template='{templateId}']").Click();
+
+        foreach (var step in Enum.GetValues<WizardStep>())
+        {
+            GoTo(cut, step);
+            Assert.DoesNotContain("generation-error", cut.Markup);
+        }
+        Assert.Contains("stages:", cut.Find(".yaml-preview").TextContent);
+    }
+
+    [Theory]
+    [InlineData(DeploymentKind.Custom, "#custom-script")]
+    [InlineData(DeploymentKind.FileShare, "#share")]
+    public void KindsWithoutATemplateShowTheirFields(DeploymentKind kind, string field)
+    {
+        var saved = WizardState.CreateDefault();
+        saved.Deployment = new DeploymentConfig { Kind = kind };
+        var cut = Render<Home>();
+
+        cut.FindComponent<InputFile>().UploadFiles(InputFileContent.CreateFromText(PipelineDefinitionSerializer.ToJson(saved), "settings.json"));
+        GoTo(cut, WizardStep.Target);
+
+        Assert.NotNull(cut.Find(field));
+    }
+
+    [Fact]
+    public void ACustomScriptChoosesItsOwnRollbackTarget()
+    {
+        var saved = WizardState.CreateDefault();
+        saved.Deployment = new DeploymentConfig { Kind = DeploymentKind.Custom, ServerOs = ServerOs.Linux, CustomScript = "./deploy.sh" };
+        var cut = Render<Home>();
+        cut.FindComponent<InputFile>().UploadFiles(InputFileContent.CreateFromText(PipelineDefinitionSerializer.ToJson(saved), "settings.json"));
+
+        GoTo(cut, WizardStep.Safety);
+        cut.Find("#rollback-target").Change(RollbackTarget.LinuxService.ToString());
+        GoTo(cut, WizardStep.Result);
+
+        var yaml = cut.Find(".yaml-preview").TextContent;
+        Assert.Contains("./deploy.sh", yaml);
+        Assert.Contains("Roll back Linux service", yaml);
+    }
+
+    [Fact]
+    public void RollingUpdatesTheServersInBatches()
+    {
+        var cut = Render<Home>();
+        GoTo(cut, WizardStep.Target);
+
+        cut.Find("#rolling").Change(true);
+        cut.Find("#batch").Change("2");
+        GoTo(cut, WizardStep.Result);
+
+        var yaml = cut.Find(".yaml-preview").TextContent;
+        Assert.Contains("rolling:", yaml);
+        Assert.Contains("maxParallel: 2", yaml);
+    }
+
+    [Fact]
+    public void ASelfHostedPoolNeedsAName()
+    {
+        var cut = Render<Home>();
+        GoTo(cut, WizardStep.Target);
+
+        cut.Find("#self-hosted").Change(true);
+        Assert.Contains("Pool name is required", cut.Find(".issue-list").TextContent);
+
+        cut.Find("#pool-name").Change("OnPremAgents");
+        GoTo(cut, WizardStep.Result);
+        Assert.Contains("name: 'OnPremAgents'", cut.Find(".yaml-preview").TextContent);
+    }
+
+    [Fact]
+    public void AVariableGroupCanBeLimitedToOneEnvironmentAndRemoved()
+    {
+        var cut = Render<Home>();
+        GoTo(cut, WizardStep.Target);
+        cut.Find("#add-variable-group").Click();
+
+        cut.Find(".card.row select").Change("prod");
+        GoTo(cut, WizardStep.Result);
+        var yaml = cut.Find(".yaml-preview").TextContent;
+        Assert.DoesNotContain("vg-my-app", yaml.Split("- stage: Deploy_prod")[0]);
+        Assert.Contains("- group: 'vg-my-app'", yaml.Split("- stage: Deploy_prod")[1]);
+
+        GoTo(cut, WizardStep.Target);
+        cut.Find(".card.row select").Change("");
+        cut.Find(".card.row .btn-link").Click();
+        GoTo(cut, WizardStep.Result);
+        Assert.DoesNotContain("vg-my-app", cut.Find(".yaml-preview").TextContent);
+    }
+
+    [Fact]
+    public void HealthChecksAndNotificationsCanBeAddedAndRemoved()
+    {
+        var cut = Render<Home>();
+        GoTo(cut, WizardStep.Safety);
+
+        cut.Find("#add-health-check").Click();
+        Assert.Contains("valid endpoint URL", cut.Find(".issue-list").TextContent);
+        cut.Find(".card input[placeholder^='https://']").Change("https://my-app-{environment}.contoso.com/health");
+        cut.Find("#add-notification").Click();
+        GoTo(cut, WizardStep.Result);
+
+        Assert.Contains("$uri = 'https://my-app-prod.contoso.com/health'", cut.Find(".yaml-preview").TextContent);
+        Assert.Contains("Notify", cut.FindAll(".flow li strong").Select(e => e.TextContent));
+        Assert.Contains("Teams", cut.Find(".flow").TextContent);
+        Assert.Contains("secret", cut.Find(".needs-list").TextContent);
+
+        GoTo(cut, WizardStep.Safety);
+        cut.Find(".card .btn-link").Click();
+        cut.Find(".card .btn-link").Click();
+        GoTo(cut, WizardStep.Result);
+        Assert.DoesNotContain("health check", cut.Find(".yaml-preview").TextContent);
+        Assert.DoesNotContain("Notify", cut.Find(".flow").TextContent);
+    }
+
+    [Fact]
+    public void EachHealthCheckTypeShowsItsOwnFields()
+    {
+        var cut = Render<Home>();
+        GoTo(cut, WizardStep.Safety);
+        cut.Find("#add-health-check").Click();
+        const string type = "select[aria-label='Health check type']";
+
+        cut.Find(type).Change(HealthCheckType.PortCheck.ToString());
+        Assert.NotEmpty(cut.FindAll(".card input[placeholder='80']"));
+
+        cut.Find(type).Change(HealthCheckType.WindowsService.ToString());
+        Assert.NotEmpty(cut.FindAll(".card input[placeholder='W3SVC']"));
+
+        cut.Find(type).Change(HealthCheckType.IisAppPool.ToString());
+        Assert.NotEmpty(cut.FindAll(".card input[placeholder='DefaultAppPool']"));
+
+        cut.Find(type).Change(HealthCheckType.CustomPowerShell.ToString());
+        cut.Find(".card textarea").Change("exit 0");
+        GoTo(cut, WizardStep.Result);
+        Assert.Contains("Custom health check", cut.Find(".yaml-preview").TextContent);
+    }
+
+    [Fact]
+    public void EachNotificationTypeShowsItsOwnFields()
+    {
+        var cut = Render<Home>();
+        GoTo(cut, WizardStep.Safety);
+        cut.Find("#add-notification").Click();
+        const string type = "select[aria-label='Notification type']";
+
+        cut.Find(type).Change(NotificationType.CustomWebhook.ToString());
+        Assert.NotEmpty(cut.FindAll(".card input[placeholder='CUSTOM_WEBHOOK_URL']"));
+
+        cut.Find(type).Change(NotificationType.Email.ToString());
+        cut.Find(".card input.form-control").Change("ops@contoso.com, dev@contoso.com");
+        GoTo(cut, WizardStep.Result);
+
+        Assert.Contains("Email", cut.Find(".flow").TextContent);
+        Assert.Contains("'ops@contoso.com', 'dev@contoso.com'", cut.Find(".yaml-preview").TextContent);
+        Assert.Contains("SMTP_HOST", cut.Find(".needs-list").TextContent);
+    }
+
+    [Fact]
+    public void RollbackCanBeTurnedOff()
+    {
+        var cut = Render<Home>();
+        GoTo(cut, WizardStep.Safety);
+        Assert.NotEmpty(cut.FindAll("#backup-path"));
+
+        cut.Find("#rollback-enabled").Change(false);
+
+        Assert.Empty(cut.FindAll("#backup-path"));
+        GoTo(cut, WizardStep.Result);
+        Assert.DoesNotContain("Back up", cut.Find(".yaml-preview").TextContent);
+    }
+
+    [Fact]
+    public void DockerAndNodeTemplatesShowTheirBuildFields()
+    {
+        var cut = Render<Home>();
+
+        cut.Find("button[data-template='node-linux-service']").Click();
+        Assert.NotEmpty(cut.FindAll("#node-version"));
+        Assert.Empty(cut.FindAll("#project-path"));
+
+        cut.Find("button[data-template='hybrid-dotnet-docker']").Click();
+        Assert.NotEmpty(cut.FindAll("#dockerfile"));
+        Assert.NotEmpty(cut.FindAll("#project-path"));
+
+        GoTo(cut, WizardStep.Target);
+        cut.Find("#container-ports").Change("8080:80");
+        cut.Find("#container-env").Change("ASPNETCORE_ENVIRONMENT=Production");
+        cut.Find("#server-os").Change(ServerOs.Windows.ToString());
+        GoTo(cut, WizardStep.Result);
+        Assert.Contains("-p '8080:80' -e 'ASPNETCORE_ENVIRONMENT=Production' $image", cut.Find(".yaml-preview").TextContent);
     }
 
     private static void GoTo(IRenderedComponent<Home> cut, WizardStep step) =>
