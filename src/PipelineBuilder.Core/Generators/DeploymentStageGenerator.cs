@@ -86,7 +86,7 @@ public sealed class DeploymentStageGenerator
         deploySteps.AddRange(kind.GenerateDeploySteps(definition, env, packagePath));
 
         foreach (var hc in definition.HealthChecks.Where(h => h.Enabled))
-            deploySteps.AddRange(_healthCheckService.GenerateHealthCheckSteps(ForEnvironment(hc, env)));
+            deploySteps.AddRange(_healthCheckService.GenerateHealthCheckSteps(ForEnvironment(hc, env), _deploymentKinds.ShellFor(definition)));
 
         var rollbackSteps = definition.DeploymentStrategy.RollbackOnFailure
             ? _deploymentKinds.GenerateRollbackSteps(definition, env)

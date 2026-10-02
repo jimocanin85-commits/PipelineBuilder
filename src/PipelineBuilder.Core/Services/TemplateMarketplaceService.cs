@@ -58,6 +58,7 @@ public sealed class TemplateMarketplaceService : ITemplateMarketplaceService
         if (s.Environments is { Count: > 0 } environments) definition.Environments = environments.ToList();
         if (s.ArtifactType is { } artifactType) definition.Artifact.ArtifactType = artifactType;
         if (s.DeploymentKind is { } kind) definition.Deployment.Kind = kind;
+        if (s.ServerOs is { } os) definition.Deployment.ServerOs = os;
         if (s.Strategy is { } strategy) definition.DeploymentStrategy.StrategyType = strategy;
         if (s.RollbackEnabled is { } rollback) definition.Rollback.Enabled = rollback;
         if (s.CustomDeployScript is { } script) definition.Deployment.CustomScript = script;

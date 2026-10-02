@@ -12,6 +12,8 @@ public abstract class DeploymentKindHandler : IDeploymentKindHandler
     public virtual bool RunsOnServers => true;
     public virtual bool NeedsRepositoryCheckout => false;
 
+    public virtual ScriptShell Shell(DeploymentConfig deployment) => ScriptShell.PowerShell;
+
     public abstract IReadOnlyList<string> GenerateDeploySteps(PipelineDefinition definition, string environment, string packagePath);
 
     public virtual IReadOnlyList<string> GenerateBackupSteps(RollbackConfig config, DeploymentConfig deployment, string environment) =>

@@ -22,6 +22,7 @@ public sealed class TemplateSettings
     public IReadOnlyList<string>? Environments { get; set; }
     public ArtifactType? ArtifactType { get; set; }
     public DeploymentKind? DeploymentKind { get; set; }
+    public ServerOs? ServerOs { get; set; }
     public DeploymentStrategyType? Strategy { get; set; }
     public bool? RollbackEnabled { get; set; }
     public string? CustomDeployScript { get; set; }
