@@ -104,20 +104,10 @@ public interface IPipelineValidator
     IReadOnlyList<ValidationResult> ValidateGenerated(PipelineDefinition definition, string yaml);
 }
 
-public interface IYamlExplanationService
-{
-    IReadOnlyList<YamlBlockExplanation> ExplainYaml(string yaml);
-}
-
 public interface ISecretsGovernanceService
 {
     IReadOnlyList<SecretGovernanceResult> ScanYaml(string yaml);
     IReadOnlyList<ValidationResult> ToValidationResults(IReadOnlyList<SecretGovernanceResult> results);
-}
-
-public interface IEnvironmentYamlService
-{
-    string GetApprovalUiNote();
 }
 
 public interface ITemplateMarketplaceService

@@ -69,6 +69,23 @@ public sealed class PipelineYamlAssembler
     }
 
     /// <summary>
+    /// Adds the list of environments as a parameter. The deploy stage is written once and repeated
+    /// for each of them, so adding an environment means adding a line here.
+    /// </summary>
+    public PipelineYamlAssembler AddEnvironments(IReadOnlyList<string> environments)
+    {
+        _yaml.AppendLine("parameters:");
+        _yaml.AppendLine("- name: environments");
+        _yaml.AppendLine("  displayName: 'Environments, in deployment order'");
+        _yaml.AppendLine("  type: object");
+        _yaml.AppendLine("  default:");
+        foreach (var environment in environments)
+            _yaml.AppendLine($"  - {YamlBuilder.YamlString(environment)}");
+        _yaml.AppendLine();
+        return this;
+    }
+
+    /// <summary>
     /// Adds the variables section if variables are provided.
     /// </summary>
     public PipelineYamlAssembler AddVariables(string? variables)
@@ -126,45 +143,31 @@ public sealed class PipelineYamlAssembler
         if (notifications.Count == 0)
             return this;
 
-        var lastEnv = definition.Environments.LastOrDefault() ?? "prod";
+        // Without dependsOn a stage follows the one before it, which is the last deployment.
         var successSteps = notificationGenerator.GenerateSteps(definition, succeeded: true);
         if (successSteps.Count > 0)
-        {
-            AppendNotifyStage("Notify_Success", "Notify on success",
-                $"Deploy_{YamlBuilder.ToIdentifier(lastEnv)}", "succeeded()", successSteps);
-        }
+            AppendNotifyStage("Notify_Success", "Notify on success", dependsOn: null, "succeeded()", successSteps);
 
+        // Depend directly on every stage so failed() is true whichever one failed.
         var failureSteps = notificationGenerator.GenerateSteps(definition, succeeded: false);
         if (failureSteps.Count > 0)
-        {
-            // Depend directly on every stage so failed() is true whichever one failed.
-            var allStages = StageNames().Where(n => !n.StartsWith("Notify_", StringComparison.Ordinal)).ToList();
-            var dependsOn = allStages.Count == 0 ? "[]" : "\n" + string.Join("\n", allStages.Select(n => $"  - {n}"));
-            AppendNotifyStage("Notify_Failure", "Notify on failure", dependsOn, "failed()", failureSteps);
-        }
+            AppendNotifyStage("Notify_Failure", "Notify on failure", DeploymentStageGenerator.AllStagesDependsOn, "failed()", failureSteps);
 
         return this;
     }
 
-    private void AppendNotifyStage(string name, string displayName, string dependsOn, string condition, IReadOnlyList<string> steps)
+    private void AppendNotifyStage(string name, string displayName, string? dependsOn, string condition, IReadOnlyList<string> steps)
     {
-        _yaml.AppendLine($$"""
-- stage: {{name}}
-  displayName: {{YamlBuilder.YamlString(displayName)}}
-  dependsOn: {{dependsOn}}
-  condition: {{condition}}
-  jobs:
-  - job: Notify
-    steps:
-{{YamlBuilder.Indent(string.Join("\n", steps), 6)}}
-""");
+        _yaml.AppendLine($"- stage: {name}");
+        _yaml.AppendLine($"  displayName: {YamlBuilder.YamlString(displayName)}");
+        if (dependsOn != null)
+            _yaml.AppendLine(dependsOn);
+        _yaml.AppendLine($"  condition: {condition}");
+        _yaml.AppendLine("  jobs:");
+        _yaml.AppendLine("  - job: Notify");
+        _yaml.AppendLine("    steps:");
+        _yaml.AppendLine(YamlBuilder.Indent(string.Join("\n", steps), 2));
     }
-
-    /// <summary>Names of the stages added so far, in order.</summary>
-    private IEnumerable<string> StageNames() =>
-        StageNameRegex.Matches(_yaml.ToString()).Select(m => m.Groups[1].Value);
-
-    private static readonly Regex StageNameRegex = new(@"^- stage: ([A-Za-z0-9_]+)\s*$", RegexOptions.Multiline);
 
     /// <summary>
     /// Gets the assembled YAML document.

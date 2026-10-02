@@ -7,7 +7,7 @@ using PipelineBuilder.Core.Yaml;
 namespace PipelineBuilder.Core.Generators;
 
 /// <summary>
-/// Generates one <c>Deploy_{env}</c> stage per environment. Each stage contains:
+/// Generates the deploy stage, written once and repeated for each environment. The stage contains:
 /// <list type="bullet">
 /// <item>a <c>deployment</c> job targeting the Azure DevOps environment (so approvals and checks
 /// apply) that loads Key Vault secrets, backs up, deploys and health-checks;</item>
@@ -36,41 +36,60 @@ public sealed class DeploymentStageGenerator
         _keyVaultService = keyVaultService;
     }
 
+    /// <summary>The environment's name inside the repeated deploy stage; Azure DevOps fills it in for each environment.</summary>
+    public const string EnvironmentToken = "${{ environment }}";
+
+    /// <summary>The deploy stage's name: stage names cannot contain hyphens, environment names can.</summary>
+    public const string StageName = "Deploy_${{ replace(environment, '-', '_') }}";
+
+    private const string ForEachEnvironment = "${{ each environment in parameters.environments }}:";
+
+    /// <summary>A <c>dependsOn</c> list naming the build stage and every deploy stage.</summary>
+    public const string AllStagesDependsOn =
+        "  dependsOn:\n" +
+        "  - Build\n" +
+        "  - " + ForEachEnvironment + "\n" +
+        "    - " + StageName;
+
+    /// <summary>
+    /// One deploy stage, repeated for each environment in the <c>environments</c> parameter. The
+    /// stages run in that order, because a stage without <c>dependsOn</c> follows the one before it.
+    /// </summary>
     public string Generate(PipelineDefinition definition)
     {
-        var sb = new StringBuilder();
-        var previousStage = "Build";
-        foreach (var env in definition.Environments)
+        var stage = new StringBuilder();
+        stage.Append("- stage: ").Append(StageName).Append('\n');
+        stage.Append("  displayName: ").Append(YamlBuilder.YamlString($"Deploy {EnvironmentToken}")).Append('\n');
+
+        // Production only deploys from the release branch.
+        var production = definition.Environments.Where(EnvironmentNames.IsProduction).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+        if (production.Count > 0)
         {
-            var envId = YamlBuilder.ToIdentifier(env);
-            var stageName = $"Deploy_{envId}";
-            // Production only deploys from the release branch.
-            var condition = EnvironmentNames.IsProduction(env)
-                ? $"and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/{definition.ReleaseBranch}'))"
-                : "succeeded()";
-
-            sb.Append($"- stage: {stageName}\n");
-            sb.Append($"  displayName: {YamlBuilder.YamlString($"Deploy {env}")}\n");
-            sb.Append($"  dependsOn: {previousStage}\n");
-            sb.Append($"  condition: {condition}\n");
-
-            var envGroups = definition.VariableGroups
-                .Where(g => g.Scope == VariableGroupScope.Environment
-                            && string.Equals(g.EnvironmentName, env, StringComparison.OrdinalIgnoreCase))
-                .ToList();
-            if (envGroups.Count > 0)
-                sb.Append("  variables:\n").Append(_variableGroupService.GenerateStageVariables(envGroups)).Append('\n');
-
-            sb.Append("  jobs:\n");
-            sb.Append(DeploymentJob(definition, env, envId)).Append('\n');
-
-            previousStage = stageName;
+            stage.Append("  ${{ if in(environment, ").Append(string.Join(", ", production.Select(YamlBuilder.YamlString))).Append(") }}:\n");
+            stage.Append($"    condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/{definition.ReleaseBranch}'))\n");
         }
-        return sb.ToString().TrimEnd();
+
+        // Variable groups that only one environment may read.
+        var groupsByEnvironment = definition.VariableGroups
+            .Where(g => g.Scope == VariableGroupScope.Environment && !string.IsNullOrWhiteSpace(g.EnvironmentName))
+            .GroupBy(g => g.EnvironmentName!, StringComparer.OrdinalIgnoreCase)
+            .Where(g => definition.Environments.Contains(g.Key, StringComparer.OrdinalIgnoreCase));
+        foreach (var groups in groupsByEnvironment)
+        {
+            stage.Append("  ${{ if eq(environment, ").Append(YamlBuilder.YamlString(groups.Key)).Append(") }}:\n");
+            stage.Append("    variables:\n");
+            stage.Append(YamlBuilder.Indent(_variableGroupService.GenerateStageVariables(groups.ToList()), 2)).Append('\n');
+        }
+
+        stage.Append("  jobs:\n");
+        stage.Append(DeploymentJob(definition)).Append('\n');
+
+        return "- " + ForEachEnvironment + "\n" + YamlBuilder.Indent(stage.ToString().TrimEnd(), 2);
     }
 
-    private string DeploymentJob(PipelineDefinition definition, string env, string envId)
+    private string DeploymentJob(PipelineDefinition definition)
     {
+        const string env = EnvironmentToken;
         var kind = _deploymentKinds.For(definition.Deployment.Kind);
         var serverResources = _deploymentKinds.UsesServerResources(definition);
         var packagePath = _artifactService.GetDeployPackagePath(definition.Artifact);
@@ -78,7 +97,7 @@ public sealed class DeploymentStageGenerator
         var deploySteps = new List<string> { "    - download: none" }; // we download explicitly below
         if (kind.NeedsRepositoryCheckout)
             deploySteps.Add("    - checkout: self"); // e.g. Kubernetes manifests live in the repository
-        deploySteps.AddRange(_artifactService.GenerateDownloadSteps(definition.Artifact, env));
+        deploySteps.AddRange(_artifactService.GenerateDownloadSteps(definition.Artifact));
         if (definition.KeyVault != null && !string.IsNullOrWhiteSpace(definition.KeyVault.KeyVaultName))
             deploySteps.Add(_keyVaultService.GeneratePreJobSteps(definition.KeyVault));
         deploySteps.AddRange(_deploymentKinds.GenerateBackupSteps(definition, env));
@@ -93,7 +112,7 @@ public sealed class DeploymentStageGenerator
             : Array.Empty<string>();
 
         var sb = new StringBuilder();
-        sb.Append($"  - deployment: DeployTo{envId}\n");
+        sb.Append("  - deployment: Deploy\n");
         sb.Append($"    displayName: {YamlBuilder.YamlString($"Deploy to {env}")}\n");
 
         if (serverResources)
@@ -121,14 +140,14 @@ public sealed class DeploymentStageGenerator
         }
         sb.Append("        deploy:\n");
         sb.Append("          steps:\n");
-        sb.Append(YamlBuilder.Indent(string.Join("\n", deploySteps), 6)).Append('\n');
+        sb.Append(YamlBuilder.Indent(string.Join("\n", deploySteps), 8)).Append('\n');
 
         if (rollbackSteps.Count > 0)
         {
             sb.Append("        on:\n");
             sb.Append("          failure:\n");
             sb.Append("            steps:\n");
-            sb.Append(YamlBuilder.Indent(string.Join("\n", rollbackSteps), 8)).Append('\n');
+            sb.Append(YamlBuilder.Indent(string.Join("\n", rollbackSteps), 10)).Append('\n');
         }
 
         return sb.ToString().TrimEnd();

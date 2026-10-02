@@ -86,8 +86,6 @@ public sealed class WizardState
 
     public bool HasErrors(WizardStep step) => IssuesFor(step).Any(v => v.Severity == ValidationSeverity.Error);
 
-    public PipelineDependencyGraph DependencyGraph => PipelineDependencyGraph.FromDefinition(Definition);
-
     public string EnvironmentsCsv
     {
         get => string.Join(", ", Definition.Environments);

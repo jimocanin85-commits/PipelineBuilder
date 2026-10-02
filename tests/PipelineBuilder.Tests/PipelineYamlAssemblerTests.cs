@@ -13,7 +13,7 @@ public class PipelineYamlAssemblerTests
             .AddHeader("test-pipeline")
             .AddTrigger(TriggerConfig.Default)
             .AddVariables("variables:\n  - name: BuildConfiguration\n    value: Release")
-            .AddPool("vmImage: 'windows-latest'")
+            .AddPool("vmImage: 'ubuntu-latest'")
             .StartStages()
             .Build();
 
@@ -22,7 +22,7 @@ public class PipelineYamlAssemblerTests
         Assert.Contains("      - 'main'", yaml);
         Assert.Contains("      - 'develop'", yaml);
         Assert.Contains("variables:", yaml);
-        Assert.Contains("pool:\n  vmImage: 'windows-latest'", yaml.ReplaceLineEndings("\n"));
+        Assert.Contains("pool:\n  vmImage: 'ubuntu-latest'", yaml.ReplaceLineEndings("\n"));
         Assert.EndsWith("stages:", yaml);
     }
 

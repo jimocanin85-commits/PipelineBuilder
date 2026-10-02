@@ -8,7 +8,6 @@ namespace PipelineBuilder.Core.Generators;
 /// <summary>
 /// The single Build stage: restore, compile once, test and package in one job, then upload the
 /// artifact. Everything after the compile step uses <c>--no-build</c>, so the code is compiled once.
-/// Microsoft-hosted builds run on Linux, which is faster; deployments still use the Windows pool.
 /// </summary>
 public sealed class BuildStageGenerator
 {
@@ -28,17 +27,14 @@ public sealed class BuildStageGenerator
         steps.AddRange(_artifactService.GenerateBuildOutputSteps(definition));
         steps.AddRange(_artifactService.GeneratePublishSteps(definition.Artifact));
 
-        var pool = PoolConfigurationHelper.GenerateBuildPoolConfiguration(definition.BuildAgent, definition.PoolName);
         return $"""
 - stage: Build
   displayName: 'Build'
   jobs:
   - job: BuildJob
     displayName: 'Build, test and package'
-    pool:
-      {pool}
     steps:
-{YamlBuilder.Indent(string.Join("\n", steps), 6)}
+{YamlBuilder.Indent(string.Join("\n", steps), 2)}
 """;
     }
 

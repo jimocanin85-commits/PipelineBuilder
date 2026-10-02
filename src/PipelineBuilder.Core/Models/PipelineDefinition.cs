@@ -2,15 +2,6 @@ using PipelineBuilder.Core.Enums;
 
 namespace PipelineBuilder.Core.Models;
 
-public sealed class YamlBlockExplanation
-{
-    public string YamlSnippet { get; set; } = string.Empty;
-    public string Explanation { get; set; } = string.Empty;
-    public string? TaskName { get; set; }
-    public int LineStart { get; set; }
-    public int LineEnd { get; set; }
-}
-
 public sealed class PipelineDefinition
 {
     public string Name { get; set; } = "enterprise-pipeline";
@@ -50,7 +41,6 @@ public sealed class PipelineDefinition
 public sealed class GeneratedPipeline
 {
     public string Yaml { get; set; } = string.Empty;
-    public IReadOnlyList<YamlBlockExplanation> Explanations { get; set; } = Array.Empty<YamlBlockExplanation>();
     public IReadOnlyList<ValidationResult> ValidationResults { get; set; } = Array.Empty<ValidationResult>();
 
     /// <summary>What the pipeline needs in Azure DevOps before its first run.</summary>

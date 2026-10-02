@@ -26,10 +26,10 @@ public class PipelineGeneratorTests
 
         Assert.Contains("stage: Build", result.Yaml);
         Assert.DoesNotContain("stage: Test", result.Yaml);
-        Assert.Contains("- stage: Deploy_test\n  displayName: 'Deploy test'\n  dependsOn: Build", result.Yaml.ReplaceLineEndings("\n"));
-        Assert.Contains("      name: test", result.Yaml);
+        Assert.Contains("  - stage: Deploy_${{ replace(environment, '-', '_') }}\n    displayName: 'Deploy ${{ environment }}'", result.Yaml.ReplaceLineEndings("\n"));
+        Assert.Contains("name: ${{ environment }}", result.Yaml);
+        Assert.Contains("  - 'test'\n  - 'preprod'\n  - 'prod'", result.Yaml.ReplaceLineEndings("\n"));
         Assert.Contains("- group: 'vg-test'", result.Yaml);
-        Assert.NotEmpty(result.Explanations);
     }
 
     [Fact]

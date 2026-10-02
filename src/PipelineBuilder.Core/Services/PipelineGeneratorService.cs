@@ -18,7 +18,6 @@ public sealed class PipelineGeneratorService : IPipelineGeneratorService
     private readonly DeploymentStageGenerator _deploymentGenerator;
     private readonly NotificationStepGenerator _notificationGenerator;
     private readonly IPipelineValidator _validator;
-    private readonly IYamlExplanationService _explanationService;
     private readonly ILogger<PipelineGeneratorService> _logger;
 
     public PipelineGeneratorService(
@@ -27,7 +26,6 @@ public sealed class PipelineGeneratorService : IPipelineGeneratorService
         DeploymentStageGenerator deploymentGenerator,
         NotificationStepGenerator notificationGenerator,
         IPipelineValidator validator,
-        IYamlExplanationService explanationService,
         ILogger<PipelineGeneratorService> logger)
     {
         _variableGroupService = variableGroupService;
@@ -35,7 +33,6 @@ public sealed class PipelineGeneratorService : IPipelineGeneratorService
         _deploymentGenerator = deploymentGenerator;
         _notificationGenerator = notificationGenerator;
         _validator = validator;
-        _explanationService = explanationService;
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
@@ -54,6 +51,7 @@ public sealed class PipelineGeneratorService : IPipelineGeneratorService
         var assembler = new PipelineYamlAssembler()
             .AddHeader(definition.Name)
             .AddTrigger(definition.Trigger)
+            .AddEnvironments(definition.Environments)
             .AddVariables(_variableGroupService.GeneratePipelineVariables(definition))
             .AddPool(PoolConfigurationHelper.GeneratePoolConfiguration(definition.BuildAgent, definition.PoolName))
             .StartStages()
@@ -82,7 +80,6 @@ public sealed class PipelineGeneratorService : IPipelineGeneratorService
         return new GeneratedPipeline
         {
             Yaml = yaml,
-            Explanations = _explanationService.ExplainYaml(yaml),
             ValidationResults = validation,
             Requirements = PipelineRequirements.Find(definition, yaml)
         };
