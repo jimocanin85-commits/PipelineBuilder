@@ -1,6 +1,6 @@
 # PipelineBuilder
 
-Enterprise Azure DevOps pipeline builder for cloud, on-premises and hybrid deployments. A Blazor wizard collects your settings and generates a ready-to-use `azure-pipelines.yml`.
+Enterprise Azure DevOps pipeline builder for cloud, on-premises and hybrid deployments. A Blazor wizard collects your settings and generates a complete `azure-pipelines.yml`; its **Validation** step lists what that pipeline needs in Azure DevOps before the first run.
 
 ## Prerequisites
 
@@ -36,7 +36,7 @@ Only what your chosen settings need:
 | **Kubernetes service connection** and an environment for each stage | Kubernetes deployments. Keep your manifests in the repository (default `manifests/*.yaml`). |
 | **Terraform extension** (Microsoft DevLabs) from the Visual Studio Marketplace | Terraform infrastructure as code (`TerraformTaskV4@4`), plus a storage account for Terraform state. |
 | An Azure Key Vault | If you enable Key Vault. |
-| A variable group with the variables your settings use | See below. Mark secrets (webhook URLs) as secret. |
+| A variable group with the variables your settings use | See below. Mark secrets (webhook URLs, `SMTP_PASSWORD`) as secret. |
 
 Settings you leave empty in the wizard become pipeline variables. Define the ones your pipeline uses:
 
@@ -84,11 +84,24 @@ Users then sign in automatically with their Windows account. Requirements, HTTPS
 dotnet test
 ```
 
-The build treats warnings as errors (`Directory.Build.props`), package versions live in one place (`Directory.Packages.props`), and Dependabot opens weekly update pull requests for NuGet packages and GitHub Actions.
+This runs:
 
-Runs the unit tests, the generated-YAML checks (every strategy, artifact type, deployment kind and target), the wizard component tests (bUnit) and an in-memory smoke test of the web app, including the Windows login setup. It also runs the architecture tests (the layering rules) and compares every generated pipeline with its approved copy in `tests/PipelineBuilder.Tests/Golden/`; see [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md#golden-files) for how to update those after an intended change. CI runs the same on every pull request and push to `main` (`.github/workflows/ci.yml`) and publishes a coverage report (job summary and the `coverage-report` artifact), failing below 90 % line or 80 % branch coverage.
+- the unit tests and the generated-YAML checks (every strategy, artifact type, deployment kind and target)
+- the golden-file tests, which compare every generated pipeline with its approved copy in `tests/PipelineBuilder.Tests/Golden/`
+- the architecture tests (the layering rules and the measured architecture goals)
+- the wizard component tests (bUnit) and an in-memory smoke test of the web app, including the Windows login setup
 
-A second workflow (`.github/workflows/iis.yml`) runs on pull requests that touch the web app or the install script: on a Windows runner it installs PipelineBuilder in IIS with `deploy/Install-PipelineBuilder.ps1` and checks that anonymous requests get 401 and Windows-authenticated requests get the wizard.
+After an intended change to the generated YAML, regenerate the golden files as described in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md#golden-files).
+
+Three workflows run on GitHub:
+
+| Workflow | Runs on | Does |
+|---|---|---|
+| `ci.yml` | Every pull request and push to `main` | Build with warnings as errors, all tests, and a coverage report (job summary and the `coverage-report` artifact). Fails below 90 % line or 80 % branch coverage. |
+| `iis.yml` | Pull requests that touch the web app or the install script | Installs PipelineBuilder in IIS on a Windows runner with `deploy/Install-PipelineBuilder.ps1`, then checks that anonymous requests get 401 and Windows-authenticated requests get the wizard. |
+| `golden.yml` | A commit with `[update-golden]` in its message, or started from the Actions tab | Regenerates the golden files and commits them to the branch for review. |
+
+Package versions live in one place (`Directory.Packages.props`), and Dependabot opens weekly update pull requests for NuGet packages and GitHub Actions.
 
 ## Templates
 
@@ -98,7 +111,7 @@ The template catalogue ships in `src/PipelineBuilder.Core/Templates/templates.js
 { "PipelineBuilder": { "TemplatesFile": "C:\\config\\our-templates.json" } }
 ```
 
-in `appsettings.json`, or set the environment variable `PipelineBuilder__TemplatesFile`. Each template has an `id`, `name`, `description`, `category`, `riskLevel` and a `settings` block with any of `projectType`, `deploymentTarget`, `environments`, `artifactType`, `deploymentKind`, `strategy`, `rollbackEnabled`, `iacTool`, `iacWorkingDirectory` and `customDeployScript`.
+in `appsettings.json`, or set the environment variable `PipelineBuilder__TemplatesFile`. Each template has an `id`, `name`, `description`, `category`, `riskLevel`, optional `tags` and a `settings` block with any of `projectType`, `deploymentTarget`, `environments`, `artifactType`, `deploymentKind`, `strategy`, `rollbackEnabled`, `iacTool`, `iacWorkingDirectory` and `customDeployScript`.
 
 ## Features
 
@@ -106,7 +119,7 @@ in `appsettings.json`, or set the environment variable `PipelineBuilder__Templat
 - **Save and reopen settings**: download your wizard settings as a JSON file on the Export step and open it again on the **Project type** step to change the pipeline later
 - **Windows login when hosted on IIS** (Kerberos/NTLM), optionally limited to AD groups; off when running locally
 - **Variable groups** at pipeline or environment scope, and **Azure Key Vault** secrets loaded in each deploy job
-- **Projects**: .NET (restore, build, test, publish) and Node.js (npm ci, build, test)
+- **Projects**: .NET (restore, build, test, publish) and Node.js (npm ci, build, test); other project types get a placeholder build step to fill in
 - **Artifacts**: pipeline or build artifact, zip, Docker image, NuGet package
 - **Deployments**: IIS, Windows service, file share, Azure App Service, Docker container, Kubernetes (manifests with rollout undo), or a custom script
 - **Strategies**: standard, rolling (native, on registered servers), slot swap, plus blue-green and canary placeholders
@@ -114,18 +127,18 @@ in `appsettings.json`, or set the environment variable `PipelineBuilder__Templat
 - **Health checks**: HTTP (per-environment URL), IIS app pool, Windows service, port, custom PowerShell
 - **Notifications**: Teams, custom webhook, email over SMTP, on success and/or failure
 - **Infrastructure as code**: Terraform, Bicep, ARM, PowerShell, per environment
-- **Governance validation**: approvals reminder, secrets scanning, health check and rollback requirements, naming, forbidden and required tasks
+- **Governance validation**: approvals reminder, secrets scanning, health check and rollback requirements, naming, forbidden and required tasks; every finding carries the id of its rule
 - **Repository scan and templates**, **task explanations**, and an **agent diagnostics** script
 
 ## Solution structure
 
 ```
-src/PipelineBuilder.Core/          Models, services and stage generators (no UI)
+src/PipelineBuilder.Core/          Models, stage generators, deployment kind handlers and validation rules (no UI)
 src/PipelineBuilder.Web/           Blazor Server wizard (one component per step)
 tests/PipelineBuilder.Tests/       Unit, generated-YAML, golden-file, architecture, bUnit and web smoke tests
 ```
 
-The layers, their rules and the architecture goals are described in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md), with the decisions behind them in [docs/adr](docs/adr/README.md).
+The layers, their rules and the architecture goals are described in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md), with the decisions behind them in [docs/adr](docs/adr/README.md). That page also shows how to add a [deployment kind](docs/ARCHITECTURE.md#deployment-kinds) or a [validation rule](docs/ARCHITECTURE.md#validation).
 
 ## Generated pipeline
 
