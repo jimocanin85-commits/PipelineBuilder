@@ -1,9 +1,10 @@
 using Bunit;
+using Microsoft.AspNetCore.Components.Forms;
 using Microsoft.Extensions.DependencyInjection;
 using PipelineBuilder.Core.DependencyInjection;
-using Microsoft.AspNetCore.Components.Forms;
 using PipelineBuilder.Core.Enums;
 using PipelineBuilder.Core.Models;
+using PipelineBuilder.Core.Services;
 using PipelineBuilder.Web.Components.Pages;
 using PipelineBuilder.Web.Components.Steps;
 using PipelineBuilder.Web.State;
@@ -38,15 +39,87 @@ public class WizardPageTests : BunitContext
     }
 
     [Fact]
+    public void TheFirstScreenShowsThePipelineAndWhatItNeeds()
+    {
+        var cut = Render<Home>();
+
+        Assert.Equal(new[] { "Build", "test", "prod" }, cut.FindAll(".flow li strong").Select(e => e.TextContent));
+        var needs = cut.Find(".needs-list").TextContent;
+        Assert.Contains("Environment with your servers registered", needs);
+        Assert.Contains("with an approval", needs);
+        Assert.Empty(cut.FindAll(".needs-list li[data-need='Variable']"));
+    }
+
+    [Fact]
+    public void ChoosingATemplateShowsTheVariablesItNeeds()
+    {
+        var cut = Render<Home>();
+
+        cut.Find("button[data-template='linux-service']").Click();
+
+        Assert.Contains("applied", cut.Find("button[data-template='linux-service']").ClassList);
+        var variables = cut.FindAll(".needs-list li[data-need='Variable'] code").Select(e => e.TextContent).ToList();
+        Assert.Equal(new[] { "DEPLOY_PATH", "SERVICE_NAME" }, variables);
+
+        // Filling in the fields removes the need for the variables.
+        GoTo(cut, WizardStep.Target);
+        cut.Find("#service").Change("orders");
+        cut.Find("#install-path").Change("/opt/orders");
+        GoTo(cut, WizardStep.Result);
+        Assert.Empty(cut.FindAll(".needs-list li[data-need='Variable']"));
+        Assert.Contains("service='orders'", cut.Find(".yaml-preview").TextContent);
+    }
+
+    [Fact]
+    public void ChoosingATemplateChangesTheGeneratedPipeline()
+    {
+        var cut = Render<Home>();
+
+        cut.Find("button[data-template='aks-deploy']").Click();
+
+        GoTo(cut, WizardStep.Result);
+        var yaml = cut.Find(".yaml-preview").TextContent;
+        Assert.Contains("KubernetesManifest@1", yaml);
+        Assert.DoesNotContain("IISWebAppDeploymentOnMachineGroup@0", yaml);
+    }
+
+    [Fact]
+    public void ADockerTemplateNamesTheImageAfterThePipeline()
+    {
+        var cut = Render<Home>();
+        cut.Find("#pipeline-name").Change("Orders API");
+
+        cut.Find("button[data-template='docker-build-push']").Click();
+
+        Assert.Equal("orders-api", cut.Find("#image-name").GetAttribute("value"));
+        GoTo(cut, WizardStep.Result);
+        Assert.Contains("image='$(DOCKER_REGISTRY)/orders-api:$(Build.BuildId)'", cut.Find(".yaml-preview").TextContent);
+    }
+
+    [Fact]
+    public void RollingIsOnlyOfferedForServers()
+    {
+        var cut = Render<Home>();
+        GoTo(cut, WizardStep.Target);
+        Assert.NotEmpty(cut.FindAll("#rolling"));
+
+        GoTo(cut, WizardStep.Start);
+        cut.Find("button[data-template='aks-deploy']").Click();
+        GoTo(cut, WizardStep.Target);
+
+        Assert.Empty(cut.FindAll("#rolling"));
+    }
+
+    [Fact]
     public void DownloadButtonSendsTheYamlToTheBrowser()
     {
         var cut = Render<Home>();
-        GoTo(cut, WizardStep.DownloadExport);
+        GoTo(cut, WizardStep.Result);
 
         cut.Find("#download-yaml").Click();
 
         var invocation = JSInterop.VerifyInvoke("pipelineBuilder.downloadText");
-        Assert.Equal(ExportStep.PipelineFileName, invocation.Arguments[0]);
+        Assert.Equal(ResultStep.PipelineFileName, invocation.Arguments[0]);
         Assert.Contains("stages:", (string)invocation.Arguments[1]!);
         Assert.Contains("Downloaded azure-pipelines.yml", cut.Find("[role=status]").TextContent);
     }
@@ -55,7 +128,7 @@ public class WizardPageTests : BunitContext
     public void CopyButtonUsesTheClipboard()
     {
         var cut = Render<Home>();
-        GoTo(cut, WizardStep.DownloadExport);
+        GoTo(cut, WizardStep.Result);
 
         cut.Find("#copy-yaml").Click();
 
@@ -69,58 +142,56 @@ public class WizardPageTests : BunitContext
         var cut = Render<Home>();
         cut.Find("#pipeline-name").Change("orders-api");
 
-        GoTo(cut, WizardStep.EnvironmentSelection);
+        GoTo(cut, WizardStep.Target);
         cut.Find("#environments").Change("dev, prod");
-        GoTo(cut, WizardStep.ProjectType);
+        GoTo(cut, WizardStep.Start);
         Assert.Equal("orders-api", cut.Find("#pipeline-name").GetAttribute("value"));
 
-        GoTo(cut, WizardStep.YamlPreview);
+        GoTo(cut, WizardStep.Result);
         var yaml = cut.Find(".yaml-preview").TextContent;
         Assert.Contains("# Pipeline: orders-api", yaml);
         Assert.Contains("- stage: Deploy_dev", yaml);
-        Assert.DoesNotContain("Deploy_preprod", yaml);
+        Assert.DoesNotContain("Deploy_test", yaml);
     }
 
     [Fact]
     public void KeyVaultCanBeTurnedOnAndOff()
     {
         var cut = Render<Home>();
-        GoTo(cut, WizardStep.VariableGroupsAndKeyVault);
+        GoTo(cut, WizardStep.Target);
 
-        cut.Find("input[type=checkbox]:not(.card input)").Change(true); // first checkbox outside the group cards is Key Vault
+        cut.Find("#keyvault-enabled").Change(true);
         cut.Find("#kv-name").Change("kv-orders");
-        GoTo(cut, WizardStep.YamlPreview);
+        GoTo(cut, WizardStep.Result);
         Assert.Contains("AzureKeyVault@2", cut.Find(".yaml-preview").TextContent);
 
-        GoTo(cut, WizardStep.VariableGroupsAndKeyVault);
-        cut.Find("input[type=checkbox]:not(.card input)").Change(false);
-        GoTo(cut, WizardStep.YamlPreview);
+        GoTo(cut, WizardStep.Target);
+        cut.Find("#keyvault-enabled").Change(false);
+        GoTo(cut, WizardStep.Result);
         Assert.DoesNotContain("AzureKeyVault@2", cut.Find(".yaml-preview").TextContent);
     }
 
     [Fact]
-    public void ApplyingATemplateChangesTheGeneratedPipeline()
+    public void AVariableGroupCanBeAdded()
     {
         var cut = Render<Home>();
-        GoTo(cut, WizardStep.PipelineTemplate);
+        GoTo(cut, WizardStep.Target);
 
-        cut.Find("button[data-template='aks-deploy']").Click();
-        Assert.Contains("Template applied", cut.Markup);
+        cut.Find("#add-variable-group").Click();
 
-        GoTo(cut, WizardStep.YamlPreview);
-        var yaml = cut.Find(".yaml-preview").TextContent;
-        Assert.Contains("KubernetesManifest@1", yaml);
-        Assert.DoesNotContain("IISWebAppDeploymentOnMachineGroup@0", yaml);
+        GoTo(cut, WizardStep.Result);
+        Assert.Contains("- group: 'vg-my-app'", cut.Find(".yaml-preview").TextContent);
+        Assert.Contains("vg-my-app", cut.Find(".needs-list li[data-need='VariableGroup']").TextContent);
     }
 
     [Fact]
     public void InvalidSettingsShowErrorsInsteadOfCrashing()
     {
         var cut = Render<Home>();
-        GoTo(cut, WizardStep.EnvironmentSelection);
+        GoTo(cut, WizardStep.Target);
         cut.Find("#environments").Change("Bad Name");
 
-        GoTo(cut, WizardStep.YamlPreview);
+        GoTo(cut, WizardStep.Result);
 
         Assert.Contains("invalid characters", cut.Find(".generation-error").TextContent);
     }
@@ -129,26 +200,26 @@ public class WizardPageTests : BunitContext
     public void StepShowsItsOwnErrorsAndTheNavigationFlagsIt()
     {
         var cut = Render<Home>();
-        GoTo(cut, WizardStep.EnvironmentSelection);
+        GoTo(cut, WizardStep.Target);
 
         cut.Find("#environments").Change("Bad Name");
 
         Assert.Contains("invalid characters", cut.Find(".issue-list").TextContent);
-        Assert.NotNull(cut.Find($"button[data-step='{WizardStep.EnvironmentSelection}'] .badge"));
-        Assert.Empty(cut.FindAll($"button[data-step='{WizardStep.ProjectType}'] .badge"));
+        Assert.NotNull(cut.Find($"button[data-step='{WizardStep.Target}'] .badge"));
+        Assert.Empty(cut.FindAll($"button[data-step='{WizardStep.Start}'] .badge"));
     }
 
     [Fact]
-    public void GoToStepLinkOpensTheStepWithTheProblem()
+    public void GoToLinkOpensTheStepWithTheProblem()
     {
         var cut = Render<Home>();
-        GoTo(cut, WizardStep.EnvironmentSelection);
+        GoTo(cut, WizardStep.Target);
         cut.Find("#environments").Change("Bad Name");
-        GoTo(cut, WizardStep.YamlPreview);
+        GoTo(cut, WizardStep.Result);
 
-        cut.Find($"button[data-go-to='{WizardStep.EnvironmentSelection}']").Click();
+        cut.Find($"button[data-go-to='{WizardStep.Target}']").Click();
 
-        Assert.Contains("active", cut.Find($"button[data-step='{WizardStep.EnvironmentSelection}']").ClassList);
+        Assert.Contains("active", cut.Find($"button[data-step='{WizardStep.Target}']").ClassList);
         Assert.NotNull(cut.Find("#environments"));
     }
 
@@ -156,7 +227,7 @@ public class WizardPageTests : BunitContext
     public void SettingsCanBeDownloaded()
     {
         var cut = Render<Home>();
-        GoTo(cut, WizardStep.DownloadExport);
+        GoTo(cut, WizardStep.Result);
 
         cut.Find("#download-settings").Click();
 
@@ -177,7 +248,7 @@ public class WizardPageTests : BunitContext
 
         Assert.Contains("Loaded settings for 'loaded-app'", cut.Markup);
         Assert.Equal("loaded-app", cut.Find("#pipeline-name").GetAttribute("value"));
-        GoTo(cut, WizardStep.YamlPreview);
+        GoTo(cut, WizardStep.Result);
         Assert.Contains("- stage: Deploy_qa", cut.Find(".yaml-preview").TextContent);
     }
 
@@ -189,7 +260,209 @@ public class WizardPageTests : BunitContext
         cut.FindComponent<InputFile>().UploadFiles(InputFileContent.CreateFromText("{ nope", "settings.json"));
 
         Assert.Contains("Could not open the file", cut.Markup);
-        Assert.Equal("enterprise-pipeline", cut.Find("#pipeline-name").GetAttribute("value"));
+        Assert.Equal("my-app", cut.Find("#pipeline-name").GetAttribute("value"));
+    }
+
+    public static IEnumerable<object[]> TemplateIds() => TemplateMarketplaceService.LoadBuiltIn().Select(t => new object[] { t.Id });
+
+    [Theory]
+    [MemberData(nameof(TemplateIds))]
+    public void EveryTemplateWorksThroughAllSteps(string templateId)
+    {
+        var cut = Render<Home>();
+
+        cut.Find($"button[data-template='{templateId}']").Click();
+
+        foreach (var step in Enum.GetValues<WizardStep>())
+        {
+            GoTo(cut, step);
+            Assert.DoesNotContain("generation-error", cut.Markup);
+        }
+        Assert.Contains("stages:", cut.Find(".yaml-preview").TextContent);
+    }
+
+    [Theory]
+    [InlineData(DeploymentKind.Custom, "#custom-script")]
+    [InlineData(DeploymentKind.FileShare, "#share")]
+    public void KindsWithoutATemplateShowTheirFields(DeploymentKind kind, string field)
+    {
+        var saved = WizardState.CreateDefault();
+        saved.Deployment = new DeploymentConfig { Kind = kind };
+        var cut = Render<Home>();
+
+        cut.FindComponent<InputFile>().UploadFiles(InputFileContent.CreateFromText(PipelineDefinitionSerializer.ToJson(saved), "settings.json"));
+        GoTo(cut, WizardStep.Target);
+
+        Assert.NotNull(cut.Find(field));
+    }
+
+    [Fact]
+    public void ACustomScriptChoosesItsOwnRollbackTarget()
+    {
+        var saved = WizardState.CreateDefault();
+        saved.Deployment = new DeploymentConfig { Kind = DeploymentKind.Custom, ServerOs = ServerOs.Linux, CustomScript = "./deploy.sh" };
+        var cut = Render<Home>();
+        cut.FindComponent<InputFile>().UploadFiles(InputFileContent.CreateFromText(PipelineDefinitionSerializer.ToJson(saved), "settings.json"));
+
+        GoTo(cut, WizardStep.Safety);
+        cut.Find("#rollback-target").Change(RollbackTarget.LinuxService.ToString());
+        GoTo(cut, WizardStep.Result);
+
+        var yaml = cut.Find(".yaml-preview").TextContent;
+        Assert.Contains("./deploy.sh", yaml);
+        Assert.Contains("Roll back Linux service", yaml);
+    }
+
+    [Fact]
+    public void RollingUpdatesTheServersInBatches()
+    {
+        var cut = Render<Home>();
+        GoTo(cut, WizardStep.Target);
+
+        cut.Find("#rolling").Change(true);
+        cut.Find("#batch").Change("2");
+        GoTo(cut, WizardStep.Result);
+
+        var yaml = cut.Find(".yaml-preview").TextContent;
+        Assert.Contains("rolling:", yaml);
+        Assert.Contains("maxParallel: 2", yaml);
+    }
+
+    [Fact]
+    public void ASelfHostedPoolNeedsAName()
+    {
+        var cut = Render<Home>();
+        GoTo(cut, WizardStep.Target);
+
+        cut.Find("#self-hosted").Change(true);
+        Assert.Contains("Pool name is required", cut.Find(".issue-list").TextContent);
+
+        cut.Find("#pool-name").Change("OnPremAgents");
+        GoTo(cut, WizardStep.Result);
+        Assert.Contains("name: 'OnPremAgents'", cut.Find(".yaml-preview").TextContent);
+    }
+
+    [Fact]
+    public void AVariableGroupCanBeLimitedToOneEnvironmentAndRemoved()
+    {
+        var cut = Render<Home>();
+        GoTo(cut, WizardStep.Target);
+        cut.Find("#add-variable-group").Click();
+
+        cut.Find(".card.row select").Change("prod");
+        GoTo(cut, WizardStep.Result);
+        var yaml = cut.Find(".yaml-preview").TextContent;
+        Assert.DoesNotContain("vg-my-app", yaml.Split("- stage: Deploy_prod")[0]);
+        Assert.Contains("- group: 'vg-my-app'", yaml.Split("- stage: Deploy_prod")[1]);
+
+        GoTo(cut, WizardStep.Target);
+        cut.Find(".card.row select").Change("");
+        cut.Find(".card.row .btn-link").Click();
+        GoTo(cut, WizardStep.Result);
+        Assert.DoesNotContain("vg-my-app", cut.Find(".yaml-preview").TextContent);
+    }
+
+    [Fact]
+    public void HealthChecksAndNotificationsCanBeAddedAndRemoved()
+    {
+        var cut = Render<Home>();
+        GoTo(cut, WizardStep.Safety);
+
+        cut.Find("#add-health-check").Click();
+        Assert.Contains("valid endpoint URL", cut.Find(".issue-list").TextContent);
+        cut.Find(".card input[placeholder^='https://']").Change("https://my-app-{environment}.contoso.com/health");
+        cut.Find("#add-notification").Click();
+        GoTo(cut, WizardStep.Result);
+
+        Assert.Contains("$uri = 'https://my-app-prod.contoso.com/health'", cut.Find(".yaml-preview").TextContent);
+        Assert.Contains("Notify", cut.FindAll(".flow li strong").Select(e => e.TextContent));
+        Assert.Contains("Teams", cut.Find(".flow").TextContent);
+        Assert.Contains("secret", cut.Find(".needs-list").TextContent);
+
+        GoTo(cut, WizardStep.Safety);
+        cut.Find(".card .btn-link").Click();
+        cut.Find(".card .btn-link").Click();
+        GoTo(cut, WizardStep.Result);
+        Assert.DoesNotContain("health check", cut.Find(".yaml-preview").TextContent);
+        Assert.DoesNotContain("Notify", cut.Find(".flow").TextContent);
+    }
+
+    [Fact]
+    public void EachHealthCheckTypeShowsItsOwnFields()
+    {
+        var cut = Render<Home>();
+        GoTo(cut, WizardStep.Safety);
+        cut.Find("#add-health-check").Click();
+        const string type = "select[aria-label='Health check type']";
+
+        cut.Find(type).Change(HealthCheckType.PortCheck.ToString());
+        Assert.NotEmpty(cut.FindAll(".card input[placeholder='80']"));
+
+        cut.Find(type).Change(HealthCheckType.WindowsService.ToString());
+        Assert.NotEmpty(cut.FindAll(".card input[placeholder='W3SVC']"));
+
+        cut.Find(type).Change(HealthCheckType.IisAppPool.ToString());
+        Assert.NotEmpty(cut.FindAll(".card input[placeholder='DefaultAppPool']"));
+
+        cut.Find(type).Change(HealthCheckType.CustomPowerShell.ToString());
+        cut.Find(".card textarea").Change("exit 0");
+        GoTo(cut, WizardStep.Result);
+        Assert.Contains("Custom health check", cut.Find(".yaml-preview").TextContent);
+    }
+
+    [Fact]
+    public void EachNotificationTypeShowsItsOwnFields()
+    {
+        var cut = Render<Home>();
+        GoTo(cut, WizardStep.Safety);
+        cut.Find("#add-notification").Click();
+        const string type = "select[aria-label='Notification type']";
+
+        cut.Find(type).Change(NotificationType.CustomWebhook.ToString());
+        Assert.NotEmpty(cut.FindAll(".card input[placeholder='CUSTOM_WEBHOOK_URL']"));
+
+        cut.Find(type).Change(NotificationType.Email.ToString());
+        cut.Find(".card input.form-control").Change("ops@contoso.com, dev@contoso.com");
+        GoTo(cut, WizardStep.Result);
+
+        Assert.Contains("Email", cut.Find(".flow").TextContent);
+        Assert.Contains("'ops@contoso.com', 'dev@contoso.com'", cut.Find(".yaml-preview").TextContent);
+        Assert.Contains("SMTP_HOST", cut.Find(".needs-list").TextContent);
+    }
+
+    [Fact]
+    public void RollbackCanBeTurnedOff()
+    {
+        var cut = Render<Home>();
+        GoTo(cut, WizardStep.Safety);
+        Assert.NotEmpty(cut.FindAll("#backup-path"));
+
+        cut.Find("#rollback-enabled").Change(false);
+
+        Assert.Empty(cut.FindAll("#backup-path"));
+        GoTo(cut, WizardStep.Result);
+        Assert.DoesNotContain("Back up", cut.Find(".yaml-preview").TextContent);
+    }
+
+    [Fact]
+    public void DockerAndNodeTemplatesShowTheirBuildFields()
+    {
+        var cut = Render<Home>();
+
+        cut.Find("button[data-template='node-linux-service']").Click();
+        Assert.NotEmpty(cut.FindAll("#node-version"));
+        Assert.Empty(cut.FindAll("#project-path"));
+
+        cut.Find("button[data-template='hybrid-dotnet-docker']").Click();
+        Assert.NotEmpty(cut.FindAll("#dockerfile"));
+        Assert.NotEmpty(cut.FindAll("#project-path"));
+
+        GoTo(cut, WizardStep.Target);
+        cut.Find("#container-ports").Change("8080:80");
+        cut.Find("#container-env").Change("ASPNETCORE_ENVIRONMENT=Production");
+        cut.Find("#server-os").Change(ServerOs.Windows.ToString());
+        GoTo(cut, WizardStep.Result);
+        Assert.Contains("-p '8080:80' -e 'ASPNETCORE_ENVIRONMENT=Production' $image", cut.Find(".yaml-preview").TextContent);
     }
 
     private static void GoTo(IRenderedComponent<Home> cut, WizardStep step) =>

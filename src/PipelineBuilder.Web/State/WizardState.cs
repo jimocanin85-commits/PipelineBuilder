@@ -21,7 +21,7 @@ public sealed class WizardState
         Load(Definition);
     }
 
-    public WizardStep CurrentStep { get; set; } = WizardStep.ProjectType;
+    public WizardStep CurrentStep { get; set; } = WizardStep.Start;
     public PipelineDefinition Definition { get; private set; }
 
     // Editable lists; the same instances are assigned to Definition.
@@ -153,33 +153,48 @@ public sealed class WizardState
         Result = BlockingErrors.Count == 0 ? generator.Generate(Definition) : null;
     }
 
-    public bool ApplyTemplate(ITemplateMarketplaceService marketplace, string templateId) =>
-        marketplace.ApplyTo(templateId, Definition);
+    public bool ApplyTemplate(ITemplateMarketplaceService marketplace, string templateId)
+    {
+        if (!marketplace.ApplyTo(templateId, Definition))
+            return false;
 
+        // An image needs a real name; the artifact default "drop" only suits a folder of files.
+        if (Definition.Artifact.ArtifactType == ArtifactType.DockerImage && Definition.Artifact.ArtifactName == DefaultArtifactName)
+            Definition.Artifact.ArtifactName = ImageNameFrom(Definition.Name);
+        else if (Definition.Artifact.ArtifactType != ArtifactType.DockerImage)
+            Definition.Artifact.ArtifactName = DefaultArtifactName;
+        return true;
+    }
+
+    /// <summary>Rolling deployments update the servers a few at a time.</summary>
+    public bool Rolling
+    {
+        get => Definition.DeploymentStrategy.StrategyType == DeploymentStrategyType.Rolling;
+        set => Definition.DeploymentStrategy.StrategyType = value ? DeploymentStrategyType.Rolling : DeploymentStrategyType.Standard;
+    }
+
+    public const string DefaultArtifactName = "drop";
+
+    /// <summary>A valid image repository name from a pipeline name: lower case, with letters, digits, '.', '_' and '-'.</summary>
+    public static string ImageNameFrom(string pipelineName)
+    {
+        var name = new string(pipelineName.ToLowerInvariant().Select(c => char.IsAsciiLetterOrDigit(c) || c is '.' or '_' or '-' ? c : '-').ToArray()).Trim('-', '.', '_');
+        return name.Length == 0 ? "app" : name;
+    }
+
+    /// <summary>The settings a new wizard starts with: an IIS website, with nothing to set up but the environments.</summary>
     public static PipelineDefinition CreateDefault() => new()
     {
-        Name = "enterprise-pipeline",
+        Name = "my-app",
+        TemplateId = "iis-onprem",
         ProjectType = ProjectType.DotNet,
         BuildAgent = BuildAgentType.MicrosoftHosted,
-        Environments = new[] { "test", "preprod", "prod" },
+        Environments = new[] { "test", "prod" },
         DotNetProjectPath = "**/*.csproj",
         TestProjectPath = "**/*Tests*.csproj",
-        VariableGroups = new[]
-        {
-            new VariableGroupConfig { Name = "vg-test", Scope = VariableGroupScope.Pipeline },
-            new VariableGroupConfig { Name = "vg-prod-secrets", Scope = VariableGroupScope.Environment, EnvironmentName = "prod", ContainsSecrets = true }
-        },
-        Artifact = new ArtifactConfig { ArtifactType = ArtifactType.PipelineArtifact, ArtifactName = "drop" },
+        Artifact = new ArtifactConfig { ArtifactType = ArtifactType.PipelineArtifact, ArtifactName = DefaultArtifactName },
         Deployment = new DeploymentConfig { Kind = DeploymentKind.Iis, WebsiteName = "Default Web Site" },
-        Rollback = new RollbackConfig { Enabled = true, Target = RollbackTarget.Iis, RetentionCount = 5 },
-        HealthChecks = new[]
-        {
-            new HealthCheckConfig { Enabled = true, HealthCheckType = HealthCheckType.HttpEndpoint, Url = "https://myapp-{environment}.contoso.com/health", ExpectedStatusCode = 200 }
-        },
-        Notifications = new[]
-        {
-            new NotificationConfig { NotificationType = NotificationType.TeamsWebhook, TeamsWebhookVariable = "TEAMS_WEBHOOK_URL", NotifyOnFailure = true }
-        }
+        Rollback = new RollbackConfig { Enabled = true, Target = RollbackTarget.Iis, RetentionCount = 5 }
     };
 
     private static IReadOnlyList<string> SplitList(string? value) =>

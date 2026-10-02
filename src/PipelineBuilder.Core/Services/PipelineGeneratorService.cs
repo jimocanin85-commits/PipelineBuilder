@@ -83,7 +83,8 @@ public sealed class PipelineGeneratorService : IPipelineGeneratorService
         {
             Yaml = yaml,
             Explanations = _explanationService.ExplainYaml(yaml),
-            ValidationResults = validation
+            ValidationResults = validation,
+            Requirements = PipelineRequirements.Find(definition, yaml)
         };
     }
 

@@ -65,13 +65,15 @@ public class SettingsAndValidationTests
     }
 
     [Theory]
-    [InlineData("Environments", WizardStep.EnvironmentSelection)]
-    [InlineData("ReleaseBranch", WizardStep.EnvironmentSelection)]
-    [InlineData("PoolName", WizardStep.BuildAgent)]
-    [InlineData("HealthChecks", WizardStep.HealthChecks)]
-    [InlineData("Deployment", WizardStep.DeploymentTarget)]
-    [InlineData("KeyVault", WizardStep.VariableGroupsAndKeyVault)]
-    [InlineData("Rollback", WizardStep.RollbackSettings)]
+    [InlineData("Name", WizardStep.Start)]
+    [InlineData("Artifact", WizardStep.Start)]
+    [InlineData("Environments", WizardStep.Target)]
+    [InlineData("ReleaseBranch", WizardStep.Target)]
+    [InlineData("PoolName", WizardStep.Target)]
+    [InlineData("Deployment", WizardStep.Target)]
+    [InlineData("KeyVault", WizardStep.Target)]
+    [InlineData("HealthChecks", WizardStep.Safety)]
+    [InlineData("Rollback", WizardStep.Safety)]
     public void ValidationFieldsMapToWizardSteps(string field, WizardStep step)
     {
         Assert.Equal(step, StepMap.ForField(field));

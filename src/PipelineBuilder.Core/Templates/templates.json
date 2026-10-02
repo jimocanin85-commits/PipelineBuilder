@@ -3,7 +3,7 @@
     "id": "iis-onprem",
     "name": "IIS website",
     "category": "Iis",
-    "description": "A .NET web app on IIS on your Windows servers",
+    "description": ".NET web app on your Windows servers",
     "riskLevel": "Medium",
     "tags": [
       "windows",
@@ -24,7 +24,7 @@
     "id": "windows-service-onprem",
     "name": "Windows service",
     "category": "WindowsService",
-    "description": "A .NET Windows service on your Windows servers",
+    "description": ".NET service on your Windows servers",
     "riskLevel": "Medium",
     "tags": [
       "windows",
@@ -45,7 +45,7 @@
     "id": "linux-service",
     "name": "Linux service",
     "category": "DotNet",
-    "description": "A .NET app as a systemd service on your Linux servers",
+    "description": ".NET app on your Linux servers (systemd)",
     "riskLevel": "Medium",
     "tags": [
       "linux",
@@ -66,7 +66,7 @@
     "id": "node-linux-service",
     "name": "Node.js on Linux",
     "category": "Node",
-    "description": "A Node.js app as a systemd service on your Linux servers",
+    "description": "Node.js app on your Linux servers (systemd)",
     "riskLevel": "Medium",
     "tags": [
       "linux",
@@ -87,7 +87,7 @@
     "id": "docker-build-push",
     "name": "Docker container",
     "category": "Docker",
-    "description": "Build an image from your Dockerfile and run it on your servers",
+    "description": "Your Dockerfile, run on your servers",
     "riskLevel": "Low",
     "tags": [
       "docker"
@@ -103,7 +103,7 @@
     "id": "hybrid-dotnet-docker",
     "name": ".NET app in Docker",
     "category": "Docker",
-    "description": "Build and test a .NET app, then run it as a container on your servers",
+    "description": ".NET app, built and run as a container",
     "riskLevel": "Medium",
     "tags": [
       "dotnet",
@@ -125,7 +125,7 @@
     "id": "aks-deploy",
     "name": "Kubernetes",
     "category": "Kubernetes",
-    "description": "Build an image and apply your manifests to a cluster, with rollout undo on failure",
+    "description": "Your manifests, applied to a cluster",
     "riskLevel": "High",
     "tags": [
       "kubernetes",

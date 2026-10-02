@@ -7,22 +7,22 @@ public static class StepMap
 {
     private static readonly Dictionary<string, WizardStep> Fields = new(StringComparer.OrdinalIgnoreCase)
     {
-        [nameof(PipelineDefinition.Name)] = WizardStep.ProjectType,
-        [nameof(PipelineDefinition.ProjectType)] = WizardStep.ProjectType,
-        [nameof(PipelineDefinition.PoolName)] = WizardStep.BuildAgent,
-        [nameof(PipelineDefinition.BuildAgent)] = WizardStep.BuildAgent,
-        [nameof(PipelineDefinition.Environments)] = WizardStep.EnvironmentSelection,
-        [nameof(PipelineDefinition.ReleaseBranch)] = WizardStep.EnvironmentSelection,
-        [nameof(PipelineDefinition.Trigger)] = WizardStep.EnvironmentSelection,
-        [nameof(PipelineDefinition.Deployment)] = WizardStep.DeploymentTarget,
-        [nameof(PipelineDefinition.DeploymentStrategy)] = WizardStep.DeploymentTarget,
-        [nameof(PipelineDefinition.AzureServiceConnection)] = WizardStep.IdentityModel,
-        [nameof(PipelineDefinition.VariableGroups)] = WizardStep.VariableGroupsAndKeyVault,
-        [nameof(PipelineDefinition.KeyVault)] = WizardStep.VariableGroupsAndKeyVault,
-        [nameof(PipelineDefinition.Artifact)] = WizardStep.ArtifactSettings,
-        [nameof(PipelineDefinition.Rollback)] = WizardStep.RollbackSettings,
-        [nameof(PipelineDefinition.HealthChecks)] = WizardStep.HealthChecks,
-        [nameof(PipelineDefinition.Notifications)] = WizardStep.Notifications
+        [nameof(PipelineDefinition.Name)] = WizardStep.Start,
+        [nameof(PipelineDefinition.ProjectType)] = WizardStep.Start,
+        [nameof(PipelineDefinition.Artifact)] = WizardStep.Start,
+        [nameof(PipelineDefinition.Environments)] = WizardStep.Target,
+        [nameof(PipelineDefinition.ReleaseBranch)] = WizardStep.Target,
+        [nameof(PipelineDefinition.Trigger)] = WizardStep.Target,
+        [nameof(PipelineDefinition.Deployment)] = WizardStep.Target,
+        [nameof(PipelineDefinition.DeploymentStrategy)] = WizardStep.Target,
+        [nameof(PipelineDefinition.PoolName)] = WizardStep.Target,
+        [nameof(PipelineDefinition.BuildAgent)] = WizardStep.Target,
+        [nameof(PipelineDefinition.AzureServiceConnection)] = WizardStep.Target,
+        [nameof(PipelineDefinition.VariableGroups)] = WizardStep.Target,
+        [nameof(PipelineDefinition.KeyVault)] = WizardStep.Target,
+        [nameof(PipelineDefinition.Rollback)] = WizardStep.Safety,
+        [nameof(PipelineDefinition.HealthChecks)] = WizardStep.Safety,
+        [nameof(PipelineDefinition.Notifications)] = WizardStep.Safety
     };
 
     /// <summary>The step for a field, or null when the issue isn't tied to a setting (e.g. a line in the YAML).</summary>

@@ -206,4 +206,4 @@ Remove-Item C:\inetpub\PipelineBuilder -Recurse -Force
 
 ## 3. Before the first generated pipeline runs
 
-The YAML that PipelineBuilder generates expects some setup in Azure DevOps: environments with approvals, registered servers for on-premises deployments, service connections, and the pipeline variables your settings use. [AZURE-DEVOPS.md](AZURE-DEVOPS.md) lists them. The wizard's **Validation** step shows what your particular pipeline still needs.
+The YAML that PipelineBuilder generates expects some setup in Azure DevOps: environments with approvals, registered servers for on-premises deployments, service connections, and the pipeline variables your settings use. [AZURE-DEVOPS.md](AZURE-DEVOPS.md) lists them. The wizard's **Result** step shows what your particular pipeline needs.

@@ -23,3 +23,6 @@ public enum ScriptShell { PowerShell, Bash }
 public enum SecretSeverity { Info, Warning, Error }
 public enum ProjectType { DotNet, Node, Docker }
 public enum BuildAgentType { MicrosoftHosted, SelfHosted }
+
+/// <summary>Something that must exist in Azure DevOps before the pipeline can run.</summary>
+public enum RequirementKind { Environment, ServiceConnection, VariableGroup, Variable }

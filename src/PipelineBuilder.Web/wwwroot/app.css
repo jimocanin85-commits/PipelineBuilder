@@ -1,63 +1,129 @@
+/* Colours follow the system theme; system fonts only, so the app also works on servers without internet access. */
 :root {
-  --bg: #0f1419;
-  --surface: #1a2332;
-  --accent: #0078d4;
-  --text: #e8eef5;
-  --muted: #8b9cb3;
-  --error: #e74c3c;
-  --warning: #f39c12;
-  --info: #3498db;
+  --canvas: #f3f5f8; --surface: #ffffff; --ink: #1b2430; --muted: #5b6778; --line: #d9dfe7;
+  --accent: #1f5fbf; --accent-soft: #e8f0fc; --on-accent: #ffffff;
+  --warning: #9a6200; --error: #b3261e; --error-soft: #fbeceb; --info: #1f5fbf;
+  --code-bg: #f6f8fa; --radius: 10px;
+  --font: "Segoe UI Variable Text", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --mono: "Cascadia Mono", "Cascadia Code", Consolas, ui-monospace, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --canvas: #10151d; --surface: #19212c; --ink: #e7ecf3; --muted: #9aa7b8; --line: #2b3644;
+    --accent: #7fb0ff; --accent-soft: #1d2c44; --on-accent: #0c1420;
+    --warning: #f0b95a; --error: #ff8a80; --error-soft: #3a1f1e; --info: #7fb0ff;
+    --code-bg: #121922;
+  }
 }
 
 * { box-sizing: border-box; }
-body { margin: 0; font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); }
+body { margin: 0; font: 15px/1.5 var(--font); background: var(--canvas); color: var(--ink); }
+h1, h2, h3 { line-height: 1.25; margin: 0; }
+h2 { font-size: 1.5rem; font-weight: 600; margin-bottom: 1.25rem; }
+h3 { font-size: 1rem; font-weight: 600; margin-top: 1.75rem; }
+code, pre { font-family: var(--mono); font-size: 0.875em; }
+button, input, select, textarea { font: inherit; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
-.app-header { padding: 1.5rem 2rem; background: var(--surface); border-bottom: 1px solid #2a3a4f; }
-.app-header h1 { margin: 0; font-size: 1.5rem; }
-.app-header p { margin: 0.25rem 0 0; color: var(--muted); }
-.app-main { padding: 1.5rem 2rem; max-width: 1200px; margin: 0 auto; }
+/* Header */
+.app-header { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0.25rem 1rem; padding: 0.9rem 1.5rem; background: var(--surface); border-bottom: 1px solid var(--line); }
+.app-header h1 { font-size: 1.05rem; font-weight: 600; }
+.app-header p { margin: 0; color: var(--muted); font-size: 0.85rem; }
+.signed-in { margin-left: auto !important; }
+.app-main { max-width: 980px; margin: 0 auto; padding: 1.5rem; }
 
-.wizard-nav { display: flex; flex-wrap: wrap; gap: 0.35rem; margin-bottom: 1.5rem; }
-.step-btn { padding: 0.4rem 0.65rem; font-size: 0.75rem; background: var(--surface); border: 1px solid #2a3a4f; color: var(--muted); border-radius: 4px; cursor: pointer; }
-.step-btn.active { background: var(--accent); color: white; border-color: var(--accent); }
+/* Steps, drawn as a pipeline: numbered stages joined by a line. */
+.wizard-nav { display: flex; margin-bottom: 1.25rem; }
+.step-btn { position: relative; flex: 1 1 0; display: flex; align-items: center; gap: 0.6rem; padding: 0.5rem 0.25rem; color: var(--muted); background: none; border: 0; cursor: pointer; text-align: left; }
+.step-btn:not(:last-child)::after { content: ""; flex: 1; height: 2px; margin: 0 0.75rem 0 0.25rem; background: var(--line); }
+.step-btn.done:not(:last-child)::after { background: var(--accent); }
+.step-no { display: grid; place-items: center; width: 1.75rem; height: 1.75rem; flex: none; border-radius: 50%; border: 2px solid var(--line); background: var(--surface); font-size: 0.85rem; font-weight: 600; }
+.step-btn:hover { color: var(--ink); }
+.step-btn.done .step-no { border-color: var(--accent); color: var(--accent); }
+.step-btn.active { color: var(--ink); font-weight: 600; }
+.step-btn.active .step-no { border-color: var(--accent); background: var(--accent); color: var(--on-accent); }
+.badge { padding: 0 0.4rem; border-radius: 999px; background: var(--error); color: #fff; font-size: 0.75rem; font-weight: 700; }
 
-.wizard-content { background: var(--surface); padding: 1.5rem; border-radius: 8px; min-height: 320px; }
-.form-control { display: block; width: 100%; max-width: 480px; margin: 0.5rem 0 1rem; padding: 0.5rem; background: var(--bg); border: 1px solid #2a3a4f; color: var(--text); border-radius: 4px; }
+.wizard-content { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 1.75rem; min-height: 360px; }
+.wizard-footer { display: flex; justify-content: space-between; margin-top: 1rem; }
 
-.yaml-preview { background: #0a0e14; padding: 1rem; overflow: auto; max-height: 480px; font-size: 0.8rem; border-radius: 4px; border: 1px solid #2a3a4f; }
-.info-box { background: #1e3a5f; padding: 0.75rem 1rem; border-radius: 4px; margin-top: 1rem; font-size: 0.9rem; }
-.card { padding: 0.75rem; margin-bottom: 0.5rem; border: 1px solid #2a3a4f; border-radius: 4px; }
+/* Buttons */
+.btn-primary, .btn-secondary { padding: 0.5rem 1.1rem; border-radius: 8px; border: 1px solid var(--accent); cursor: pointer; }
+.btn-primary { background: var(--accent); color: var(--on-accent); }
+.btn-secondary { background: transparent; color: var(--accent); }
+button:disabled { opacity: 0.35; cursor: default; }
+.btn-link { padding: 0; background: none; border: 0; color: var(--accent); text-decoration: underline; cursor: pointer; }
+.actions { display: flex; flex-wrap: wrap; align-items: center; gap: 0.6rem; }
 
-.btn-primary, .wizard-footer button { padding: 0.5rem 1rem; background: var(--accent); color: white; border: none; border-radius: 4px; cursor: pointer; margin-right: 0.5rem; }
-.wizard-footer { margin-top: 1.5rem; }
+/* Forms */
+label { display: block; margin-top: 1rem; font-weight: 600; font-size: 0.9rem; }
+label.check, .card label { font-weight: 400; }
+label.check input, .card label input { margin-right: 0.4rem; }
+.form-control { display: block; width: 100%; max-width: 460px; margin-top: 0.3rem; padding: 0.5rem 0.65rem; color: var(--ink); background: var(--surface); border: 1px solid var(--line); border-radius: 8px; }
+.form-control.narrow { max-width: 7rem; }
+textarea.form-control { max-width: none; font-family: var(--mono); font-size: 0.875em; }
+.fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 1.5rem; }
+.fields .wide { grid-column: 1 / -1; }
+.fields .form-control { max-width: none; }
+.hint { margin: 0.3rem 0 0; color: var(--muted); font-size: 0.85rem; }
+.card { margin-top: 0.75rem; padding: 0.25rem 1rem 1rem; border: 1px solid var(--line); border-radius: var(--radius); }
+.card.row { display: flex; flex-wrap: wrap; align-items: center; gap: 0.75rem; padding: 0.6rem 0.75rem; }
+.card.row label { margin: 0; }
+.card.row input[type=text], .card.row select { padding: 0.4rem 0.55rem; color: var(--ink); background: var(--surface); border: 1px solid var(--line); border-radius: 8px; }
+.wizard-content .btn-secondary { margin-top: 0.75rem; }
+details.more { margin-top: 1.75rem; padding-top: 1rem; border-top: 1px solid var(--line); }
+details.more summary { cursor: pointer; font-weight: 600; color: var(--accent); }
+.load-settings { margin-top: 1.5rem; padding-top: 0.5rem; border-top: 1px solid var(--line); }
+.load-settings input[type=file] { display: block; margin-top: 0.35rem; }
 
+/* Templates */
+.template-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 0.75rem; padding: 0; margin: 0 0 0.5rem; list-style: none; }
+.template { display: flex; flex-direction: column; gap: 0.3rem; width: 100%; height: 100%; padding: 0.9rem 1rem; text-align: left; color: var(--ink); background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); cursor: pointer; }
+.template:hover { border-color: var(--accent); }
+.template.applied { border-color: var(--accent); background: var(--accent-soft); box-shadow: inset 0 0 0 1px var(--accent); }
+.template strong { font-weight: 600; }
+.template span { color: var(--muted); font-size: 0.85rem; }
+.tag { display: inline-block; padding: 0.05rem 0.5rem; border-radius: 999px; background: var(--accent-soft); color: var(--accent); font-size: 0.75rem; font-weight: 600; }
+.tag.secret { background: var(--error-soft); color: var(--error); }
+
+/* The pipeline: its stages as a flow, and what it needs. */
+.result { margin-top: 1.5rem; padding: 1.1rem 1.25rem 1.25rem; border-radius: var(--radius); background: var(--canvas); }
+.result h3 { margin: 0; }
+.flow { display: flex; flex-wrap: wrap; gap: 0.5rem 0; margin: 0.9rem 0 1rem; padding: 0; list-style: none; }
+.flow li { position: relative; flex: 1 1 0; min-width: 110px; padding: 0.55rem 0.75rem; margin-right: 1.25rem; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; }
+.flow li:last-child { margin-right: 0; }
+.flow li:not(:last-child)::after { content: ""; position: absolute; top: 50%; right: -1.25rem; width: 1.25rem; height: 2px; background: var(--accent); }
+.flow strong { display: block; font-weight: 600; }
+.flow span { color: var(--muted); font-size: 0.8rem; }
+.needs-list { margin: 0; padding: 0; list-style: none; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; }
+.needs-list li { display: flex; flex-wrap: wrap; gap: 0.25rem 0.75rem; align-items: baseline; padding: 0.45rem 0.75rem; border-top: 1px solid var(--line); }
+.needs-list li:first-child { border-top: 0; font-weight: 600; }
+.needs-list code { min-width: 15rem; }
+.needs-list .what { flex: 1; color: var(--muted); font-size: 0.9rem; }
+
+/* The YAML file */
+.file { margin-top: 1.25rem; border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; }
+.file-head { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: 0.5rem 0.75rem; border-bottom: 1px solid var(--line); font-family: var(--mono); font-size: 0.9rem; }
+.file-head .btn-primary, .file-head .btn-secondary { margin: 0; padding: 0.3rem 0.8rem; font-family: var(--font); }
+.yaml-preview { margin: 0; padding: 0.9rem 1rem; max-height: 420px; overflow: auto; background: var(--code-bg); line-height: 1.45; }
+.next { margin: 1.25rem 0; padding-left: 1.25rem; }
+.next li { margin: 0.25rem 0; }
+
+/* Issues */
 .severity-error { color: var(--error); }
 .severity-warning { color: var(--warning); }
 .severity-info { color: var(--info); }
-
-.template-list { padding-left: 1.25rem; }
-.template-list li { margin-bottom: 0.5rem; }
-.dep-graph { font-size: 0.9rem; color: var(--muted); }
-.dep-graph li { margin-bottom: 0.35rem; }
-
-.hint { color: var(--muted); font-size: 0.85rem; margin: -0.5rem 0 1rem; }
-label { display: block; margin-top: 0.5rem; }
-.card label { margin-right: 0.75rem; }
-.card.row { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; }
-.card.row label { display: inline-block; margin: 0; }
-.card input, .card select { background: var(--bg); border: 1px solid #2a3a4f; color: var(--text); border-radius: 4px; padding: 0.35rem; }
-.btn-secondary { padding: 0.4rem 0.8rem; background: transparent; color: var(--text); border: 1px solid var(--accent); border-radius: 4px; cursor: pointer; margin: 0.25rem 0.5rem 0.25rem 0; }
-.btn-link { background: none; border: none; color: var(--muted); text-decoration: underline; cursor: pointer; }
-.tag { display: inline-block; font-size: 0.75rem; padding: 0.05rem 0.4rem; margin-left: 0.35rem; border-radius: 3px; background: #1e3a5f; }
-.template-list li.suggested strong { color: var(--accent); }
-.actions { margin: 1rem 0; }
 .status { color: var(--info); }
-.generation-error pre { white-space: pre-wrap; }
-.validation-list li { margin-bottom: 0.5rem; }
-h3 { margin-top: 1.5rem; }
-.issue-list { list-style: none; padding: 0.75rem 1rem; margin: 0 0 1rem; border-radius: 4px; background: #2a1f1f; }
-.issue-list li { margin: 0.35rem 0; }
-.go-to-step { display: block; padding: 0; margin-top: 0.15rem; }
-.badge { display: inline-block; margin-left: 0.3rem; padding: 0 0.35rem; border-radius: 999px; background: var(--error); color: white; font-weight: bold; }
-.load-settings input[type=file] { margin-top: 0.35rem; }
-.signed-in { font-size: 0.85rem; }
+.issue-list { list-style: none; margin: 0 0 1.25rem; padding: 0.6rem 1rem; border-radius: var(--radius); background: var(--canvas); border-left: 4px solid var(--warning); }
+.issue-list li { margin: 0.4rem 0; }
+.issue-list .hint { color: var(--ink); opacity: 0.8; }
+.go-to-step { display: block; margin-top: 0.15rem; }
+
+@media (max-width: 640px) {
+  .app-main { padding: 1rem; }
+  .wizard-content { padding: 1.1rem; }
+  .fields { grid-template-columns: 1fr; }
+  .step-btn { flex-direction: column; align-items: flex-start; gap: 0.2rem; font-size: 0.85rem; }
+  .step-btn:not(:last-child)::after { display: none; }
+  .needs-list code { min-width: 0; }
+}

@@ -3,18 +3,15 @@ namespace PipelineBuilder.Web.State;
 /// <summary>The wizard's steps, in order.</summary>
 public enum WizardStep
 {
-    ProjectType = 1,
-    BuildAgent = 2,
-    PipelineTemplate = 3,
-    EnvironmentSelection = 4,
-    DeploymentTarget = 5,
-    IdentityModel = 6,
-    VariableGroupsAndKeyVault = 7,
-    ArtifactSettings = 8,
-    RollbackSettings = 9,
-    HealthChecks = 10,
-    Notifications = 11,
-    YamlPreview = 12,
-    ValidationResults = 13,
-    DownloadExport = 14
+    /// <summary>What is deployed: the template, the name and how it is built.</summary>
+    Start = 1,
+
+    /// <summary>Where it runs: environments, servers or cluster, build agent and variables.</summary>
+    Target = 2,
+
+    /// <summary>Rollback, health checks and notifications.</summary>
+    Safety = 3,
+
+    /// <summary>The pipeline, what it needs in Azure DevOps, and the download.</summary>
+    Result = 4
 }

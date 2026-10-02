@@ -4,17 +4,18 @@
 @inject IPipelineGeneratorService Generator
 @implements IDisposable
 
-<PageTitle>PipelineBuilder - Pipeline Builder</PageTitle>
+<PageTitle>PipelineBuilder</PageTitle>
 
 <div class="wizard">
-    <nav class="wizard-nav" aria-label="Wizard steps">
+    <nav class="wizard-nav" aria-label="Steps">
         @foreach (var step in Enum.GetValues<WizardStep>())
         {
-            <button type="button" class="step-btn @(Wizard.CurrentStep == step ? "active" : "")"
+            <button type="button" class="step-btn @(Wizard.CurrentStep == step ? "active" : "") @(step < Wizard.CurrentStep ? "done" : "")"
                     data-step="@step" aria-current="@(Wizard.CurrentStep == step ? "step" : null)"
                     @onclick="() => GoTo(step)">
-                @((int)step). @StepTitles.For(step)
-                @if (step < WizardStep.YamlPreview && Wizard.HasErrors(step))
+                <span class="step-no">@((int)step)</span>
+                @StepTitles.For(step)
+                @if (step != WizardStep.Result && Wizard.HasErrors(step))
                 {
                     <span class="badge" title="This step has errors">!</span>
                 }
@@ -23,7 +24,7 @@
     </nav>
 
     <section class="wizard-content">
-        @if (Wizard.CurrentStep < WizardStep.YamlPreview)
+        @if (Wizard.CurrentStep != WizardStep.Result)
         {
             <IssueList Issues="Wizard.IssuesFor(Wizard.CurrentStep)" />
         }
@@ -31,55 +32,25 @@
         <EditForm EditContext="CurrentEditContext">
             @switch (Wizard.CurrentStep)
             {
-                case WizardStep.ProjectType:
-                    <ProjectTypeStep />
+                case WizardStep.Start:
+                    <StartStep Pipeline="Wizard.Result" />
                     break;
-                case WizardStep.BuildAgent:
-                    <BuildAgentStep />
+                case WizardStep.Target:
+                    <TargetStep />
                     break;
-                case WizardStep.PipelineTemplate:
-                    <TemplateStep />
+                case WizardStep.Safety:
+                    <SafetyStep />
                     break;
-                case WizardStep.EnvironmentSelection:
-                    <EnvironmentsStep />
-                    break;
-                case WizardStep.DeploymentTarget:
-                    <DeploymentTargetStep />
-                    break;
-                case WizardStep.IdentityModel:
-                    <IdentityStep />
-                    break;
-                case WizardStep.VariableGroupsAndKeyVault:
-                    <VariablesStep />
-                    break;
-                case WizardStep.ArtifactSettings:
-                    <ArtifactStep />
-                    break;
-                case WizardStep.RollbackSettings:
-                    <RollbackStep />
-                    break;
-                case WizardStep.HealthChecks:
-                    <HealthChecksStep />
-                    break;
-                case WizardStep.Notifications:
-                    <NotificationsStep />
-                    break;
-                case WizardStep.YamlPreview:
-                    <PreviewStep />
-                    break;
-                case WizardStep.ValidationResults:
-                    <ValidationStep />
-                    break;
-                case WizardStep.DownloadExport:
-                    <ExportStep />
+                case WizardStep.Result:
+                    <ResultStep Pipeline="Wizard.Result" />
                     break;
             }
         </EditForm>
     </section>
 
     <footer class="wizard-footer">
-        <button type="button" disabled="@(Wizard.CurrentStep == WizardStep.ProjectType)" @onclick="Prev">Previous</button>
-        <button type="button" disabled="@(Wizard.CurrentStep == WizardStep.DownloadExport)" @onclick="Next">Next</button>
+        <button type="button" class="btn-secondary" disabled="@(Wizard.CurrentStep == WizardStep.Start)" @onclick="Prev">Back</button>
+        <button type="button" class="btn-primary" disabled="@(Wizard.CurrentStep == WizardStep.Result)" @onclick="Next">Next</button>
     </footer>
 </div>
 
@@ -90,6 +61,7 @@
     {
         Wizard.NavigationRequested += OnNavigationRequested;
         Wizard.Changed += OnWizardChanged;
+        Wizard.Generate(Generator);
     }
 
     public void Dispose()
@@ -100,8 +72,8 @@
     }
 
     /// <summary>
-    /// One EditContext per settings object. Field changes re-render the page so the step's issue
-    /// list and the error badges in the navigation stay current.
+    /// One EditContext per settings object. Field changes regenerate the pipeline and re-render the
+    /// page, so the summary, the issue lists and the error badges stay current.
     /// </summary>
     private EditContext CurrentEditContext
     {
@@ -117,9 +89,17 @@
         }
     }
 
-    private void OnFieldChanged(object? sender, FieldChangedEventArgs e) => StateHasChanged();
+    private void OnFieldChanged(object? sender, FieldChangedEventArgs e)
+    {
+        Wizard.Generate(Generator);
+        StateHasChanged();
+    }
 
-    private void OnWizardChanged() => InvokeAsync(StateHasChanged);
+    private void OnWizardChanged() => InvokeAsync(() =>
+    {
+        Wizard.Generate(Generator);
+        StateHasChanged();
+    });
 
     private void OnNavigationRequested(WizardStep step)
     {
@@ -127,14 +107,12 @@
         StateHasChanged();
     }
 
-    private void Prev() => GoTo((WizardStep)Math.Max((int)WizardStep.ProjectType, (int)Wizard.CurrentStep - 1));
-    private void Next() => GoTo((WizardStep)Math.Min((int)WizardStep.DownloadExport, (int)Wizard.CurrentStep + 1));
+    private void Prev() => GoTo((WizardStep)Math.Max((int)WizardStep.Start, (int)Wizard.CurrentStep - 1));
+    private void Next() => GoTo((WizardStep)Math.Min((int)WizardStep.Result, (int)Wizard.CurrentStep + 1));
 
     private void GoTo(WizardStep step)
     {
         Wizard.CurrentStep = step;
-        // Preview, validation and export always reflect the current settings.
-        if (step >= WizardStep.YamlPreview)
-            Wizard.Generate(Generator);
+        Wizard.Generate(Generator);
     }
 }

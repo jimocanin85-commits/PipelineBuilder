@@ -81,7 +81,7 @@ jobs:
           $signedIn = Invoke-WebRequest $url -UseDefaultCredentials -AllowUnencryptedAuthentication -SkipHttpErrorCheck
           Write-Host "Signed in: $($signedIn.StatusCode)"
           if ($signedIn.StatusCode -ne 200) { Fail "Expected 200 with Windows credentials, got $($signedIn.StatusCode)" $signedIn }
-          if ($signedIn.Content -notmatch 'Project type') { Fail 'The wizard did not render.' $signedIn }
+          if ($signedIn.Content -notmatch 'What are you deploying') { Fail 'The wizard did not render.' $signedIn }
           if ($signedIn.Content -notmatch 'Signed in as') { Fail 'The signed-in user is not shown.' $signedIn }
           Write-Host 'Windows login works.' -ForegroundColor Green
 

@@ -1,0 +1,46 @@
+@inject WizardState Wizard
+
+@* The pipeline at a glance: its stages, and what it needs in Azure DevOps. *@
+@if (Pipeline is { } result)
+{
+    <div class="result">
+        <h3>Your Azure DevOps pipeline</h3>
+        <ol class="flow">
+            <li><strong>Build</strong><span>Build, test, package</span></li>
+            @foreach (var env in Wizard.Definition.Environments)
+            {
+                <li><strong>@env</strong><span>@(EnvironmentNames.IsProduction(env) ? "Approval, deploy" : "Deploy")</span></li>
+            }
+            @if (Wizard.Definition.Notifications.Count > 0)
+            {
+                <li><strong>Notify</strong><span>@string.Join(", ", Wizard.Definition.Notifications.Select(n => NotificationName(n.NotificationType)).Distinct())</span></li>
+            }
+        </ol>
+        <ul class="needs-list">
+            <li>Needs in Azure DevOps</li>
+            @foreach (var need in result.Requirements)
+            {
+                <li data-need="@need.Kind">
+                    <code>@need.Name</code>
+                    <span class="what">@need.Purpose</span>
+                    @if (need.IsSecret)
+                    {
+                        <span class="tag secret">secret</span>
+                    }
+                </li>
+            }
+        </ul>
+    </div>
+}
+
+@code {
+    /// <summary>The generated pipeline. A parameter, so the summary is redrawn whenever the settings change.</summary>
+    [Parameter] public GeneratedPipeline? Pipeline { get; set; }
+
+    private static string NotificationName(NotificationType type) => type switch
+    {
+        NotificationType.TeamsWebhook => "Teams",
+        NotificationType.Email => "Email",
+        _ => "Webhook"
+    };
+}

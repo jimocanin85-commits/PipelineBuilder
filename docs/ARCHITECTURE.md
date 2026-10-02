@@ -27,7 +27,7 @@ Web  →  Core
 
 1. Add the value to the `DeploymentKind` enum.
 2. Add a class in `Deployment/` and list it in `DeploymentKindRegistry`.
-3. Add its fields in `DeploymentTargetStep.razor`.
+3. Add its fields in `TargetStep.razor`, and a template in `templates.json`.
 
 ## Add a check
 

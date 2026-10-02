@@ -17,7 +17,7 @@ public class WebAppSmokeTests : IClassFixture<WebApplicationFactory<Program>>
         var html = await _factory.CreateClient().GetStringAsync("/");
 
         Assert.Contains("PipelineBuilder", html);
-        Assert.Contains("Project type", html);
+        Assert.Contains("What are you deploying?", html);
     }
 
     [Theory]

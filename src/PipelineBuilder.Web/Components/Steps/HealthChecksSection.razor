@@ -1,7 +1,7 @@
 @inject WizardState Wizard
 
-<h2>Health checks</h2>
-<p class="hint">Health checks run after each deployment. A failing check fails the deployment, which triggers the rollback.</p>
+<h3>Health checks</h3>
+<p class="hint">Run after each deployment. A failing check triggers the rollback.</p>
 @foreach (var hc in Wizard.HealthChecks)
 {
     <div class="card">
@@ -9,7 +9,7 @@
         <InputSelect @bind-Value="hc.HealthCheckType" class="form-control" aria-label="Health check type">
             @foreach (var h in Enum.GetValues<HealthCheckType>())
             {
-                <option value="@h">@h</option>
+                <option value="@h">@Label(h)</option>
             }
         </InputSelect>
         @switch (hc.HealthCheckType)
@@ -36,16 +36,25 @@
                 <InputNumber @bind-Value="hc.Port" class="form-control" placeholder="80" />
                 break;
             case HealthCheckType.CustomPowerShell:
-                <label>PowerShell (throw or exit non-zero to fail)</label>
+                <label>Script (exit non-zero to fail)</label>
                 <InputTextArea @bind-Value="hc.CustomScript" class="form-control" rows="4" />
                 break;
         }
         <button type="button" class="btn-link" @onclick="() => { Wizard.HealthChecks.Remove(hc); Wizard.NotifyChanged(); }">Remove</button>
     </div>
 }
-<button type="button" class="btn-secondary" @onclick="Add">Add health check</button>
+<button type="button" class="btn-secondary" id="add-health-check" @onclick="Add">Add health check</button>
 
 @code {
+    private static string Label(HealthCheckType type) => type switch
+    {
+        HealthCheckType.HttpEndpoint => "HTTP address",
+        HealthCheckType.IisAppPool => "IIS app pool",
+        HealthCheckType.WindowsService => "Service",
+        HealthCheckType.PortCheck => "Port",
+        _ => "Your own script"
+    };
+
     private void Add()
     {
         Wizard.HealthChecks.Add(new HealthCheckConfig { Enabled = true, HealthCheckType = HealthCheckType.HttpEndpoint });

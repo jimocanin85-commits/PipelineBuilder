@@ -1,14 +1,14 @@
 @inject WizardState Wizard
 
-<h2>Notifications</h2>
-<p class="hint">Webhook URLs come from pipeline variables (mark them as secret) and are never written into the YAML.</p>
+<h3>Notifications</h3>
+<p class="hint">Webhook URLs come from pipeline variables, never from the YAML.</p>
 @foreach (var n in Wizard.Notifications)
 {
     <div class="card">
         <InputSelect @bind-Value="n.NotificationType" class="form-control" aria-label="Notification type">
             @foreach (var t in Enum.GetValues<NotificationType>())
             {
-                <option value="@t">@t</option>
+                <option value="@t">@Label(t)</option>
             }
         </InputSelect>
         @switch (n.NotificationType)
@@ -33,9 +33,16 @@
         <button type="button" class="btn-link" @onclick="() => { Wizard.Notifications.Remove(n); Wizard.NotifyChanged(); }">Remove</button>
     </div>
 }
-<button type="button" class="btn-secondary" @onclick="Add">Add notification</button>
+<button type="button" class="btn-secondary" id="add-notification" @onclick="Add">Add notification</button>
 
 @code {
+    private static string Label(NotificationType type) => type switch
+    {
+        NotificationType.TeamsWebhook => "Teams",
+        NotificationType.Email => "Email",
+        _ => "Webhook"
+    };
+
     private void Add()
     {
         Wizard.Notifications.Add(new NotificationConfig { NotificationType = NotificationType.TeamsWebhook, NotifyOnFailure = true });
