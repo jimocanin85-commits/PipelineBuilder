@@ -150,8 +150,8 @@ public class WizardPageTests : BunitContext
         GoTo(cut, WizardStep.Result);
         var yaml = cut.Find(".yaml-preview").TextContent;
         Assert.Contains("# Pipeline: orders-api", yaml);
-        Assert.Contains("- stage: Deploy_dev", yaml);
-        Assert.DoesNotContain("Deploy_test", yaml);
+        Assert.Contains("  - 'dev'\n  - 'prod'", yaml.ReplaceLineEndings("\n"));
+        Assert.DoesNotContain("  - 'test'", yaml);
     }
 
     [Fact]
@@ -249,7 +249,7 @@ public class WizardPageTests : BunitContext
         Assert.Contains("Loaded settings for 'loaded-app'", cut.Markup);
         Assert.Equal("loaded-app", cut.Find("#pipeline-name").GetAttribute("value"));
         GoTo(cut, WizardStep.Result);
-        Assert.Contains("- stage: Deploy_qa", cut.Find(".yaml-preview").TextContent);
+        Assert.Contains("  - 'qa'", cut.Find(".yaml-preview").TextContent);
     }
 
     [Fact]
@@ -352,8 +352,8 @@ public class WizardPageTests : BunitContext
         cut.Find(".card.row select").Change("prod");
         GoTo(cut, WizardStep.Result);
         var yaml = cut.Find(".yaml-preview").TextContent;
-        Assert.DoesNotContain("vg-my-app", yaml.Split("- stage: Deploy_prod")[0]);
-        Assert.Contains("- group: 'vg-my-app'", yaml.Split("- stage: Deploy_prod")[1]);
+        Assert.DoesNotContain("vg-my-app", yaml.Split("- stage: Deploy_")[0]);
+        Assert.Contains("${{ if eq(environment, 'prod') }}:\n      variables:\n        - group: 'vg-my-app'", yaml.ReplaceLineEndings("\n"));
 
         GoTo(cut, WizardStep.Target);
         cut.Find(".card.row select").Change("");
@@ -374,7 +374,7 @@ public class WizardPageTests : BunitContext
         cut.Find("#add-notification").Click();
         GoTo(cut, WizardStep.Result);
 
-        Assert.Contains("$uri = 'https://my-app-prod.contoso.com/health'", cut.Find(".yaml-preview").TextContent);
+        Assert.Contains("$uri = 'https://my-app-${{ environment }}.contoso.com/health'", cut.Find(".yaml-preview").TextContent);
         Assert.Contains("Notify", cut.FindAll(".flow li strong").Select(e => e.TextContent));
         Assert.Contains("Teams", cut.Find(".flow").TextContent);
         Assert.Contains("secret", cut.Find(".needs-list").TextContent);

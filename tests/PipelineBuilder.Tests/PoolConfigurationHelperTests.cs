@@ -25,6 +25,6 @@ public class PoolConfigurationHelperTests
     public void MicrosoftHosted()
     {
         var config = PoolConfigurationHelper.GeneratePoolConfiguration(BuildAgentType.MicrosoftHosted, "ignored");
-        Assert.Equal("vmImage: 'windows-latest'", config);
+        Assert.Equal("vmImage: 'ubuntu-latest'", config);
     }
 }

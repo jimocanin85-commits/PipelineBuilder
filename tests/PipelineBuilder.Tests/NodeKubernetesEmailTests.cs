@@ -48,10 +48,10 @@ public class NodeKubernetesEmailTests
         definition.Rollback = new RollbackConfig { Enabled = true };
 
         var result = Generator.Generate(definition);
-        var job = DeployJob(result.Yaml, "Deploy_prod");
+        var job = PipelineYaml.DeployJob(Parse(result.Yaml));
         var steps = HookSteps(job, "deploy");
 
-        Assert.Equal("prod", (string)job["environment"]);
+        Assert.Equal(PipelineYaml.Environment, (string)job["environment"]);
         Assert.Contains(steps, s => (s.GetValueOrDefault("checkout") as string) == "self");
         var deploy = Assert.Single(steps, s => s.GetValueOrDefault("task") as string == "KubernetesManifest@1");
         Assert.Equal("orders", (string)Inputs(deploy)["namespace"]);
@@ -114,8 +114,7 @@ public class NodeKubernetesEmailTests
     private static Dictionary<object, object> Parse(string yaml) =>
         Assert.IsType<Dictionary<object, object>>(new DeserializerBuilder().Build().Deserialize<object>(yaml));
 
-    private static List<Dictionary<object, object>> Stages(Dictionary<object, object> root) =>
-        ((List<object>)root["stages"]).Cast<Dictionary<object, object>>().ToList();
+    private static List<Dictionary<object, object>> Stages(Dictionary<object, object> root) => PipelineYaml.Stages(root);
 
     private static List<Dictionary<object, object>> Jobs(Dictionary<object, object> stage) =>
         ((List<object>)stage["jobs"]).Cast<Dictionary<object, object>>().ToList();
@@ -128,10 +127,6 @@ public class NodeKubernetesEmailTests
 
     private static List<Dictionary<object, object>> BuildSteps(string yaml) =>
         Steps(Assert.Single(Jobs(Assert.Single(Stages(Parse(yaml)), s => (string)s["stage"] == "Build"))));
-
-    private static Dictionary<object, object> DeployJob(string yaml, string stage) =>
-        Assert.Single(Jobs(Assert.Single(Stages(Parse(yaml)), s => (string)s["stage"] == stage)),
-            j => ((string?)j.GetValueOrDefault("deployment"))?.StartsWith("DeployTo") == true);
 
     private static List<Dictionary<object, object>> HookSteps(Dictionary<object, object> job, string hook)
     {

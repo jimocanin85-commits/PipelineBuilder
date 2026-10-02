@@ -68,7 +68,9 @@ public class GeneratedYamlTests
 
         var names = stages.Select(s => (string)s["stage"]).ToList();
         Assert.Equal(names.Count, names.Distinct().Count());
-        Assert.All(names, n => Assert.Matches(StageIdentifier, n));
+        Assert.All(names.Where(n => n != PipelineYaml.DeployStageName), n => Assert.Matches(StageIdentifier, n));
+        Assert.Contains(PipelineYaml.DeployStageName, names);
+        Assert.NotEmpty(PipelineYaml.Environments(root));
 
         foreach (var stage in stages)
         {
@@ -103,15 +105,40 @@ public class GeneratedYamlTests
     }
 
     [Fact]
-    public void GeneratedYaml_HyphenatedEnvironmentGetsValidStageName()
+    public void GeneratedYaml_TheDeployStageIsWrittenOnceAndRepeatedPerEnvironment()
     {
         var yaml = _generator.Generate(FullDefinition()).Yaml;
-        var stages = StagesOf(Parse(yaml));
+        var root = Parse(yaml);
 
-        var preProd = Assert.Single(stages, s => (string)s["stage"] == "Deploy_pre_prod");
-        var job = DeployJob(preProd);
-        Assert.Equal("pre-prod", (string)Assert.IsType<Dictionary<object, object>>(job["environment"])["name"]);
-        Assert.Equal("DeployTopre_prod", (string)job["deployment"]);
+        Assert.Equal(new[] { "test", "pre-prod", "prod" }, PipelineYaml.Environments(root));
+        Assert.Contains("- ${{ each environment in parameters.environments }}:", yaml);
+
+        // Stage names cannot contain hyphens, so the name replaces them; the environment keeps its own name.
+        var job = DeployJob(root);
+        Assert.Equal(PipelineYaml.Environment, (string)Assert.IsType<Dictionary<object, object>>(job["environment"])["name"]);
+        Assert.Equal("Deploy", (string)job["deployment"]);
+        Assert.Equal(1, System.Text.RegularExpressions.Regex.Matches(yaml, "- stage: Deploy_").Count);
+    }
+
+    [Fact]
+    public void GeneratedYaml_OnlyProductionIsLimitedToTheReleaseBranch()
+    {
+        var stage = PipelineYaml.DeployStage(Parse(_generator.Generate(FullDefinition()).Yaml));
+
+        var condition = Assert.IsType<Dictionary<object, object>>(stage["${{ if in(environment, 'prod') }}"]);
+        Assert.Equal("and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'))", (string)condition["condition"]);
+        Assert.False(stage.ContainsKey("condition"));
+        Assert.False(stage.ContainsKey("dependsOn"));
+    }
+
+    [Fact]
+    public void GeneratedYaml_EnvironmentVariableGroupsAreOnlyReadByThatEnvironment()
+    {
+        var stage = PipelineYaml.DeployStage(Parse(_generator.Generate(FullDefinition()).Yaml));
+
+        var onlyProd = Assert.IsType<Dictionary<object, object>>(stage["${{ if eq(environment, 'prod') }}"]);
+        var group = Assert.IsType<Dictionary<object, object>>(Assert.Single(Assert.IsType<List<object>>(onlyProd["variables"])));
+        Assert.Equal("vg-prod", (string)group["group"]);
     }
 
     [Fact]
@@ -128,8 +155,8 @@ public class GeneratedYamlTests
         var failure = Assert.Single(stages, s => (string)s["stage"] == "Notify_Failure");
         Assert.Equal("failed()", (string)failure["condition"]);
         var failureDependencies = DependenciesOf(failure).ToList();
-        Assert.Contains("Build", failureDependencies);
-        Assert.Contains("Deploy_prod", failureDependencies);
+        Assert.Equal(new[] { "Build", PipelineYaml.DeployStageName }, failureDependencies);
+        Assert.False(success.ContainsKey("dependsOn")); // follows the last deploy stage
         Assert.DoesNotContain("# condition:", yaml);
     }
 
@@ -153,13 +180,12 @@ public class GeneratedYamlTests
     }
 
     [Fact]
-    public void GeneratedYaml_HostedBuildsRunOnLinuxAndDeploysOnWindows()
+    public void GeneratedYaml_HostedJobsRunOnLinux()
     {
         var root = Parse(_generator.Generate(FullDefinition()).Yaml);
 
-        var buildPool = Assert.IsType<Dictionary<object, object>>(Assert.Single(JobsOf(StageNamed(root, "Build")))["pool"]);
-        Assert.Equal("ubuntu-latest", (string)buildPool["vmImage"]);
-        Assert.Equal("windows-latest", (string)Assert.IsType<Dictionary<object, object>>(root["pool"])["vmImage"]);
+        Assert.Equal("ubuntu-latest", (string)Assert.IsType<Dictionary<object, object>>(root["pool"])["vmImage"]);
+        Assert.False(Assert.Single(JobsOf(StageNamed(root, "Build"))).ContainsKey("pool"));
     }
 
     [Fact]
@@ -170,8 +196,7 @@ public class GeneratedYamlTests
         definition.PoolName = "OnPremAgents";
         var root = Parse(_generator.Generate(definition).Yaml);
 
-        var buildPool = Assert.IsType<Dictionary<object, object>>(Assert.Single(JobsOf(StageNamed(root, "Build")))["pool"]);
-        Assert.Equal("OnPremAgents", (string)buildPool["name"]);
+        Assert.Equal("OnPremAgents", (string)Assert.IsType<Dictionary<object, object>>(root["pool"])["name"]);
     }
 
     [Fact]
@@ -181,11 +206,7 @@ public class GeneratedYamlTests
         var root = Parse(yaml);
 
         Assert.DoesNotContain(StagesOf(root), s => (string)s["stage"] == "KeyVaultPreJob");
-        foreach (var env in new[] { "test", "pre_prod", "prod" })
-        {
-            var job = DeployJob(StageNamed(root, $"Deploy_{env}"));
-            Assert.Contains(DeploySteps(job), s => s.GetValueOrDefault("task") as string == "AzureKeyVault@2");
-        }
+        Assert.Contains(DeploySteps(DeployJob(root)), s => s.GetValueOrDefault("task") as string == "AzureKeyVault@2");
     }
 
     [Fact]
@@ -195,10 +216,10 @@ public class GeneratedYamlTests
         definition.Deployment = new DeploymentConfig { Kind = DeploymentKind.Iis, WebsiteName = "MyApp" };
 
         var root = Parse(_generator.Generate(definition).Yaml);
-        var job = DeployJob(StageNamed(root, "Deploy_prod"));
+        var job = DeployJob(root);
 
         var environment = Assert.IsType<Dictionary<object, object>>(job["environment"]);
-        Assert.Equal("prod", (string)environment["name"]);
+        Assert.Equal(PipelineYaml.Environment, (string)environment["name"]);
         Assert.Equal("VirtualMachine", (string)environment["resourceType"]);
 
         var steps = DeploySteps(job);
@@ -208,7 +229,7 @@ public class GeneratedYamlTests
 
         var backupIndex = steps.FindIndex(s => (s.GetValueOrDefault("displayName") as string ?? "").StartsWith("Back up"));
         Assert.InRange(backupIndex, 0, steps.IndexOf(deploy) - 1);
-        Assert.Contains(@"Join-Path 'D:\backups' 'prod'", (string)steps[backupIndex]["powershell"]);
+        Assert.Contains(@"Join-Path 'D:\backups' '${{ environment }}'", (string)steps[backupIndex]["powershell"]);
 
         var rollback = FailureSteps(job);
         Assert.Contains(rollback, s => (s.GetValueOrDefault("powershell") as string ?? "").Contains("Sync-Folder -Source $backup -Destination $target -Mirror"));
@@ -221,7 +242,7 @@ public class GeneratedYamlTests
         definition.Deployment = new DeploymentConfig { Kind = DeploymentKind.WindowsService };
         definition.DeploymentStrategy = new DeploymentStrategyConfig { StrategyType = DeploymentStrategyType.Rolling, BatchSize = 2 };
 
-        var job = DeployJob(StageNamed(Parse(_generator.Generate(definition).Yaml), "Deploy_prod"));
+        var job = DeployJob(Parse(_generator.Generate(definition).Yaml));
         var rolling = Assert.IsType<Dictionary<object, object>>(Strategy(job)["rolling"]);
         Assert.Equal("2", (string)rolling["maxParallel"]);
     }
@@ -236,11 +257,8 @@ public class GeneratedYamlTests
         };
         var root = Parse(_generator.Generate(definition).Yaml);
 
-        foreach (var (stage, env) in new[] { ("Deploy_test", "test"), ("Deploy_prod", "prod") })
-        {
-            var scripts = PowerShellScripts(DeployJob(StageNamed(root, stage)));
-            Assert.Contains(scripts, s => s.Contains($"$uri = 'https://myapp-{env}.contoso.com/health'"));
-        }
+        var scripts = PowerShellScripts(DeployJob(root));
+        Assert.Contains(scripts, s => s.Contains("$uri = 'https://myapp-${{ environment }}.contoso.com/health'"));
     }
 
     [Fact]
@@ -268,7 +286,7 @@ public class GeneratedYamlTests
     {
         var root = Parse(_generator.Generate(FullDefinition()).Yaml);
         var pool = Assert.IsType<Dictionary<object, object>>(root["pool"]);
-        Assert.Equal("windows-latest", (string)pool["vmImage"]);
+        Assert.Equal("ubuntu-latest", (string)pool["vmImage"]);
     }
 
     [Fact]
@@ -280,14 +298,12 @@ public class GeneratedYamlTests
         Assert.DoesNotContain(result.ValidationResults, v => v.Severity == ValidationSeverity.Error);
     }
 
-    private static Dictionary<object, object> StageNamed(Dictionary<object, object> root, string name) =>
-        Assert.Single(StagesOf(root), s => (string)s["stage"] == name);
+    private static Dictionary<object, object> StageNamed(Dictionary<object, object> root, string name) => PipelineYaml.Stage(root, name);
 
     private static string JobName(Dictionary<object, object> job) =>
         (job.GetValueOrDefault("job") ?? job.GetValueOrDefault("deployment")) as string ?? "";
 
-    private static Dictionary<object, object> DeployJob(Dictionary<object, object> stage) =>
-        Assert.Single(JobsOf(stage), j => JobName(j).StartsWith("DeployTo", StringComparison.Ordinal));
+    private static Dictionary<object, object> DeployJob(Dictionary<object, object> root) => PipelineYaml.DeployJob(root);
 
     private static Dictionary<object, object> Strategy(Dictionary<object, object> job) =>
         Assert.IsType<Dictionary<object, object>>(job["strategy"]);
@@ -343,26 +359,13 @@ public class GeneratedYamlTests
         }
     };
 
-    private static Dictionary<object, object> Parse(string yaml)
-    {
-        var parsed = new DeserializerBuilder().Build().Deserialize<object>(yaml);
-        return Assert.IsType<Dictionary<object, object>>(parsed);
-    }
+    private static Dictionary<object, object> Parse(string yaml) => PipelineYaml.Parse(yaml);
 
-    private static List<Dictionary<object, object>> StagesOf(Dictionary<object, object> root) =>
-        Assert.IsType<List<object>>(root["stages"]).Cast<Dictionary<object, object>>().ToList();
+    private static List<Dictionary<object, object>> StagesOf(Dictionary<object, object> root) => PipelineYaml.Stages(root);
 
-    private static List<Dictionary<object, object>> JobsOf(Dictionary<object, object> stage) =>
-        Assert.IsType<List<object>>(stage["jobs"]).Cast<Dictionary<object, object>>().ToList();
+    private static List<Dictionary<object, object>> JobsOf(Dictionary<object, object> stage) => PipelineYaml.Jobs(stage);
 
-    private static IEnumerable<string> DependenciesOf(Dictionary<object, object> stage) =>
-        stage.TryGetValue("dependsOn", out var value) switch
-        {
-            false => Array.Empty<string>(),
-            true when value is string single => new[] { single },
-            true when value is List<object> list => list.Cast<string>(),
-            _ => Array.Empty<string>()
-        };
+    private static IEnumerable<string> DependenciesOf(Dictionary<object, object> node) => PipelineYaml.DependsOn(node);
 
     /// <summary>Finds every <c>powershell:</c> script anywhere in the document.</summary>
     private static IEnumerable<string> PowerShellScripts(object node)

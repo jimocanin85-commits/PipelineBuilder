@@ -33,8 +33,8 @@ public static class GeneratedYamlValidator
             return new[] { "The pipeline has no 'stages' list." };
 
         var problems = new List<string>();
-        var stages = stageList.OfType<Dictionary<object, object>>().ToList();
-        var stageNames = stages.Select(s => s.GetValueOrDefault("stage") as string ?? "").ToList();
+        var stages = Flatten(stageList).OfType<Dictionary<object, object>>().ToList();
+        var stageNames = stages.Select(s => WithoutExpressions(s.GetValueOrDefault("stage") as string ?? "")).ToList();
 
         foreach (var name in stageNames.Where(n => !Identifier.IsMatch(n)))
             problems.Add($"Invalid stage name '{name}'.");
@@ -43,7 +43,7 @@ public static class GeneratedYamlValidator
 
         foreach (var stage in stages)
         {
-            var stageName = stage.GetValueOrDefault("stage") as string ?? "";
+            var stageName = WithoutExpressions(stage.GetValueOrDefault("stage") as string ?? "");
             foreach (var dependency in DependsOn(stage).Where(d => !stageNames.Contains(d)))
                 problems.Add($"Stage '{stageName}' depends on unknown stage '{dependency}'.");
 
@@ -64,8 +64,35 @@ public static class GeneratedYamlValidator
     private static IEnumerable<string> DependsOn(Dictionary<object, object> node) =>
         node.GetValueOrDefault("dependsOn") switch
         {
-            string single => new[] { single },
-            List<object> list => list.OfType<string>(),
+            string single => new[] { WithoutExpressions(single) },
+            List<object> list => Flatten(list).OfType<string>().Select(WithoutExpressions),
             _ => Array.Empty<string>()
         };
+
+    /// <summary>
+    /// Replaces the items of <c>- ${{ each x in y }}:</c> blocks with the items they repeat, so a
+    /// repeated stage is checked once.
+    /// </summary>
+    private static IEnumerable<object> Flatten(IEnumerable<object> items)
+    {
+        foreach (var item in items)
+        {
+            if (item is Dictionary<object, object> { Count: 1 } map
+                && map.Keys.Single() is string key && key.StartsWith("${{ each ", StringComparison.Ordinal)
+                && map.Values.Single() is List<object> repeated)
+            {
+                foreach (var inner in Flatten(repeated))
+                    yield return inner;
+            }
+            else
+            {
+                yield return item;
+            }
+        }
+    }
+
+    /// <summary>A name with its template expressions (<c>${{ ... }}</c>) replaced by a placeholder, e.g. <c>Deploy_x</c>.</summary>
+    private static string WithoutExpressions(string name) => TemplateExpression.Replace(name, "x");
+
+    private static readonly Regex TemplateExpression = new(@"\$\{\{.*?\}\}", RegexOptions.Compiled);
 }

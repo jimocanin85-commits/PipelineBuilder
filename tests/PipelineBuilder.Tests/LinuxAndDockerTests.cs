@@ -35,7 +35,7 @@ public class LinuxAndDockerTests
         Assert.Contains("target='/opt/orders'", yaml);
         Assert.Contains("as_root systemctl start \"$service\"", yaml);
         Assert.Contains("sync_folder \"$source\" \"$target\"", yaml);
-        Assert.Contains("envRoot='/var/backups/pipelinebuilder/prod'", yaml);
+        Assert.Contains("envRoot='/var/backups/pipelinebuilder/${{ environment }}'", yaml);
         Assert.Contains("displayName: 'Roll back Linux service'", yaml);
         Assert.DoesNotContain("robocopy", yaml);
         Assert.DoesNotContain(@"D:\backups", yaml);
@@ -52,7 +52,7 @@ public class LinuxAndDockerTests
 
         var yaml = _generator.Generate(definition).Yaml;
 
-        var macros = System.Text.RegularExpressions.Regex.Matches(yaml, @"\$\(([^)]*)\)").Select(m => m.Groups[1].Value).Distinct().ToList();
+        var macros = System.Text.RegularExpressions.Regex.Matches(yaml, @"(?<!\{)\$\(([^)]*)\)").Select(m => m.Groups[1].Value).Distinct().ToList();
         Assert.All(macros, name => Assert.Matches(@"^[A-Za-z][A-Za-z0-9_.]*$", name));
     }
 
@@ -72,7 +72,7 @@ public class LinuxAndDockerTests
 
         var result = _generator.Generate(definition);
 
-        Assert.Contains("uri='https://orders-prod.contoso.com/health'", result.Yaml);
+        Assert.Contains("uri='https://orders-${{ environment }}.contoso.com/health'", result.Yaml);
         Assert.Contains("curl -s -o /dev/null", result.Yaml);
         Assert.Contains("systemctl is-active --quiet \"$service\"", result.Yaml);
         Assert.Contains("/dev/tcp/localhost/$port", result.Yaml);
@@ -142,7 +142,7 @@ public class LinuxAndDockerTests
         var definition = Minimal();
         definition.Deployment = new DeploymentConfig { Kind = DeploymentKind.Custom, ServerOs = os };
 
-        var deployStage = _generator.Generate(definition).Yaml.Split("- stage: Deploy_prod")[1];
+        var deployStage = _generator.Generate(definition).Yaml.Split("- stage: Deploy_")[1];
 
         Assert.Contains(step, deployStage);
         Assert.Contains(placeholder, deployStage);
