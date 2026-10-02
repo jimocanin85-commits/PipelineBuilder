@@ -6,20 +6,10 @@ public static class StepTitles
 {
     public static string For(WizardStep step) => step switch
     {
-        WizardStep.ProjectType => "Project type",
-        WizardStep.BuildAgent => "Build agent",
-        WizardStep.PipelineTemplate => "Template",
-        WizardStep.EnvironmentSelection => "Environments",
-        WizardStep.DeploymentTarget => "Deployment",
-        WizardStep.IdentityModel => "Identity",
-        WizardStep.VariableGroupsAndKeyVault => "Variables & KV",
-        WizardStep.ArtifactSettings => "Artifacts",
-        WizardStep.RollbackSettings => "Rollback",
-        WizardStep.HealthChecks => "Health checks",
-        WizardStep.Notifications => "Notifications",
-        WizardStep.YamlPreview => "YAML preview",
-        WizardStep.ValidationResults => "Validation",
-        WizardStep.DownloadExport => "Export",
+        WizardStep.Start => "What",
+        WizardStep.Target => "Where",
+        WizardStep.Safety => "Safety",
+        WizardStep.Result => "Result",
         _ => step.ToString()
     };
 }

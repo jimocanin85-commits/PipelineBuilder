@@ -1,8 +1,8 @@
 @inject WizardState Wizard
 @inject IDeploymentKinds DeploymentKinds
 
-<h2>Rollback</h2>
-<label><InputCheckbox @bind-Value="Wizard.Definition.Rollback.Enabled" /> Back up before deploying and roll back automatically if the deployment fails</label>
+<h3>Rollback</h3>
+<label class="check"><InputCheckbox id="rollback-enabled" @bind-Value="Wizard.Definition.Rollback.Enabled" /> Back up before deploying, and roll back if the deployment fails</label>
 @if (Wizard.Definition.Rollback.Enabled)
 {
     @* Kinds without their own rollback target (Custom) let the user choose one. *@
@@ -22,5 +22,4 @@
     <InputNumber id="retention" @bind-Value="Wizard.Definition.Rollback.RetentionCount" class="form-control" />
     <label for="rollback-script">Custom rollback script (optional, replaces the built-in rollback)</label>
     <InputText id="rollback-script" @bind-Value="Wizard.Definition.Rollback.RollbackScript" class="form-control" placeholder="scripts/rollback.cmd" />
-    <label><InputCheckbox @bind-Value="Wizard.Definition.DeploymentStrategy.RollbackOnFailure" /> Run the rollback when a deployment fails</label>
 }

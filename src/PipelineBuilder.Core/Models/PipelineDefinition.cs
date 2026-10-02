@@ -52,4 +52,7 @@ public sealed class GeneratedPipeline
     public string Yaml { get; set; } = string.Empty;
     public IReadOnlyList<YamlBlockExplanation> Explanations { get; set; } = Array.Empty<YamlBlockExplanation>();
     public IReadOnlyList<ValidationResult> ValidationResults { get; set; } = Array.Empty<ValidationResult>();
+
+    /// <summary>What the pipeline needs in Azure DevOps before its first run.</summary>
+    public IReadOnlyList<PipelineRequirement> Requirements { get; set; } = Array.Empty<PipelineRequirement>();
 }

@@ -1,7 +1,7 @@
 @inject WizardState Wizard
 
-<h2>Health checks</h2>
-<p class="hint">Health checks run after each deployment. A failing check fails the deployment, which triggers the rollback.</p>
+<h3>Health checks</h3>
+<p class="hint">Run after each deployment. A failing check triggers the rollback.</p>
 @foreach (var hc in Wizard.HealthChecks)
 {
     <div class="card">

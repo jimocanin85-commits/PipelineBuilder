@@ -1,7 +1,7 @@
 @inject WizardState Wizard
 
-<h2>Notifications</h2>
-<p class="hint">Webhook URLs come from pipeline variables (mark them as secret) and are never written into the YAML.</p>
+<h3>Notifications</h3>
+<p class="hint">Webhook URLs come from pipeline variables, never from the YAML.</p>
 @foreach (var n in Wizard.Notifications)
 {
     <div class="card">

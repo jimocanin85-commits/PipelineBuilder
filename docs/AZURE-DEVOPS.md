@@ -1,6 +1,6 @@
 # What to set up in Azure DevOps
 
-The wizard's **Validation** step lists what your pipeline needs. This page is the full reference.
+The wizard's **Result** step lists what your pipeline needs. This page is the full reference.
 
 ## Always
 

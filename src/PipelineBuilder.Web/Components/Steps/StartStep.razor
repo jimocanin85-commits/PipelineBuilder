@@ -1,0 +1,92 @@
+@inject WizardState Wizard
+@inject ITemplateMarketplaceService Marketplace
+
+<h2>What are you deploying?</h2>
+<ul class="template-grid">
+    @foreach (var t in Marketplace.GetAllTemplates())
+    {
+        var applied = Wizard.Definition.TemplateId == t.Id;
+        <li>
+            <button type="button" class="template @(applied ? "applied" : "")" data-template="@t.Id"
+                    aria-pressed="@(applied ? "true" : "false")" @onclick="() => Apply(t.Id)">
+                <strong>@t.Name</strong>
+                <span>@t.Description</span>
+            </button>
+        </li>
+    }
+</ul>
+
+<div class="fields">
+    <div>
+        <label for="pipeline-name">Name</label>
+        <InputText id="pipeline-name" @bind-Value="Wizard.Definition.Name" class="form-control" />
+    </div>
+    @if (Wizard.Definition.Artifact.ArtifactType == ArtifactType.DockerImage)
+    {
+        <div>
+            <label for="image-name">Image name</label>
+            <InputText id="image-name" @bind-Value="Wizard.Definition.Artifact.ArtifactName" class="form-control" />
+        </div>
+        <div>
+            <label for="dockerfile">Dockerfile</label>
+            <InputText id="dockerfile" @bind-Value="Wizard.Definition.Artifact.PackagePath" class="form-control" placeholder="**/Dockerfile" />
+        </div>
+    }
+    @if (Wizard.Definition.ProjectType == ProjectType.DotNet)
+    {
+        <div>
+            <label for="project-path">Project to publish</label>
+            <InputText id="project-path" @bind-Value="Wizard.Definition.DotNetProjectPath" class="form-control" placeholder="**/*.csproj" />
+        </div>
+        <div>
+            <label for="test-path">Test projects</label>
+            <InputText id="test-path" @bind-Value="Wizard.Definition.TestProjectPath" class="form-control" placeholder="**/*Tests*.csproj" />
+        </div>
+    }
+    else if (Wizard.Definition.ProjectType == ProjectType.Node)
+    {
+        <div>
+            <label for="node-version">Node.js version</label>
+            <InputText id="node-version" @bind-Value="Wizard.Definition.NodeVersion" class="form-control" placeholder="24.x" />
+        </div>
+        <div>
+            <label for="node-output">Build output folder</label>
+            <InputText id="node-output" @bind-Value="Wizard.Definition.NodeOutputFolder" class="form-control" placeholder="dist" />
+        </div>
+    }
+</div>
+
+<PipelineSummary />
+
+<div class="load-settings">
+    <label for="settings-file">Open saved settings</label>
+    <InputFile id="settings-file" accept=".json,application/json" OnChange="LoadSettings" />
+    @if (Wizard.SettingsMessage is { } message)
+    {
+        <p class="@(message.IsError ? "severity-error" : "status")" role="status">@message.Text</p>
+    }
+</div>
+
+@code {
+    private void Apply(string templateId)
+    {
+        Wizard.ApplyTemplate(Marketplace, templateId);
+        Wizard.NotifyChanged();
+    }
+
+    private async Task LoadSettings(InputFileChangeEventArgs e)
+    {
+        try
+        {
+            await using var stream = e.File.OpenReadStream(PipelineDefinitionSerializer.MaxFileSize);
+            using var reader = new StreamReader(stream);
+            var definition = PipelineDefinitionSerializer.FromJson(await reader.ReadToEndAsync());
+            Wizard.SettingsMessage = ($"Loaded settings for '{definition.Name}'.", false);
+            Wizard.Load(definition);
+        }
+        catch (Exception ex) when (ex is FormatException or IOException)
+        {
+            Wizard.SettingsMessage = ($"Could not open the file: {ex.Message}", true);
+        }
+    }
+}

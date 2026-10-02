@@ -1,0 +1,84 @@
+@inject WizardState Wizard
+@inject IJSRuntime JS
+
+<h2>Your pipeline</h2>
+@if (Wizard.BlockingErrors.Count > 0)
+{
+    <div class="generation-error">
+        <p class="severity-error">Fix these settings first:</p>
+        <IssueList Issues="Wizard.BlockingErrors" ShowGoTo="true" />
+    </div>
+}
+else if (Wizard.Result is { } result)
+{
+    var issues = result.ValidationResults.Where(v => v.Severity != ValidationSeverity.Info).OrderByDescending(v => v.Severity).ToList();
+    if (issues.Count > 0)
+    {
+        <IssueList Issues="issues" ShowGoTo="true" />
+    }
+
+    <PipelineSummary />
+
+    <div class="file">
+        <div class="file-head">
+            <span>@PipelineFileName</span>
+            <span class="actions">
+                <button type="button" class="btn-primary" id="download-yaml" @onclick="() => Download(PipelineFileName, result.Yaml, YamlMime)">Download</button>
+                <button type="button" class="btn-secondary" id="copy-yaml" @onclick="() => Copy(result.Yaml)">Copy</button>
+            </span>
+        </div>
+        <pre class="yaml-preview">@result.Yaml</pre>
+    </div>
+
+    <ol class="next">
+        <li>Commit the file as <code>@PipelineFileName</code> in your repository.</li>
+        <li>In Azure DevOps: Pipelines → New pipeline → Existing Azure Pipelines YAML file.</li>
+        <li>Create what is listed under "Needs in Azure DevOps".</li>
+    </ol>
+
+    <div class="actions">
+        <button type="button" class="btn-secondary" id="download-settings" @onclick="DownloadSettings">Save settings</button>
+        <span class="hint">Open the file on the first step to change this pipeline later.</span>
+    </div>
+
+    @if (_status != null)
+    {
+        <p class="status" role="status">@_status</p>
+    }
+}
+
+@code {
+    public const string PipelineFileName = "azure-pipelines.yml";
+    private const string YamlMime = "application/x-yaml";
+
+    private string? _status;
+
+    private async Task Download(string fileName, string content, string mimeType)
+    {
+        try
+        {
+            await JS.InvokeVoidAsync("pipelineBuilder.downloadText", fileName, content, mimeType);
+            _status = $"Downloaded {fileName}.";
+        }
+        catch (JSException ex)
+        {
+            _status = $"Download failed: {ex.Message}";
+        }
+    }
+
+    private Task DownloadSettings() =>
+        Download(PipelineDefinitionSerializer.FileName, PipelineDefinitionSerializer.ToJson(Wizard.Definition), "application/json");
+
+    private async Task Copy(string content)
+    {
+        try
+        {
+            var copied = await JS.InvokeAsync<bool>("pipelineBuilder.copyText", content);
+            _status = copied ? "YAML copied to the clipboard." : "Copying is blocked by the browser; select the YAML instead.";
+        }
+        catch (JSException ex)
+        {
+            _status = $"Copy failed: {ex.Message}";
+        }
+    }
+}

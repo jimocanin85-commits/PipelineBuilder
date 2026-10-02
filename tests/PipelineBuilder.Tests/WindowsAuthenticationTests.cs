@@ -75,7 +75,7 @@ public class WindowsAuthenticationTests : IClassFixture<WebApplicationFactory<Pr
 
         var html = await factory.CreateClient().GetStringAsync("/");
 
-        Assert.Contains("Project type", html);
+        Assert.Contains("What are you deploying?", html);
         Assert.DoesNotContain("Signed in as", html);
     }
 }

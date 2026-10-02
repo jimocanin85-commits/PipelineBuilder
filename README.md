@@ -16,11 +16,12 @@ Open <http://localhost:5150>.
 
 ## Use it
 
-1. Pick a template, or fill in the steps yourself.
-2. Open the **Validation** step. It lists what the pipeline needs in Azure DevOps.
-3. Download `azure-pipelines.yml` on the **Export** step and commit it to your repository.
+1. **What**: pick what you deploy.
+2. **Where**: the environments, and the servers or cluster.
+3. **Safety**: rollback, health checks, notifications.
+4. **Result**: see what the pipeline needs in Azure DevOps, and download `azure-pipelines.yml`.
 
-On the Export step you can also save your settings, and open them later to change the pipeline.
+On the Result step you can also save your settings, and open them later to change the pipeline.
 
 ## What it generates
 

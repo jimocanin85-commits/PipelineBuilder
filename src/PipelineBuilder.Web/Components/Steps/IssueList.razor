@@ -10,12 +10,12 @@
                 <strong>@issue.Severity:</strong> @issue.Message
                 @if (!string.IsNullOrWhiteSpace(issue.SuggestedFix))
                 {
-                    <div class="hint">Fix: @issue.SuggestedFix</div>
+                    <div class="hint">@issue.SuggestedFix</div>
                 }
                 @if (ShowGoTo && step is { } target && target != Wizard.CurrentStep)
                 {
                     <button type="button" class="btn-link go-to-step" data-go-to="@target" @onclick="() => Wizard.RequestNavigation(target)">
-                        Go to step @((int)target): @StepTitles.For(target)
+                        Go to "@StepTitles.For(target)"
                     </button>
                 }
             </li>
@@ -26,6 +26,6 @@
 @code {
     [Parameter, EditorRequired] public IReadOnlyList<ValidationResult> Issues { get; set; } = Array.Empty<ValidationResult>();
 
-    /// <summary>Show a "Go to step" link for issues that belong to another step.</summary>
+    /// <summary>Show a "Go to" link for issues that belong to another step.</summary>
     [Parameter] public bool ShowGoTo { get; set; }
 }
