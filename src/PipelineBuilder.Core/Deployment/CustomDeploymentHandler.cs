@@ -13,13 +13,18 @@ public sealed class CustomDeploymentHandler : DeploymentKindHandler
     public override DeploymentKind Kind => DeploymentKind.Custom;
     public override RollbackTarget? RollbackTarget => null;
 
-    public override IReadOnlyList<string> GenerateDeploySteps(PipelineDefinition definition, string environment, string packagePath) => new[]
+    public override ScriptShell Shell(DeploymentConfig deployment) =>
+        deployment.ServerOs == ServerOs.Linux ? ScriptShell.Bash : ScriptShell.PowerShell;
+
+    public override IReadOnlyList<string> GenerateDeploySteps(PipelineDefinition definition, string environment, string packagePath)
     {
-        YamlBuilder.PowerShellStep(
-            definition.Deployment.CustomScript
-                ?? $"Write-Warning 'No deployment kind selected: add your deploy commands here. The package is at {packagePath}'",
-            $"Deploy to {environment}")
-    };
+        var shell = Shell(definition.Deployment);
+        var placeholder = shell == ScriptShell.Bash
+            ? $"echo '##vso[task.logissue type=warning]No deployment kind selected: add your deploy commands here. The package is at {packagePath}'"
+            : $"Write-Warning 'No deployment kind selected: add your deploy commands here. The package is at {packagePath}'";
+
+        return new[] { YamlBuilder.ShellStep(shell, definition.Deployment.CustomScript ?? placeholder, $"Deploy to {environment}") };
+    }
 
     public override IEnumerable<ValidationResult> Validate(PipelineDefinition definition)
     {

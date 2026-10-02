@@ -25,9 +25,24 @@
         <label for="share">Target folder or share</label>
         <InputText id="share" @bind-Value="Wizard.Definition.Deployment.TargetPath" class="form-control" placeholder="\\server\share\app" />
         break;
+    case DeploymentKind.LinuxService:
+        <label for="linux-service">Service name (systemd)</label>
+        <InputText id="linux-service" @bind-Value="Wizard.Definition.Deployment.ServiceName" class="form-control" placeholder="$(SERVICE_NAME)" />
+        <label for="linux-path">Install folder</label>
+        <InputText id="linux-path" @bind-Value="Wizard.Definition.Deployment.TargetPath" class="form-control" placeholder="/opt/myapp" />
+        break;
     case DeploymentKind.DockerContainer:
+        <label for="docker-os">Servers run</label>
+        <InputSelect id="docker-os" @bind-Value="Wizard.Definition.Deployment.ServerOs" class="form-control">
+            <option value="@ServerOs.Linux">Linux</option>
+            <option value="@ServerOs.Windows">Windows</option>
+        </InputSelect>
         <label for="container">Container name</label>
         <InputText id="container" @bind-Value="Wizard.Definition.Deployment.ContainerName" class="form-control" placeholder="$(CONTAINER_NAME)" />
+        <label for="container-ports">Ports (host:container, comma-separated)</label>
+        <InputText id="container-ports" @bind-Value="Wizard.ContainerPorts" class="form-control" placeholder="8080:80" />
+        <label for="container-env">Environment variables (one NAME=value per line)</label>
+        <InputTextArea id="container-env" @bind-Value="Wizard.ContainerEnvironment" class="form-control" rows="3" />
         <p class="hint">The image is pulled from <code>$(DOCKER_REGISTRY)</code>; define that variable in a variable group.</p>
         break;
     case DeploymentKind.Kubernetes:
@@ -42,7 +57,12 @@
         <p class="hint">Use a Docker image artifact; the manifests get the image built by the run (<code>$(DOCKER_REGISTRY)/name:BuildId</code>).</p>
         break;
     default:
-        <label for="custom-script">Deploy script (PowerShell)</label>
+        <label for="custom-os">Servers run</label>
+        <InputSelect id="custom-os" @bind-Value="Wizard.Definition.Deployment.ServerOs" class="form-control">
+            <option value="@ServerOs.Windows">Windows (PowerShell)</option>
+            <option value="@ServerOs.Linux">Linux (bash)</option>
+        </InputSelect>
+        <label for="custom-script">Deploy script</label>
         <InputTextArea id="custom-script" @bind-Value="Wizard.Definition.Deployment.CustomScript" class="form-control" rows="4" placeholder="Your deploy commands" />
         break;
 }

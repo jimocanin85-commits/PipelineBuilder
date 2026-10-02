@@ -46,7 +46,7 @@ backup="$envRoot/$(Build.BuildId)"
         var skip = Math.Max(1, config.RetentionCount) + 1;
         return $$"""
 if [ -d "$envRoot" ]; then
-  ls -1dt "$envRoot"/*/ 2>/dev/null | tail -n +{{skip}} | xargs -r rm -rf
+  ls -1dt "$envRoot"/*/ 2>/dev/null | tail -n +{{skip}} | xargs -r rm -rf || true
 fi
 """;
     }

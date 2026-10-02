@@ -112,6 +112,20 @@ public sealed class WizardState
         set => Definition.Trigger.PathFilters = SplitList(value);
     }
 
+    public string ContainerPorts
+    {
+        get => string.Join(", ", Definition.Deployment.ContainerPorts);
+        set => Definition.Deployment.ContainerPorts = SplitList(value);
+    }
+
+    /// <summary>One <c>NAME=value</c> per line.</summary>
+    public string ContainerEnvironment
+    {
+        get => string.Join("\n", Definition.Deployment.ContainerEnvironment);
+        set => Definition.Deployment.ContainerEnvironment =
+            (value ?? string.Empty).Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+    }
+
     public KeyVaultConfig KeyVault => _keyVault;
 
     public bool KeyVaultEnabled
@@ -157,7 +171,7 @@ public sealed class WizardState
         },
         Artifact = new ArtifactConfig { ArtifactType = ArtifactType.PipelineArtifact, ArtifactName = "drop" },
         Deployment = new DeploymentConfig { Kind = DeploymentKind.Iis, WebsiteName = "Default Web Site" },
-        Rollback = new RollbackConfig { Enabled = true, BackupPath = @"D:\backups", Target = RollbackTarget.Iis, RetentionCount = 5 },
+        Rollback = new RollbackConfig { Enabled = true, Target = RollbackTarget.Iis, RetentionCount = 5 },
         HealthChecks = new[]
         {
             new HealthCheckConfig { Enabled = true, HealthCheckType = HealthCheckType.HttpEndpoint, Url = "https://myapp-{environment}.contoso.com/health", ExpectedStatusCode = 200 }

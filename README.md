@@ -27,7 +27,7 @@ On the Export step you can also save your settings, and open them later to chang
 | | |
 |---|---|
 | Build | .NET, Node.js |
-| Deploy to | IIS, Windows service, file share, Docker, Kubernetes, or your own script |
+| Deploy to | Windows servers (IIS, Windows service, file share), Linux servers (systemd service), Docker on either, Kubernetes, or your own script |
 | Strategy | Standard, rolling |
 | Safety | Backup and rollback, health checks, secret scan |
 | Extras | Key Vault, notifications by Teams, email or webhook |
