@@ -6,12 +6,20 @@ trigger:
       - 'main'
       - 'develop'
 
+parameters:
+- name: environments
+  displayName: 'Environments, in deployment order'
+  type: object
+  default:
+  - 'test'
+  - 'prod'
+
 variables:
   - name: BuildConfiguration
     value: Release
 
 pool:
-  vmImage: 'windows-latest'
+  vmImage: 'ubuntu-latest'
 
 stages:
 - stage: Build
@@ -19,82 +27,47 @@ stages:
   jobs:
   - job: BuildJob
     displayName: 'Build, test and package'
-    pool:
-      vmImage: 'ubuntu-latest'
     steps:
-          - task: Docker@2
-            displayName: 'Build and push Docker image'
-            inputs:
-              command: 'buildAndPush'
-              repository: 'drop'
-              dockerfile: '**/Dockerfile'
-              containerRegistry: '$(DOCKER_SERVICE_CONNECTION)'
-              tags: '$(Build.BuildId)'
-- stage: Deploy_test
-  displayName: 'Deploy test'
-  dependsOn: Build
-  condition: succeeded()
-  jobs:
-  - deployment: DeployTotest
-    displayName: 'Deploy to test'
-    environment: test
-    strategy:
-      runOnce:
-        deploy:
-          steps:
-          - download: none
-          - checkout: self
-          - task: KubernetesManifest@1
-            displayName: 'Deploy to Kubernetes (test)'
-            inputs:
-              action: 'deploy'
-              connectionType: 'kubernetesServiceConnection'
-              kubernetesServiceConnection: '$(K8S_SERVICE_CONNECTION)'
-              namespace: '$(K8S_NAMESPACE)'
-              manifests: 'manifests/*.yaml'
-              containers: '$(DOCKER_REGISTRY)/drop:$(Build.BuildId)'
-        on:
-          failure:
+      - task: Docker@2
+        displayName: 'Build and push Docker image'
+        inputs:
+          command: 'buildAndPush'
+          repository: 'drop'
+          dockerfile: '**/Dockerfile'
+          containerRegistry: '$(DOCKER_SERVICE_CONNECTION)'
+          tags: '$(Build.BuildId)'
+- ${{ each environment in parameters.environments }}:
+  - stage: Deploy_${{ replace(environment, '-', '_') }}
+    displayName: 'Deploy ${{ environment }}'
+    ${{ if in(environment, 'prod') }}:
+      condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'))
+    jobs:
+    - deployment: Deploy
+      displayName: 'Deploy to ${{ environment }}'
+      environment: ${{ environment }}
+      strategy:
+        runOnce:
+          deploy:
             steps:
-            - task: Kubernetes@1
-              displayName: 'Roll back Kubernetes deployment'
-              inputs:
-                connectionType: 'Kubernetes Service Connection'
-                kubernetesServiceEndpoint: '$(K8S_SERVICE_CONNECTION)'
-                namespace: '$(K8S_NAMESPACE)'
-                command: 'rollout'
-                arguments: 'undo deployment/$(K8S_DEPLOYMENT)'
-- stage: Deploy_prod
-  displayName: 'Deploy prod'
-  dependsOn: Deploy_test
-  condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'))
-  jobs:
-  - deployment: DeployToprod
-    displayName: 'Deploy to prod'
-    environment: prod
-    strategy:
-      runOnce:
-        deploy:
-          steps:
-          - download: none
-          - checkout: self
-          - task: KubernetesManifest@1
-            displayName: 'Deploy to Kubernetes (prod)'
-            inputs:
-              action: 'deploy'
-              connectionType: 'kubernetesServiceConnection'
-              kubernetesServiceConnection: '$(K8S_SERVICE_CONNECTION)'
-              namespace: '$(K8S_NAMESPACE)'
-              manifests: 'manifests/*.yaml'
-              containers: '$(DOCKER_REGISTRY)/drop:$(Build.BuildId)'
-        on:
-          failure:
-            steps:
-            - task: Kubernetes@1
-              displayName: 'Roll back Kubernetes deployment'
-              inputs:
-                connectionType: 'Kubernetes Service Connection'
-                kubernetesServiceEndpoint: '$(K8S_SERVICE_CONNECTION)'
-                namespace: '$(K8S_NAMESPACE)'
-                command: 'rollout'
-                arguments: 'undo deployment/$(K8S_DEPLOYMENT)'
+              - download: none
+              - checkout: self
+              - task: KubernetesManifest@1
+                displayName: 'Deploy to Kubernetes (${{ environment }})'
+                inputs:
+                  action: 'deploy'
+                  connectionType: 'kubernetesServiceConnection'
+                  kubernetesServiceConnection: '$(K8S_SERVICE_CONNECTION)'
+                  namespace: '$(K8S_NAMESPACE)'
+                  manifests: 'manifests/*.yaml'
+                  containers: '$(DOCKER_REGISTRY)/drop:$(Build.BuildId)'
+          on:
+            failure:
+              steps:
+                - task: Kubernetes@1
+                  displayName: 'Roll back Kubernetes deployment'
+                  inputs:
+                    connectionType: 'Kubernetes Service Connection'
+                    kubernetesServiceEndpoint: '$(K8S_SERVICE_CONNECTION)'
+                    namespace: '$(K8S_NAMESPACE)'
+                    command: 'rollout'
+                    arguments: 'undo deployment/$(K8S_DEPLOYMENT)'

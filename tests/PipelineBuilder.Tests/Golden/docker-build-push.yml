@@ -6,12 +6,20 @@ trigger:
       - 'main'
       - 'develop'
 
+parameters:
+- name: environments
+  displayName: 'Environments, in deployment order'
+  type: object
+  default:
+  - 'test'
+  - 'prod'
+
 variables:
   - name: BuildConfiguration
     value: Release
 
 pool:
-  vmImage: 'windows-latest'
+  vmImage: 'ubuntu-latest'
 
 stages:
 - stage: Build
@@ -19,142 +27,77 @@ stages:
   jobs:
   - job: BuildJob
     displayName: 'Build, test and package'
-    pool:
-      vmImage: 'ubuntu-latest'
     steps:
-          - task: Docker@2
-            displayName: 'Build and push Docker image'
-            inputs:
-              command: 'buildAndPush'
-              repository: 'drop'
-              dockerfile: '**/Dockerfile'
-              containerRegistry: '$(DOCKER_SERVICE_CONNECTION)'
-              tags: '$(Build.BuildId)'
-- stage: Deploy_test
-  displayName: 'Deploy test'
-  dependsOn: Build
-  condition: succeeded()
-  jobs:
-  - deployment: DeployTotest
-    displayName: 'Deploy to test'
-    environment:
-      name: test
-      resourceType: VirtualMachine
-    strategy:
-      runOnce:
-        deploy:
-          steps:
-          - download: none
-          - bash: |
-              set -euo pipefail
-              envRoot='/var/backups/pipelinebuilder/test'
-              backup="$envRoot/$(Build.BuildId)"
-              name='$(CONTAINER_NAME)'
-              image=`docker inspect --format '{{.Config.Image}}' "$name" 2>/dev/null || true`
-              if [ -n "$image" ]; then
-                mkdir -p "$backup"
-                echo "$image" > "$backup/image.txt"
-                echo "Recorded running image $image"
-              else
-                echo "Nothing to back up: container $name is not running"
-              fi
-              if [ -d "$envRoot" ]; then
-                ls -1dt "$envRoot"/*/ 2>/dev/null | tail -n +6 | xargs -r rm -rf || true
-              fi
-            displayName: 'Record running container image before deploy'
-          - task: Docker@2
-            displayName: 'Log in to the container registry'
-            inputs:
-              command: 'login'
-              containerRegistry: '$(DOCKER_SERVICE_CONNECTION)'
-          - bash: |
-              set -euo pipefail
-              image='$(DOCKER_REGISTRY)/drop:$(Build.BuildId)'
-              name='$(CONTAINER_NAME)'
-              docker pull "$image"
-              docker rm -f "$name" >/dev/null 2>&1 || true
-              docker run -d --name "$name" --restart unless-stopped "$image"
-              echo "Container $name is running $image"
-            displayName: 'Run Docker container (test)'
-        on:
-          failure:
+      - task: Docker@2
+        displayName: 'Build and push Docker image'
+        inputs:
+          command: 'buildAndPush'
+          repository: 'drop'
+          dockerfile: '**/Dockerfile'
+          containerRegistry: '$(DOCKER_SERVICE_CONNECTION)'
+          tags: '$(Build.BuildId)'
+- ${{ each environment in parameters.environments }}:
+  - stage: Deploy_${{ replace(environment, '-', '_') }}
+    displayName: 'Deploy ${{ environment }}'
+    ${{ if in(environment, 'prod') }}:
+      condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'))
+    jobs:
+    - deployment: Deploy
+      displayName: 'Deploy to ${{ environment }}'
+      environment:
+        name: ${{ environment }}
+        resourceType: VirtualMachine
+      strategy:
+        runOnce:
+          deploy:
             steps:
-            - bash: |
-                set -euo pipefail
-                envRoot='/var/backups/pipelinebuilder/test'
-                backup="$envRoot/$(Build.BuildId)"
-                record="$backup/image.txt"
-                if [ ! -f "$record" ]; then
-                  echo "##vso[task.logissue type=warning]No previous image recorded at $record. Nothing to roll back."
-                  exit 0
-                fi
-                image=`cat "$record"`
-                name='$(CONTAINER_NAME)'
-                docker rm -f "$name" >/dev/null 2>&1 || true
-                docker run -d --name "$name" --restart unless-stopped "$image"
-                echo "Rolled back container $name to $image"
-              displayName: 'Roll back Docker container'
-- stage: Deploy_prod
-  displayName: 'Deploy prod'
-  dependsOn: Deploy_test
-  condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'))
-  jobs:
-  - deployment: DeployToprod
-    displayName: 'Deploy to prod'
-    environment:
-      name: prod
-      resourceType: VirtualMachine
-    strategy:
-      runOnce:
-        deploy:
-          steps:
-          - download: none
-          - bash: |
-              set -euo pipefail
-              envRoot='/var/backups/pipelinebuilder/prod'
-              backup="$envRoot/$(Build.BuildId)"
-              name='$(CONTAINER_NAME)'
-              image=`docker inspect --format '{{.Config.Image}}' "$name" 2>/dev/null || true`
-              if [ -n "$image" ]; then
-                mkdir -p "$backup"
-                echo "$image" > "$backup/image.txt"
-                echo "Recorded running image $image"
-              else
-                echo "Nothing to back up: container $name is not running"
-              fi
-              if [ -d "$envRoot" ]; then
-                ls -1dt "$envRoot"/*/ 2>/dev/null | tail -n +6 | xargs -r rm -rf || true
-              fi
-            displayName: 'Record running container image before deploy'
-          - task: Docker@2
-            displayName: 'Log in to the container registry'
-            inputs:
-              command: 'login'
-              containerRegistry: '$(DOCKER_SERVICE_CONNECTION)'
-          - bash: |
-              set -euo pipefail
-              image='$(DOCKER_REGISTRY)/drop:$(Build.BuildId)'
-              name='$(CONTAINER_NAME)'
-              docker pull "$image"
-              docker rm -f "$name" >/dev/null 2>&1 || true
-              docker run -d --name "$name" --restart unless-stopped "$image"
-              echo "Container $name is running $image"
-            displayName: 'Run Docker container (prod)'
-        on:
-          failure:
-            steps:
-            - bash: |
-                set -euo pipefail
-                envRoot='/var/backups/pipelinebuilder/prod'
-                backup="$envRoot/$(Build.BuildId)"
-                record="$backup/image.txt"
-                if [ ! -f "$record" ]; then
-                  echo "##vso[task.logissue type=warning]No previous image recorded at $record. Nothing to roll back."
-                  exit 0
-                fi
-                image=`cat "$record"`
-                name='$(CONTAINER_NAME)'
-                docker rm -f "$name" >/dev/null 2>&1 || true
-                docker run -d --name "$name" --restart unless-stopped "$image"
-                echo "Rolled back container $name to $image"
-              displayName: 'Roll back Docker container'
+              - download: none
+              - bash: |
+                  set -euo pipefail
+                  envRoot='/var/backups/pipelinebuilder/${{ environment }}'
+                  backup="$envRoot/$(Build.BuildId)"
+                  name='$(CONTAINER_NAME)'
+                  image=`docker inspect --format '{{.Config.Image}}' "$name" 2>/dev/null || true`
+                  if [ -n "$image" ]; then
+                    mkdir -p "$backup"
+                    echo "$image" > "$backup/image.txt"
+                    echo "Recorded running image $image"
+                  else
+                    echo "Nothing to back up: container $name is not running"
+                  fi
+                  if [ -d "$envRoot" ]; then
+                    ls -1dt "$envRoot"/*/ 2>/dev/null | tail -n +6 | xargs -r rm -rf || true
+                  fi
+                displayName: 'Record running container image before deploy'
+              - task: Docker@2
+                displayName: 'Log in to the container registry'
+                inputs:
+                  command: 'login'
+                  containerRegistry: '$(DOCKER_SERVICE_CONNECTION)'
+              - bash: |
+                  set -euo pipefail
+                  image='$(DOCKER_REGISTRY)/drop:$(Build.BuildId)'
+                  name='$(CONTAINER_NAME)'
+                  docker pull "$image"
+                  docker rm -f "$name" >/dev/null 2>&1 || true
+                  docker run -d --name "$name" --restart unless-stopped "$image"
+                  echo "Container $name is running $image"
+                displayName: 'Run Docker container (${{ environment }})'
+          on:
+            failure:
+              steps:
+                - bash: |
+                    set -euo pipefail
+                    envRoot='/var/backups/pipelinebuilder/${{ environment }}'
+                    backup="$envRoot/$(Build.BuildId)"
+                    record="$backup/image.txt"
+                    if [ ! -f "$record" ]; then
+                      echo "##vso[task.logissue type=warning]No previous image recorded at $record. Nothing to roll back."
+                      exit 0
+                    fi
+                    image=`cat "$record"`
+                    name='$(CONTAINER_NAME)'
+                    docker rm -f "$name" >/dev/null 2>&1 || true
+                    docker run -d --name "$name" --restart unless-stopped "$image"
+                    echo "Rolled back container $name to $image"
+                  displayName: 'Roll back Docker container'
