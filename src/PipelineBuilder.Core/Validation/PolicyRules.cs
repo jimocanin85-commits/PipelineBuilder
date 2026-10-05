@@ -32,6 +32,7 @@ internal sealed class PolicyRules
         {
             Rule("deployment.kind", rules.KindSpecific),
             Rule("deployment.rolling-without-servers", rules.RollingWithoutServers),
+            Rule("deployment.from-agent-needs-own-pool", rules.FromAgentNeedsOwnPool),
             Rule("healthchecks.windows-only", rules.WindowsOnlyHealthChecks),
             Rule("notifications.email-recipients", EmailRecipients),
             Rule("variables.groups", rules.VariableGroups),
@@ -58,12 +59,27 @@ internal sealed class PolicyRules
     private IEnumerable<ValidationResult> RollingWithoutServers(ValidationContext context)
     {
         var definition = context.Definition;
-        if (definition.DeploymentStrategy.StrategyType == DeploymentStrategyType.Rolling && !_deploymentKinds.UsesServerResources(definition))
+        // A build agent that deploys over the network already takes the servers one at a time.
+        if (definition.DeploymentStrategy.StrategyType == DeploymentStrategyType.Rolling
+            && !_deploymentKinds.UsesServerResources(definition)
+            && !_deploymentKinds.DeploysFromAgentToServers(definition))
         {
             yield return Finding(ValidationSeverity.Warning,
                 "Rolling deployments need servers registered in the environment; this pipeline deploys everything at once.",
                 nameof(PipelineDefinition.DeploymentStrategy),
                 "Updating a few servers at a time only applies when the pipeline deploys to your own servers.");
+        }
+    }
+
+    private IEnumerable<ValidationResult> FromAgentNeedsOwnPool(ValidationContext context)
+    {
+        var definition = context.Definition;
+        if (_deploymentKinds.DeploysFromAgentToServers(definition) && definition.BuildAgent == BuildAgentType.MicrosoftHosted)
+        {
+            yield return Finding(ValidationSeverity.Warning,
+                "The build agent deploys over the network, but Microsoft's agents cannot reach servers inside your network.",
+                nameof(PipelineDefinition.BuildAgent),
+                "Tick 'Build on our own agent pool' under More settings, or let an agent on each server deploy.");
         }
     }
 

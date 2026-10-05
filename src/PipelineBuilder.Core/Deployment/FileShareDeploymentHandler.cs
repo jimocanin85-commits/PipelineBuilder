@@ -12,7 +12,7 @@ public sealed class FileShareDeploymentHandler : DeploymentKindHandler
 
     public override IReadOnlyList<string> GenerateDeploySteps(PipelineDefinition definition, string environment, string packagePath) => new[]
     {
-        YamlBuilder.PowerShellStep($$"""
+        ServerScript.Step(definition.Deployment, ScriptShell.PowerShell, $$"""
 $ErrorActionPreference = 'Stop'
 $target = {{YamlBuilder.PsLiteral(definition.Deployment.TargetPathOrDefault)}}
 $package = {{YamlBuilder.PsLiteral(packagePath)}}
@@ -28,7 +28,7 @@ Write-Host "Deployed to $target"
 
     public override IReadOnlyList<string> GenerateRollbackSteps(RollbackConfig config, DeploymentConfig deployment, string environment) => new[]
     {
-        YamlBuilder.PowerShellStep($$"""
+        ServerScript.Step(deployment, ScriptShell.PowerShell, $$"""
 {{RollbackScripts.Header(config, environment)}}
 {{RollbackScripts.RequireBackup}}
 $target = {{YamlBuilder.PsLiteral(deployment.TargetPathOrDefault)}}

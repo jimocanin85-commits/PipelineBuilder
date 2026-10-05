@@ -16,6 +16,12 @@ public enum DeploymentKind { Custom, Iis, WindowsService, FileShare, DockerConta
 /// <summary>The operating system of the servers a deployment runs on.</summary>
 public enum ServerOs { Windows, Linux }
 
+/// <summary>
+/// Who runs the deploy steps on your own servers. <see cref="Server"/>: an Azure DevOps agent on each
+/// server. <see cref="Agent"/>: the build agent, which connects to the servers over the network.
+/// </summary>
+public enum DeployFrom { Server, Agent }
+
 /// <summary>The shell a generated script step is written in.</summary>
 public enum ScriptShell { PowerShell, Bash }
 public enum SecretSeverity { Info, Warning, Error }

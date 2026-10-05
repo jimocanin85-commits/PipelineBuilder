@@ -42,6 +42,15 @@ public sealed class DeploymentConfig
     /// <summary>Operating system of the servers. Used by Docker and Custom; the other kinds imply it.</summary>
     public ServerOs ServerOs { get; set; } = ServerOs.Windows;
 
+    /// <summary>
+    /// Who runs the deploy steps on your own servers: an agent on each server, or the build agent over
+    /// the network (WinRM to Windows servers, SSH to Linux servers).
+    /// </summary>
+    public DeployFrom RunFrom { get; set; } = DeployFrom.Server;
+
+    /// <summary>Account the build agent logs in as on Linux servers (<see cref="DeployFrom.Agent"/>).</summary>
+    public string? SshUser { get; set; }
+
     /// <summary>Folder the app is deployed to (IIS site folder, service folder or file share).</summary>
     public string? TargetPath { get; set; }
 
@@ -89,6 +98,8 @@ public sealed class DeploymentConfig
     public string ManifestsPathOrDefault => string.IsNullOrWhiteSpace(ManifestsPath) ? "manifests/*.yaml" : ManifestsPath;
     [JsonIgnore]
     public string KubernetesDeploymentNameOrDefault => string.IsNullOrWhiteSpace(KubernetesDeploymentName) ? "$(K8S_DEPLOYMENT)" : KubernetesDeploymentName;
+    [JsonIgnore]
+    public string SshUserOrDefault => string.IsNullOrWhiteSpace(SshUser) ? "$(SSH_USER)" : SshUser.Trim();
     [JsonIgnore]
     public string ContainerNameOrDefault => string.IsNullOrWhiteSpace(ContainerName) ? "$(CONTAINER_NAME)" : ContainerName;
 }

@@ -15,8 +15,10 @@ public static class PipelineRequirements
     private static readonly Regex Macro = new(@"\$\(([A-Za-z_][A-Za-z0-9_]*)\)", RegexOptions.Compiled);
     private static readonly Regex SecretName = new("PASSWORD|SECRET|TOKEN|WEBHOOK|APIKEY|API_KEY", RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
+    private const string VariablesPath = "Pipelines → your pipeline → Edit → Variables";
+
     /// <summary>Variables the pipeline defines itself.</summary>
-    private static readonly HashSet<string> DefinedInYaml = new(StringComparer.OrdinalIgnoreCase) { "BuildConfiguration" };
+    private static readonly HashSet<string> DefinedInYaml = new(StringComparer.OrdinalIgnoreCase) { "BuildConfiguration", ServerScript.ServersVariable };
 
     private static readonly Dictionary<string, string> Purposes = new(StringComparer.OrdinalIgnoreCase)
     {
@@ -29,6 +31,7 @@ public static class PipelineRequirements
         ["K8S_NAMESPACE"] = "Kubernetes namespace",
         ["K8S_DEPLOYMENT"] = "Kubernetes deployment to roll back",
         ["AZURE_SERVICE_CONNECTION"] = "Name of the Azure service connection",
+        ["SSH_USER"] = "Account the build agent logs in as on the servers",
         ["TEAMS_WEBHOOK_URL"] = "Teams webhook URL",
         ["CUSTOM_WEBHOOK_URL"] = "Webhook URL",
         ["SMTP_HOST"] = "Mail server",
@@ -77,6 +80,21 @@ public static class PipelineRequirements
             });
         }
 
+        // A build agent that deploys over the network reads each environment's servers from a variable.
+        if (yaml.Contains($"$({ServerScript.ServersVariable})", StringComparison.Ordinal))
+        {
+            foreach (var environment in definition.Environments.Where(e => !string.IsNullOrWhiteSpace(e)).Distinct(StringComparer.OrdinalIgnoreCase))
+            {
+                needs.Add(new PipelineRequirement
+                {
+                    Kind = RequirementKind.Variable,
+                    Name = ServerScript.ServersVariablePrefix + environment.ToUpperInvariant().Replace('-', '_'),
+                    Purpose = $"Servers in {environment}, comma-separated, e.g. web01, web02",
+                    Where = VariablesPath
+                });
+            }
+        }
+
         var variables = Macro.Matches(yaml).Select(m => m.Groups[1].Value)
             .Where(name => !DefinedInYaml.Contains(name))
             .Distinct(StringComparer.OrdinalIgnoreCase)
@@ -88,7 +106,7 @@ public static class PipelineRequirements
                 Kind = RequirementKind.Variable,
                 Name = name,
                 Purpose = Purposes.GetValueOrDefault(name, "Variable used by your settings"),
-                Where = "Pipelines → your pipeline → Edit → Variables",
+                Where = VariablesPath,
                 IsSecret = SecretName.IsMatch(name)
             });
         }

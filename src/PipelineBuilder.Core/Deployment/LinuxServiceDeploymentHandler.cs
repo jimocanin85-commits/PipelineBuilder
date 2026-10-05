@@ -20,7 +20,7 @@ public sealed class LinuxServiceDeploymentHandler : DeploymentKindHandler
         var deployment = definition.Deployment;
         return new[]
         {
-            YamlBuilder.BashStep($$"""
+            ServerScript.Step(definition.Deployment, ScriptShell.Bash, $$"""
 {{BashSnippets.Strict}}
 service={{YamlBuilder.BashLiteral(deployment.ServiceNameOrDefault)}}
 target={{YamlBuilder.BashLiteral(deployment.TargetPathOrDefault)}}
@@ -38,7 +38,7 @@ echo "Deployed to $target and started $service"
 
     public override IReadOnlyList<string> GenerateBackupSteps(RollbackConfig config, DeploymentConfig deployment, string environment) => new[]
     {
-        YamlBuilder.BashStep($$"""
+        ServerScript.Step(deployment, ScriptShell.Bash, $$"""
 {{RollbackScripts.BashHeader(config, environment)}}
 target={{YamlBuilder.BashLiteral(deployment.TargetPathOrDefault)}}
 {{BashSnippets.SyncFolderFunction}}
@@ -54,7 +54,7 @@ fi
 
     public override IReadOnlyList<string> GenerateRollbackSteps(RollbackConfig config, DeploymentConfig deployment, string environment) => new[]
     {
-        YamlBuilder.BashStep($$"""
+        ServerScript.Step(deployment, ScriptShell.Bash, $$"""
 {{RollbackScripts.BashHeader(config, environment)}}
 {{RollbackScripts.BashRequireBackup}}
 service={{YamlBuilder.BashLiteral(deployment.ServiceNameOrDefault)}}

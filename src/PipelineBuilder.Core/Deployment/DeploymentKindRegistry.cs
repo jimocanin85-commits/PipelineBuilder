@@ -45,7 +45,10 @@ public sealed class DeploymentKindRegistry : IDeploymentKinds
         _handlers.TryGetValue(kind, out var handler) ? handler : _handlers[DeploymentKind.Custom];
 
     public bool UsesServerResources(PipelineDefinition definition) =>
-        For(definition.Deployment.Kind).RunsOnServers;
+        For(definition.Deployment.Kind).RunsOnServers && definition.Deployment.RunFrom == DeployFrom.Server;
+
+    public bool DeploysFromAgentToServers(PipelineDefinition definition) =>
+        For(definition.Deployment.Kind).RunsOnServers && definition.Deployment.RunFrom == DeployFrom.Agent;
 
     public ScriptShell ShellFor(PipelineDefinition definition) =>
         For(definition.Deployment.Kind).Shell(definition.Deployment);
