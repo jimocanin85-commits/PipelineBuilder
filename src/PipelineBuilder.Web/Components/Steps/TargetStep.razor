@@ -76,12 +76,9 @@
             </Field>
             break;
         case DeploymentKind.DockerContainer:
-            <Field For="server-os" Label="Servers run">
-                <InputSelect id="server-os" @bind-Value="Wizard.Definition.Deployment.ServerOs" class="form-control">
-                    <option value="@ServerOs.Linux">Linux</option>
-                    <option value="@ServerOs.Windows">Windows</option>
-                </InputSelect>
-            </Field>
+            <div class="wide">
+                <Choice TValue="ServerOs" Name="server-os" Label="The servers run" Value="Wizard.Definition.Deployment.ServerOs" ValueChanged="SetServerOs" Options="DockerServers" />
+            </div>
             <Field For="container" Label="Container name" Hint="The container with this name is replaced.">
                 <InputText id="container" @bind-Value="Wizard.Definition.Deployment.ContainerName" class="form-control" placeholder="$(CONTAINER_NAME)" />
             </Field>
@@ -128,12 +125,9 @@
             </Field>
             break;
         default:
-            <Field For="server-os" Label="Servers run">
-                <InputSelect id="server-os" @bind-Value="Wizard.Definition.Deployment.ServerOs" class="form-control">
-                    <option value="@ServerOs.Windows">Windows (PowerShell)</option>
-                    <option value="@ServerOs.Linux">Linux (bash)</option>
-                </InputSelect>
-            </Field>
+            <div class="wide">
+                <Choice TValue="ServerOs" Name="server-os" Label="The servers run" Value="Wizard.Definition.Deployment.ServerOs" ValueChanged="SetServerOs" Options="ScriptServers" />
+            </div>
             <Field For="custom-script" Label="Deploy script" Wide="true" Hint="@CustomScriptHint">
                 <InputTextArea id="custom-script" @bind-Value="Wizard.Definition.Deployment.CustomScript" class="form-control" rows="4" />
             </Field>
@@ -147,21 +141,17 @@
 
 @if (DeploymentKinds.For(Wizard.Definition.Deployment.Kind).RunsOnServers)
 {
-    <h3>Who runs the deployment?</h3>
-    <div class="fields">
-        <Field For="run-from" Label="Deployed by" Hint="@RunFromHint">
-            <InputSelect id="run-from" @bind-Value="Wizard.Definition.Deployment.RunFrom" class="form-control">
-                <option value="@DeployFrom.Server">An agent on each server</option>
-                <option value="@DeployFrom.Agent">Our build agent, over the network</option>
-            </InputSelect>
-        </Field>
-        @if (FromAgent && LinuxServers)
+    <Choice TValue="DeployFrom" Name="run-from" Label="Who runs the deployment?" Value="Wizard.Definition.Deployment.RunFrom" ValueChanged="SetRunFrom" Options="RunFromOptions" />
+    if (FromAgent)
+    {
+        <p class="hint">@FromAgentHint</p>
+        if (LinuxServers)
         {
             <Field For="ssh-user" Label="SSH user" Hint="The user the build agent logs in as on the servers.">
                 <InputText id="ssh-user" @bind-Value="Wizard.Definition.Deployment.SshUser" class="form-control" placeholder="$(SSH_USER)" />
             </Field>
         }
-    </div>
+    }
 }
 
 @if (DeploymentKinds.UsesServerResources(Wizard.Definition))
@@ -266,21 +256,40 @@
     private bool FromAgent => DeploymentKinds.DeploysFromAgentToServers(Wizard.Definition);
     private bool LinuxServers => DeploymentKinds.ShellFor(Wizard.Definition) == ScriptShell.Bash;
 
-    private string RunFromHint
+    private static readonly ChoiceOption<ServerOs>[] DockerServers =
     {
-        get
-        {
-            if (!FromAgent)
-                return "Each server has its own Azure DevOps agent and updates itself.";
+        new(ServerOs.Linux, "Linux"),
+        new(ServerOs.Windows, "Windows")
+    };
 
-            var how = LinuxServers
-                ? "The build agent connects to each server with SSH, one server at a time."
-                : "A Windows build agent connects to each server with PowerShell remoting (WinRM), one server at a time.";
-            var docker = Wizard.Definition.Deployment.Kind == DeploymentKind.DockerContainer
-                ? " Run docker login once on each server."
-                : string.Empty;
-            return how + " You name the servers in variables; the Result step lists them." + docker;
-        }
+    private static readonly ChoiceOption<ServerOs>[] ScriptServers =
+    {
+        new(ServerOs.Windows, "Windows", "Your script runs in Windows PowerShell."),
+        new(ServerOs.Linux, "Linux", "Your script runs in bash.")
+    };
+
+    private ChoiceOption<DeployFrom>[] RunFromOptions => new ChoiceOption<DeployFrom>[]
+    {
+        new(DeployFrom.Server, "An agent on each server", "Each server has its own Azure DevOps agent and updates itself."),
+        new(DeployFrom.Agent, "Our build agent", LinuxServers
+            ? "It connects to each server with SSH, one at a time."
+            : "A Windows agent connects to each server with PowerShell remoting (WinRM), one at a time.")
+    };
+
+    private string FromAgentHint =>
+        "You name the servers in variables. The Result step lists them."
+        + (Wizard.Definition.Deployment.Kind == DeploymentKind.DockerContainer ? " Run docker login once on each server." : string.Empty);
+
+    private void SetRunFrom(DeployFrom value)
+    {
+        Wizard.Definition.Deployment.RunFrom = value;
+        Wizard.NotifyChanged();
+    }
+
+    private void SetServerOs(ServerOs value)
+    {
+        Wizard.Definition.Deployment.ServerOs = value;
+        Wizard.NotifyChanged();
     }
 
     private string CustomScriptHint

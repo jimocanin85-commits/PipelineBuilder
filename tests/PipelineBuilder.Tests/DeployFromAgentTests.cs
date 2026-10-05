@@ -212,7 +212,7 @@ public class DeployFromAgentTests : BunitContext
         cut.Find($"button[data-step='{WizardStep.Target}']").Click();
         Assert.NotEmpty(cut.FindAll("#rolling"));
 
-        cut.Find("#run-from").Change(DeployFrom.Agent.ToString());
+        cut.Find("#run-from-Agent").Change(true);
 
         Assert.Empty(cut.FindAll("#rolling"));
         Assert.Empty(cut.FindAll("#ssh-user")); // Windows servers use the agent's own account
@@ -244,7 +244,7 @@ public class DeployFromAgentTests : BunitContext
         cut.Find($"button[data-step='{WizardStep.Target}']").Click();
         Assert.Contains("The build is in $(Pipeline.Workspace)/drop.", cut.Find(".wizard-content").TextContent);
 
-        cut.Find("#run-from").Change(DeployFrom.Agent.ToString());
+        cut.Find("#run-from-Agent").Change(true);
 
         Assert.Contains(@"The build is in C:\ProgramData\PipelineBuilder\$(System.DefinitionId)\drop.", cut.Find(".wizard-content").TextContent);
     }

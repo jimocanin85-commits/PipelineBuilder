@@ -183,6 +183,42 @@ public class WizardPageTests : BunitContext
     }
 
     [Fact]
+    public void EveryTemplateHasAnIconAndTheChosenOneIsMarked()
+    {
+        var cut = Render<Home>();
+
+        Assert.Equal(TemplateCatalogue.LoadBuiltIn().Count, cut.FindAll("button[data-template] .icon svg").Count);
+        Assert.Equal("iis-onprem", Assert.Single(cut.FindAll("button.template.applied")).GetAttribute("data-template"));
+    }
+
+    [Fact]
+    public void ThePipelinePanelSaysWhetherThePipelineIsReady()
+    {
+        var cut = Render<Home>();
+        Assert.Equal("Ready", cut.Find(".wizard-side .chip").TextContent);
+
+        GoTo(cut, WizardStep.Target);
+        cut.Find("#environments").Change("Bad Name");
+
+        Assert.Equal("Not ready", cut.Find(".wizard-side .chip").TextContent);
+    }
+
+    [Fact]
+    public void AChoiceShowsAllItsOptionsAndMarksTheChosenOne()
+    {
+        var cut = Render<Home>();
+        GoTo(cut, WizardStep.Target);
+
+        Assert.Equal(new[] { "run-from-Server", "run-from-Agent" }, cut.FindAll("#run-from input[type=radio]").Select(e => e.Id));
+        Assert.True(cut.Find("#run-from-Server").HasAttribute("checked"));
+
+        cut.Find("#run-from-Agent").Change(true);
+
+        Assert.True(cut.Find("#run-from-Agent").HasAttribute("checked"));
+        Assert.False(cut.Find("#run-from-Server").HasAttribute("checked"));
+    }
+
+    [Fact]
     public void TheNextButtonSaysWhereItLeads()
     {
         var cut = Render<Home>();
@@ -637,7 +673,7 @@ public class WizardPageTests : BunitContext
         GoTo(cut, WizardStep.Target);
         cut.Find("#container-ports").Change("8080:80");
         cut.Find("#container-env").Change("ASPNETCORE_ENVIRONMENT=Production");
-        cut.Find("#server-os").Change(ServerOs.Windows.ToString());
+        cut.Find("#server-os-Windows").Change(true);
         GoTo(cut, WizardStep.Result);
         Assert.Contains("-p '8080:80' -e 'ASPNETCORE_ENVIRONMENT=Production' $image", cut.Find(".yaml-preview").TextContent);
     }

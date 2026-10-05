@@ -3,7 +3,17 @@
 
 @* The pipeline at a glance, beside every step: its stages from top to bottom, then what it needs in Azure DevOps. *@
 <div class="result">
-    <h3>Your pipeline</h3>
+    <div class="result-head">
+        <h3>Your pipeline</h3>
+        @if (Pipeline != null)
+        {
+            <span class="chip ok">Ready</span>
+        }
+        else
+        {
+            <span class="chip stop">Not ready</span>
+        }
+    </div>
     @if (Pipeline is { } result)
     {
         <ol class="flow">

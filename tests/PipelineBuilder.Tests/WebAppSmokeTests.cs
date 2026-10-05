@@ -40,7 +40,9 @@ public class WebAppSmokeTests : IClassFixture<WebApplicationFactory<Program>>
 
     [Theory]
     [InlineData("/js/download.js", "downloadText")]
+    [InlineData("/js/download.js", "toggleTheme")]
     [InlineData("/app.css", ".wizard-nav")]
+    [InlineData("/app.css", "[data-theme=\"dark\"]")]
     public async Task StaticAssetsAreServed(string path, string expected)
     {
         var response = await _factory.CreateClient().GetAsync(path);

@@ -1,0 +1,32 @@
+@typeparam TValue
+
+@* A choice between a few options. All of them are in view, and each can say in a line what it means. *@
+<fieldset class="choice" id="@Name">
+    <legend>@Label</legend>
+    <div class="options">
+        @foreach (var option in Options)
+        {
+            <label>
+                <input type="radio" name="@Name" id="@($"{Name}-{option.Value}")"
+                       checked="@IsChosen(option.Value)"
+                       @onchange="() => ValueChanged.InvokeAsync(option.Value)" />
+                <strong>@option.Text</strong>
+                @if (option.Description != null)
+                {
+                    <span>@option.Description</span>
+                }
+            </label>
+        }
+    </div>
+</fieldset>
+
+@code {
+    /// <summary>Groups the options, and is the start of each option's id: <c>name-Value</c>.</summary>
+    [Parameter, EditorRequired] public string Name { get; set; } = string.Empty;
+    [Parameter, EditorRequired] public string Label { get; set; } = string.Empty;
+    [Parameter, EditorRequired] public TValue Value { get; set; } = default!;
+    [Parameter] public EventCallback<TValue> ValueChanged { get; set; }
+    [Parameter, EditorRequired] public IReadOnlyList<ChoiceOption<TValue>> Options { get; set; } = Array.Empty<ChoiceOption<TValue>>();
+
+    private bool IsChosen(TValue value) => EqualityComparer<TValue>.Default.Equals(value, Value);
+}
