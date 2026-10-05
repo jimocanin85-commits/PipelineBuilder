@@ -70,9 +70,12 @@ stages:
 - ${{ each environment in parameters.environments }}:
   - stage: Deploy_${{ replace(environment, '-', '_') }}
     displayName: 'Deploy ${{ environment }}'
+    # A pull request is built and tested, but never deployed.
+    ${{ if notIn(environment, 'prod') }}:
+      condition: and(succeeded(), ne(variables['Build.Reason'], 'PullRequest'))
     # Only the main branch deploys to prod.
     ${{ if in(environment, 'prod') }}:
-      condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'))
+      condition: and(succeeded(), ne(variables['Build.Reason'], 'PullRequest'), eq(variables['Build.SourceBranch'], 'refs/heads/main'))
     jobs:
     - deployment: Deploy
       displayName: 'Deploy to ${{ environment }}'
@@ -103,6 +106,10 @@ stages:
                     $target = [Environment]::ExpandEnvironmentVariables($website.PhysicalPath)
                   }
                   function Sync-Folder([string]$Source, [string]$Destination, [switch]$Mirror) {
+                    # A variable that is not set must never make this copy to, or empty, the wrong folder.
+                    if (-not $Destination -or $Destination.StartsWith('$(') -or $Destination -match '^([A-Za-z]:)?[\\/]*$') {
+                      throw "The folder to copy to is not set: '$Destination'. Check the pipeline variables."
+                    }
                     New-Item -ItemType Directory -Force -Path $Destination | Out-Null
                     $mode = if ($Mirror) { '/MIR' } else { '/E' }
                     robocopy $Source $Destination $mode /R:2 /W:5 /NFL /NDL /NP | Out-Host
@@ -148,6 +155,10 @@ stages:
                       $target = [Environment]::ExpandEnvironmentVariables($website.PhysicalPath)
                     }
                     function Sync-Folder([string]$Source, [string]$Destination, [switch]$Mirror) {
+                      # A variable that is not set must never make this copy to, or empty, the wrong folder.
+                      if (-not $Destination -or $Destination.StartsWith('$(') -or $Destination -match '^([A-Za-z]:)?[\\/]*$') {
+                        throw "The folder to copy to is not set: '$Destination'. Check the pipeline variables."
+                      }
                       New-Item -ItemType Directory -Force -Path $Destination | Out-Null
                       $mode = if ($Mirror) { '/MIR' } else { '/E' }
                       robocopy $Source $Destination $mode /R:2 /W:5 /NFL /NDL /NP | Out-Host

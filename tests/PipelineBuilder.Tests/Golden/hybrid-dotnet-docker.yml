@@ -64,9 +64,12 @@ stages:
 - ${{ each environment in parameters.environments }}:
   - stage: Deploy_${{ replace(environment, '-', '_') }}
     displayName: 'Deploy ${{ environment }}'
+    # A pull request is built and tested, but never deployed.
+    ${{ if notIn(environment, 'prod') }}:
+      condition: and(succeeded(), ne(variables['Build.Reason'], 'PullRequest'))
     # Only the main branch deploys to prod.
     ${{ if in(environment, 'prod') }}:
-      condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'))
+      condition: and(succeeded(), ne(variables['Build.Reason'], 'PullRequest'), eq(variables['Build.SourceBranch'], 'refs/heads/main'))
     jobs:
     - deployment: Deploy
       displayName: 'Deploy to ${{ environment }}'
