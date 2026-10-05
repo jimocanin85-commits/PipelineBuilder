@@ -75,12 +75,12 @@ public sealed class WizardState
     }
 
     /// <summary>
-    /// Issues to show on a step: blocking problems (always current) plus the warnings and errors
-    /// from the last generated pipeline.
+    /// Issues to show on a step: blocking problems (always current) plus the findings from the
+    /// last generated pipeline.
     /// </summary>
     public IReadOnlyList<ValidationResult> IssuesFor(WizardStep step) =>
         _validator.ValidateInput(Definition)
-            .Concat(Result?.ValidationResults.Where(v => v.Severity != ValidationSeverity.Info) ?? Enumerable.Empty<ValidationResult>())
+            .Concat(Result?.ValidationResults ?? Enumerable.Empty<ValidationResult>())
             .Where(v => StepMap.ForField(v.AffectedField) == step)
             .ToList();
 
@@ -90,6 +90,26 @@ public sealed class WizardState
     {
         get => string.Join(", ", Definition.Environments);
         set => Definition.Environments = SplitList(value);
+    }
+
+    /// <summary>The environment between test and production.</summary>
+    public const string Preprod = "preprod";
+
+    /// <summary>The flow is test, preprod, prod. Teams without a preprod environment leave it out.</summary>
+    public bool SkipPreprod
+    {
+        get => !Definition.Environments.Contains(Preprod, StringComparer.OrdinalIgnoreCase);
+        set
+        {
+            var environments = Definition.Environments.Where(e => !e.Equals(Preprod, StringComparison.OrdinalIgnoreCase)).ToList();
+            if (!value)
+            {
+                // Preprod goes right before production; last when there is no production environment.
+                var production = environments.FindIndex(EnvironmentNames.IsProduction);
+                environments.Insert(production < 0 ? environments.Count : production, Preprod);
+            }
+            Definition.Environments = environments;
+        }
     }
 
     public string IncludeBranches
@@ -180,14 +200,14 @@ public sealed class WizardState
         return name.Length == 0 ? "app" : name;
     }
 
-    /// <summary>The settings a new wizard starts with: an IIS website, with nothing to set up but the environments.</summary>
+    /// <summary>The settings a new wizard starts with: an IIS website, deployed to test, preprod and prod.</summary>
     public static PipelineDefinition CreateDefault() => new()
     {
         Name = "my-app",
         TemplateId = "iis-onprem",
         ProjectType = ProjectType.DotNet,
         BuildAgent = BuildAgentType.MicrosoftHosted,
-        Environments = new[] { "test", "prod" },
+        Environments = new[] { "test", Preprod, "prod" },
         DotNetProjectPath = "**/*.csproj",
         TestProjectPath = "**/*Tests*.csproj",
         Artifact = new ArtifactConfig { ArtifactType = ArtifactType.PipelineArtifact, ArtifactName = DefaultArtifactName },

@@ -3,137 +3,141 @@
 
 <h2>Where does it run?</h2>
 
-<div class="fields">
-    <div>
-        <label for="environments">Environments, in order</label>
-        <InputText id="environments" @bind-Value="Wizard.EnvironmentsCsv" class="form-control" placeholder="test, prod" />
-    </div>
-    <div>
-        <label for="release-branch">Release branch</label>
-        <InputText id="release-branch" @bind-Value="Wizard.Definition.ReleaseBranch" class="form-control" placeholder="main" />
-        <p class="hint">Only this branch deploys to <code>prod</code>.</p>
-    </div>
-</div>
+<h3>Environments</h3>
+<p class="order" id="environment-order">@string.Join(" → ", Wizard.Definition.Environments)</p>
+<p class="hint">The pipeline deploys to them in this order, and stops when a deployment fails.</p>
+<label class="check"><InputCheckbox id="skip-preprod" @bind-Value="Wizard.SkipPreprod" /> We have no preprod: go straight from test to prod</label>
+<details class="explain">
+    <summary>What is an environment?</summary>
+    <p>@Help.Environment</p>
+</details>
 
 <h3>@KindTitle</h3>
 <div class="fields">
     @switch (Wizard.Definition.Deployment.Kind)
     {
         case DeploymentKind.Iis:
-            <div>
-                <label for="website">IIS website</label>
+            <Field For="website" Label="IIS website" Hint="The site's name in IIS Manager. Its files are replaced with the new version.">
                 <InputText id="website" @bind-Value="Wizard.Definition.Deployment.WebsiteName" class="form-control" placeholder="Default Web Site" />
-            </div>
+            </Field>
             break;
         case DeploymentKind.WindowsService:
         case DeploymentKind.LinuxService:
-            <div>
-                <label for="service">Service name</label>
+            <Field For="service" Label="Service name" Hint="The service is stopped, its files are replaced, and it is started again.">
                 <InputText id="service" @bind-Value="Wizard.Definition.Deployment.ServiceName" class="form-control" placeholder="$(SERVICE_NAME)" />
-            </div>
-            <div>
-                <label for="install-path">Install folder</label>
+            </Field>
+            <Field For="install-path" Label="Install folder" Hint="The folder on the server that the service runs from.">
                 <InputText id="install-path" @bind-Value="Wizard.Definition.Deployment.TargetPath" class="form-control" placeholder="@InstallFolderExample" />
-            </div>
+            </Field>
             break;
         case DeploymentKind.FileShare:
-            <div>
-                <label for="share">Target folder or share</label>
+            <Field For="share" Label="Target folder or share" Hint="The folder is made identical to the build: files that are no longer in the build are deleted.">
                 <InputText id="share" @bind-Value="Wizard.Definition.Deployment.TargetPath" class="form-control" placeholder="\\server\share\app" />
-            </div>
+            </Field>
             break;
         case DeploymentKind.DockerContainer:
-            <div>
-                <label for="server-os">Servers run</label>
+            <Field For="server-os" Label="Servers run">
                 <InputSelect id="server-os" @bind-Value="Wizard.Definition.Deployment.ServerOs" class="form-control">
                     <option value="@ServerOs.Linux">Linux</option>
                     <option value="@ServerOs.Windows">Windows</option>
                 </InputSelect>
-            </div>
-            <div>
-                <label for="container">Container name</label>
+            </Field>
+            <Field For="container" Label="Container name" Hint="A running container with this name is replaced by the new one.">
                 <InputText id="container" @bind-Value="Wizard.Definition.Deployment.ContainerName" class="form-control" placeholder="$(CONTAINER_NAME)" />
-            </div>
-            <div>
-                <label for="container-ports">Ports (host:container)</label>
+            </Field>
+            <Field For="container-ports" Label="Ports (host:container)" Hint="Without a port, nothing outside the server can reach the container.">
                 <InputText id="container-ports" @bind-Value="Wizard.ContainerPorts" class="form-control" placeholder="8080:80" />
-            </div>
-            <div>
-                <label for="registry-connection">Registry service connection</label>
+            </Field>
+            <Field For="registry-connection" Label="Registry service connection" Hint="The connection's name, not the registry's address." More="@Help.ServiceConnection">
                 <InputText id="registry-connection" @bind-Value="Wizard.Definition.Artifact.ContainerRegistryConnection" class="form-control" placeholder="$(DOCKER_SERVICE_CONNECTION)" />
-            </div>
-            <div class="wide">
-                <label for="container-env">Environment variables (one NAME=value per line)</label>
+            </Field>
+            <Field For="container-env" Label="Environment variables" Wide="true"
+                   Hint="One NAME=value per line. For a password, point to a secret variable instead of typing it: API_KEY=$(API_KEY).">
                 <InputTextArea id="container-env" @bind-Value="Wizard.ContainerEnvironment" class="form-control" rows="3" />
-            </div>
+            </Field>
             break;
         case DeploymentKind.Kubernetes:
-            <div>
-                <label for="k8s-connection">Kubernetes service connection</label>
+            <Field For="k8s-connection" Label="Kubernetes service connection" Hint="The connection's name." More="@Help.ServiceConnection">
                 <InputText id="k8s-connection" @bind-Value="Wizard.Definition.Deployment.KubernetesServiceConnection" class="form-control" placeholder="$(K8S_SERVICE_CONNECTION)" />
-            </div>
-            <div>
-                <label for="k8s-namespace">Namespace</label>
+            </Field>
+            <Field For="k8s-namespace" Label="Namespace" Hint="The namespace the manifests are applied to.">
                 <InputText id="k8s-namespace" @bind-Value="Wizard.Definition.Deployment.KubernetesNamespace" class="form-control" placeholder="$(K8S_NAMESPACE)" />
-            </div>
-            <div>
-                <label for="k8s-manifests">Manifests in the repository</label>
+            </Field>
+            <Field For="k8s-manifests" Label="Manifests in the repository" Hint="Your Kubernetes YAML files. The image in them is swapped for the one built by this run.">
                 <InputText id="k8s-manifests" @bind-Value="Wizard.Definition.Deployment.ManifestsPath" class="form-control" placeholder="manifests/*.yaml" />
-            </div>
-            <div>
-                <label for="k8s-deployment">Deployment name</label>
+            </Field>
+            <Field For="k8s-deployment" Label="Deployment name" Hint="Used to roll back when a deployment fails.">
                 <InputText id="k8s-deployment" @bind-Value="Wizard.Definition.Deployment.KubernetesDeploymentName" class="form-control" placeholder="$(K8S_DEPLOYMENT)" />
-            </div>
-            <div>
-                <label for="registry-connection">Registry service connection</label>
+            </Field>
+            <Field For="registry-connection" Label="Registry service connection" Hint="The connection's name, not the registry's address." More="@Help.ServiceConnection">
                 <InputText id="registry-connection" @bind-Value="Wizard.Definition.Artifact.ContainerRegistryConnection" class="form-control" placeholder="$(DOCKER_SERVICE_CONNECTION)" />
-            </div>
+            </Field>
             break;
         default:
-            <div>
-                <label for="server-os">Servers run</label>
+            <Field For="server-os" Label="Servers run">
                 <InputSelect id="server-os" @bind-Value="Wizard.Definition.Deployment.ServerOs" class="form-control">
                     <option value="@ServerOs.Windows">Windows (PowerShell)</option>
                     <option value="@ServerOs.Linux">Linux (bash)</option>
                 </InputSelect>
-            </div>
-            <div class="wide">
-                <label for="custom-script">Deploy script</label>
+            </Field>
+            <Field For="custom-script" Label="Deploy script" Wide="true" Hint="@CustomScriptHint">
                 <InputTextArea id="custom-script" @bind-Value="Wizard.Definition.Deployment.CustomScript" class="form-control" rows="4" />
-            </div>
+            </Field>
             break;
     }
 </div>
-<p class="hint">A field you leave empty becomes a pipeline variable; the Result step lists them.</p>
+@if (HasVariableFields)
+{
+    <p class="hint">@Help.EmptyField</p>
+}
 
-@if (DeploymentKinds.For(Wizard.Definition.Deployment.Kind).RunsOnServers)
+@if (DeploymentKinds.UsesServerResources(Wizard.Definition))
 {
     <label class="check"><InputCheckbox id="rolling" @bind-Value="Wizard.Rolling" /> Update the servers a few at a time</label>
+    <p class="hint">Keeps the app available while it is updated.</p>
     if (Wizard.Rolling)
     {
-        <label for="batch">Servers at a time</label>
-        <InputNumber id="batch" @bind-Value="Wizard.Definition.DeploymentStrategy.BatchSize" class="form-control narrow" />
+        <Field For="batch" Label="Servers at a time">
+            <InputNumber id="batch" @bind-Value="Wizard.Definition.DeploymentStrategy.BatchSize" class="form-control narrow" />
+        </Field>
     }
 }
 
-<details class="more">
-    <summary>Build agent, branches and variables</summary>
+@{
+    // A problem in a folded-away field opens the section; it then stays open while the user fixes it.
+    _moreOpen |= HasProblemUnderMore;
+}
+<details class="more" open="@_moreOpen">
+    <summary>More settings</summary>
+
+    <h3>Environment names</h3>
+    <Field For="environments" Label="Environments, in order" Hint="Change them only if yours are called something else. Use lowercase letters, digits and hyphens.">
+        <InputText id="environments" @bind-Value="Wizard.EnvironmentsCsv" class="form-control" placeholder="test, preprod, prod" />
+    </Field>
 
     <h3>Build agent</h3>
     <label class="check"><InputCheckbox id="self-hosted" @bind-Value="SelfHosted" /> Build on our own agent pool</label>
+    <p class="hint">Needed when the build must reach things inside your network. Otherwise Microsoft's agents build.</p>
     @if (SelfHosted)
     {
-        <label for="pool-name">Agent pool</label>
-        <InputText id="pool-name" @bind-Value="Wizard.Definition.PoolName" class="form-control" placeholder="Default" />
+        <Field For="pool-name" Label="Agent pool" Hint="Its name under Project settings → Agent pools.">
+            <InputText id="pool-name" @bind-Value="Wizard.Definition.PoolName" class="form-control" placeholder="Default" />
+        </Field>
     }
 
-    <h3>Branches that start the pipeline</h3>
-    <label for="include-branches">Branches (comma-separated)</label>
-    <InputText id="include-branches" @bind-Value="Wizard.IncludeBranches" class="form-control" placeholder="main, release/*" />
-    <label for="path-filters">Only when these paths change (prefix with ! to exclude)</label>
-    <InputText id="path-filters" @bind-Value="Wizard.PathFilters" class="form-control" placeholder="src/*, !docs/*" />
+    <h3>Branches</h3>
+    <Field For="release-branch" Label="Release branch" Hint="Only this branch deploys to prod. Other branches stop after the environments before it.">
+        <InputText id="release-branch" @bind-Value="Wizard.Definition.ReleaseBranch" class="form-control" placeholder="main" />
+    </Field>
+    <Field For="include-branches" Label="Branches that start the pipeline" Hint="Comma-separated, e.g. main, release/*.">
+        <InputText id="include-branches" @bind-Value="Wizard.IncludeBranches" class="form-control" placeholder="main, release/*" />
+    </Field>
+    <Field For="path-filters" Label="Only when these paths change" Hint="Optional. Put ! in front of a path to leave it out, e.g. src/*, !docs/*.">
+        <InputText id="path-filters" @bind-Value="Wizard.PathFilters" class="form-control" placeholder="src/*, !docs/*" />
+    </Field>
 
     <h3>Variable groups</h3>
+    <p class="hint">@Help.VariableGroup</p>
     @foreach (var group in Wizard.VariableGroups)
     {
         <div class="card row">
@@ -154,22 +158,23 @@
 
     <h3>Key Vault</h3>
     <label class="check"><InputCheckbox id="keyvault-enabled" @bind-Value="Wizard.KeyVaultEnabled" /> Load secrets from Azure Key Vault before deploying</label>
+    <p class="hint">Each secret in the vault becomes a variable with the secret's name.</p>
     @if (Wizard.KeyVaultEnabled)
     {
         <div class="fields">
-            <div>
-                <label for="kv-name">Key Vault name</label>
+            <Field For="kv-name" Label="Key Vault name">
                 <InputText id="kv-name" @bind-Value="Wizard.KeyVault.KeyVaultName" class="form-control" />
-            </div>
-            <div>
-                <label for="azure-connection">Azure service connection</label>
+            </Field>
+            <Field For="azure-connection" Label="Azure service connection" Hint="The connection's name." More="@Help.ServiceConnection">
                 <InputText id="azure-connection" @bind-Value="Wizard.AzureServiceConnection" class="form-control" placeholder="$(AZURE_SERVICE_CONNECTION)" />
-            </div>
+            </Field>
         </div>
     }
 </details>
 
 @code {
+    private bool _moreOpen;
+
     private string KindTitle => Wizard.Definition.Deployment.Kind switch
     {
         DeploymentKind.Iis => "IIS website",
@@ -180,6 +185,22 @@
         DeploymentKind.Kubernetes => "Kubernetes",
         _ => "Your own script"
     };
+
+    /// <summary>Kinds with fields that fall back to a pipeline variable when left empty.</summary>
+    private bool HasVariableFields => Wizard.Definition.Deployment.Kind is not (DeploymentKind.Iis or DeploymentKind.Custom);
+
+    private string CustomScriptHint =>
+        $"Runs on each server. The build is in $(Pipeline.Workspace)/{Wizard.Definition.Artifact.ArtifactName}.";
+
+    /// <summary>Settings under "More settings"; a problem in one of them must not stay hidden.</summary>
+    private static readonly string[] FieldsUnderMore =
+    {
+        nameof(PipelineDefinition.Environments), nameof(PipelineDefinition.PoolName), nameof(PipelineDefinition.ReleaseBranch),
+        nameof(PipelineDefinition.VariableGroups), nameof(PipelineDefinition.KeyVault)
+    };
+
+    private bool HasProblemUnderMore =>
+        Wizard.IssuesFor(WizardStep.Target).Any(issue => issue.AffectedField is { } setting && FieldsUnderMore.Contains(setting));
 
     private bool SelfHosted
     {

@@ -43,11 +43,90 @@ public class WizardPageTests : BunitContext
     {
         var cut = Render<Home>();
 
-        Assert.Equal(new[] { "Build", "test", "prod" }, cut.FindAll(".flow li strong").Select(e => e.TextContent));
+        Assert.Equal(new[] { "Build", "test", "preprod", "prod" }, cut.FindAll(".flow li strong").Select(e => e.TextContent));
         var needs = cut.Find(".needs-list").TextContent;
         Assert.Contains("Environment with your servers registered", needs);
         Assert.Contains("with an approval", needs);
         Assert.Empty(cut.FindAll(".needs-list li[data-need='Variable']"));
+        Assert.Contains("Pipelines → Environments", cut.Find(".needs-list li.where").TextContent);
+    }
+
+    [Fact]
+    public void TheFlowIsTestPreprodProdAndPreprodCanBeSkipped()
+    {
+        var cut = Render<Home>();
+        GoTo(cut, WizardStep.Target);
+        Assert.Equal("test → preprod → prod", cut.Find("#environment-order").TextContent);
+
+        cut.Find("#skip-preprod").Change(true);
+        Assert.Equal("test → prod", cut.Find("#environment-order").TextContent);
+        Assert.Equal("test, prod", cut.Find("#environments").GetAttribute("value"));
+        GoTo(cut, WizardStep.Result);
+        Assert.DoesNotContain("preprod", cut.Find(".yaml-preview").TextContent);
+
+        GoTo(cut, WizardStep.Target);
+        cut.Find("#skip-preprod").Change(false);
+        GoTo(cut, WizardStep.Result);
+        Assert.Contains("  - 'test'\n  - 'preprod'\n  - 'prod'", cut.Find(".yaml-preview").TextContent.ReplaceLineEndings("\n"));
+    }
+
+    [Fact]
+    public void ChoosingATemplateKeepsTheFlow()
+    {
+        var cut = Render<Home>();
+        GoTo(cut, WizardStep.Target);
+        cut.Find("#skip-preprod").Change(true);
+        GoTo(cut, WizardStep.Start);
+
+        cut.Find("button[data-template='linux-service']").Click();
+
+        Assert.Equal(new[] { "Build", "test", "prod" }, cut.FindAll(".flow li strong").Select(e => e.TextContent));
+    }
+
+    [Fact]
+    public void AProblemUnderMoreSettingsOpensTheSection()
+    {
+        var cut = Render<Home>();
+        GoTo(cut, WizardStep.Target);
+        Assert.False(cut.Find("details.more").HasAttribute("open"));
+
+        cut.Find("#environments").Change("Bad Name");
+
+        Assert.True(cut.Find("details.more").HasAttribute("open"));
+    }
+
+    /// <summary>A label (or aria-label) is what a screen reader reads out, and what a click on the text focuses.</summary>
+    [Theory]
+    [MemberData(nameof(TemplateIds))]
+    public void EveryInputHasALabel(string templateId)
+    {
+        var cut = Render<Home>();
+        cut.Find($"button[data-template='{templateId}']").Click();
+
+        foreach (var step in Enum.GetValues<WizardStep>())
+        {
+            GoTo(cut, step);
+            if (step == WizardStep.Target)
+            {
+                cut.Find("#add-variable-group").Click();
+                cut.Find("#self-hosted").Change(true);
+                cut.Find("#keyvault-enabled").Change(true);
+            }
+            if (step == WizardStep.Safety)
+            {
+                cut.Find("#add-health-check").Click();
+                cut.Find("#add-notification").Click();
+            }
+
+            foreach (var input in cut.FindAll(".wizard-content input, .wizard-content select, .wizard-content textarea"))
+            {
+                var id = input.GetAttribute("id");
+                var labelled = input.HasAttribute("aria-label")
+                    || input.Closest("label") != null
+                    || (id != null && cut.FindAll($"label[for='{id}']").Count > 0);
+                Assert.True(labelled, $"An input on the {step} step has no label: {input.OuterHtml}");
+            }
+        }
     }
 
     [Fact]

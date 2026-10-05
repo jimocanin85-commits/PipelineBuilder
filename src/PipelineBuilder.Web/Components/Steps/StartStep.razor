@@ -2,6 +2,7 @@
 @inject ITemplateCatalogue Templates
 
 <h2>What are you deploying?</h2>
+<p class="lead">Pick the closest match. Every detail can be changed on the next steps.</p>
 <ul class="template-grid">
     @foreach (var t in Templates.GetAllTemplates())
     {
@@ -17,42 +18,35 @@
 </ul>
 
 <div class="fields">
-    <div>
-        <label for="pipeline-name">Name</label>
+    <Field For="pipeline-name" Label="Name" Hint="A short name for the app, e.g. orders-api.">
         <InputText id="pipeline-name" @bind-Value="Wizard.Definition.Name" class="form-control" />
-    </div>
+    </Field>
     @if (Wizard.Definition.Artifact.ArtifactType == ArtifactType.DockerImage)
     {
-        <div>
-            <label for="image-name">Image name</label>
+        <Field For="image-name" Label="Image name" Hint="The image is pushed to your registry under this name, tagged with the build number.">
             <InputText id="image-name" @bind-Value="Wizard.Definition.Artifact.ArtifactName" class="form-control" />
-        </div>
-        <div>
-            <label for="dockerfile">Dockerfile</label>
+        </Field>
+        <Field For="dockerfile" Label="Dockerfile" Hint="Its path in your repository. Empty means the first Dockerfile found.">
             <InputText id="dockerfile" @bind-Value="Wizard.Definition.Artifact.PackagePath" class="form-control" placeholder="**/Dockerfile" />
-        </div>
+        </Field>
     }
     @if (Wizard.Definition.ProjectType == ProjectType.DotNet)
     {
-        <div>
-            <label for="project-path">Project to publish</label>
+        <Field For="project-path" Label="Project to publish" Hint="Keep the default to publish every web project in the repository.">
             <InputText id="project-path" @bind-Value="Wizard.Definition.DotNetProjectPath" class="form-control" placeholder="**/*.csproj" />
-        </div>
-        <div>
-            <label for="test-path">Test projects</label>
+        </Field>
+        <Field For="test-path" Label="Test projects" Hint="Tests run before anything is deployed. A failing test stops the pipeline.">
             <InputText id="test-path" @bind-Value="Wizard.Definition.TestProjectPath" class="form-control" placeholder="**/*Tests*.csproj" />
-        </div>
+        </Field>
     }
     else if (Wizard.Definition.ProjectType == ProjectType.Node)
     {
-        <div>
-            <label for="node-version">Node.js version</label>
+        <Field For="node-version" Label="Node.js version" Hint="The version to build with.">
             <InputText id="node-version" @bind-Value="Wizard.Definition.NodeVersion" class="form-control" placeholder="24.x" />
-        </div>
-        <div>
-            <label for="node-output">Build output folder</label>
+        </Field>
+        <Field For="node-output" Label="Build output folder" Hint="The folder 'npm run build' writes to. Its content is what gets deployed.">
             <InputText id="node-output" @bind-Value="Wizard.Definition.NodeOutputFolder" class="form-control" placeholder="dist" />
-        </div>
+        </Field>
     }
 </div>
 
@@ -61,6 +55,7 @@
 <div class="load-settings">
     <label for="settings-file">Open saved settings</label>
     <InputFile id="settings-file" accept=".json,application/json" OnChange="LoadSettings" />
+    <p class="hint">A file you saved on the Result step earlier.</p>
     @if (Wizard.SettingsMessage is { } message)
     {
         <p class="@(message.IsError ? "severity-error" : "status")" role="status">@message.Text</p>

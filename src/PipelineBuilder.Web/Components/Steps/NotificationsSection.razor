@@ -1,31 +1,37 @@
 @inject WizardState Wizard
 
 <h3>Notifications</h3>
-<p class="hint">Webhook URLs come from pipeline variables, never from the YAML.</p>
-@foreach (var n in Wizard.Notifications)
+<p class="hint">Tell the team when a run succeeds or fails. Webhook addresses are secrets: they come from pipeline variables, never from the file.</p>
+@for (var i = 0; i < Wizard.Notifications.Count; i++)
 {
+    var n = Wizard.Notifications[i];
+    var id = $"notify-{i}";
     <div class="card">
-        <InputSelect @bind-Value="n.NotificationType" class="form-control" aria-label="Notification type">
-            @foreach (var t in Enum.GetValues<NotificationType>())
-            {
-                <option value="@t">@Label(t)</option>
-            }
-        </InputSelect>
+        <Field For="@($"{id}-type")" Label="Send to">
+            <InputSelect id="@($"{id}-type")" @bind-Value="n.NotificationType" class="form-control" aria-label="Notification type">
+                @foreach (var t in Enum.GetValues<NotificationType>())
+                {
+                    <option value="@t">@Label(t)</option>
+                }
+            </InputSelect>
+        </Field>
         @switch (n.NotificationType)
         {
             case NotificationType.TeamsWebhook:
-                <label>Variable holding the Teams webhook URL</label>
-                <InputText @bind-Value="n.TeamsWebhookVariable" class="form-control" placeholder="TEAMS_WEBHOOK_URL" />
+                <Field For="@($"{id}-teams")" Label="Variable that holds the Teams webhook address" Hint="Empty means TEAMS_WEBHOOK_URL.">
+                    <InputText id="@($"{id}-teams")" @bind-Value="n.TeamsWebhookVariable" class="form-control" placeholder="TEAMS_WEBHOOK_URL" />
+                </Field>
                 break;
             case NotificationType.CustomWebhook:
-                <label>Variable holding the webhook URL</label>
-                <InputText @bind-Value="n.WebhookUrlVariable" class="form-control" placeholder="CUSTOM_WEBHOOK_URL" />
+                <Field For="@($"{id}-webhook")" Label="Variable that holds the webhook address" Hint="Empty means CUSTOM_WEBHOOK_URL.">
+                    <InputText id="@($"{id}-webhook")" @bind-Value="n.WebhookUrlVariable" class="form-control" placeholder="CUSTOM_WEBHOOK_URL" />
+                </Field>
                 break;
             case NotificationType.Email:
-                <label>Recipients (comma-separated)</label>
-                <input class="form-control" value="@string.Join(", ", n.EmailRecipients)"
-                       @onchange="e => n.EmailRecipients = SplitList(e.Value?.ToString())" />
-                <p class="hint">Sent over SMTP. Define <code>SMTP_HOST</code>, <code>EMAIL_FROM</code> and, if the server needs a login, <code>SMTP_USERNAME</code> and <code>SMTP_PASSWORD</code> (secret); <code>SMTP_PORT</code> defaults to 587.</p>
+                <Field For="@($"{id}-recipients")" Label="Recipients" Hint="Comma-separated. The mail server is set with the variables listed on the Result step.">
+                    <input id="@($"{id}-recipients")" class="form-control" value="@string.Join(", ", n.EmailRecipients)"
+                           @onchange="e => n.EmailRecipients = SplitList(e.Value?.ToString())" />
+                </Field>
                 break;
         }
         <label><InputCheckbox @bind-Value="n.NotifyOnSuccess" /> On success</label>

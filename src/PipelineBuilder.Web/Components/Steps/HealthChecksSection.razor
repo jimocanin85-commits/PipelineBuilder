@@ -1,43 +1,56 @@
 @inject WizardState Wizard
 
 <h3>Health checks</h3>
-<p class="hint">Run after each deployment. A failing check triggers the rollback.</p>
-@foreach (var hc in Wizard.HealthChecks)
+<p class="hint">A check runs after each deployment and asks: is the app working? If not, the deployment fails and is rolled back.</p>
+@for (var i = 0; i < Wizard.HealthChecks.Count; i++)
 {
+    var hc = Wizard.HealthChecks[i];
+    var id = $"health-{i}";
     <div class="card">
         <label><InputCheckbox @bind-Value="hc.Enabled" /> Enabled</label>
-        <InputSelect @bind-Value="hc.HealthCheckType" class="form-control" aria-label="Health check type">
-            @foreach (var h in Enum.GetValues<HealthCheckType>())
-            {
-                <option value="@h">@Label(h)</option>
-            }
-        </InputSelect>
+        <Field For="@($"{id}-type")" Label="What to check" Hint="@Explain(hc.HealthCheckType)">
+            <InputSelect id="@($"{id}-type")" @bind-Value="hc.HealthCheckType" class="form-control" aria-label="Health check type">
+                @foreach (var h in Enum.GetValues<HealthCheckType>())
+                {
+                    <option value="@h">@Label(h)</option>
+                }
+            </InputSelect>
+        </Field>
         @switch (hc.HealthCheckType)
         {
             case HealthCheckType.HttpEndpoint:
-                <label>URL (<code>{environment}</code> is replaced per environment)</label>
-                <InputText @bind-Value="hc.Url" class="form-control" placeholder="https://myapp-{environment}.contoso.com/health" />
-                <label>Expected status code</label>
-                <InputNumber @bind-Value="hc.ExpectedStatusCode" class="form-control" />
-                <label>Timeout (seconds) and retries</label>
-                <InputNumber @bind-Value="hc.TimeoutSeconds" class="form-control" />
-                <InputNumber @bind-Value="hc.RetryCount" class="form-control" />
+                <Field For="@($"{id}-url")" Label="Address" Hint="{environment} is replaced with each environment's name.">
+                    <InputText id="@($"{id}-url")" @bind-Value="hc.Url" class="form-control" placeholder="https://myapp-{environment}.contoso.com/health" />
+                </Field>
+                <Field For="@($"{id}-status")" Label="Expected status code">
+                    <InputNumber id="@($"{id}-status")" @bind-Value="hc.ExpectedStatusCode" class="form-control narrow" />
+                </Field>
+                <Field For="@($"{id}-timeout")" Label="Seconds to wait for an answer">
+                    <InputNumber id="@($"{id}-timeout")" @bind-Value="hc.TimeoutSeconds" class="form-control narrow" />
+                </Field>
+                <Field For="@($"{id}-retries")" Label="Attempts" Hint="The app may need a moment to start, so the check tries again.">
+                    <InputNumber id="@($"{id}-retries")" @bind-Value="hc.RetryCount" class="form-control narrow" />
+                </Field>
                 break;
             case HealthCheckType.IisAppPool:
-                <label>App pool</label>
-                <InputText @bind-Value="hc.AppPoolName" class="form-control" placeholder="DefaultAppPool" />
+                <Field For="@($"{id}-pool")" Label="App pool">
+                    <InputText id="@($"{id}-pool")" @bind-Value="hc.AppPoolName" class="form-control" placeholder="DefaultAppPool" />
+                </Field>
                 break;
             case HealthCheckType.WindowsService:
-                <label>Service name</label>
-                <InputText @bind-Value="hc.ServiceName" class="form-control" placeholder="W3SVC" />
+                <Field For="@($"{id}-service")" Label="Service name">
+                    <InputText id="@($"{id}-service")" @bind-Value="hc.ServiceName" class="form-control" placeholder="W3SVC" />
+                </Field>
                 break;
             case HealthCheckType.PortCheck:
-                <label>Port</label>
-                <InputNumber @bind-Value="hc.Port" class="form-control" placeholder="80" />
+                <Field For="@($"{id}-port")" Label="Port">
+                    <InputNumber id="@($"{id}-port")" @bind-Value="hc.Port" class="form-control narrow" placeholder="80" />
+                </Field>
                 break;
             case HealthCheckType.CustomPowerShell:
-                <label>Script (exit non-zero to fail)</label>
-                <InputTextArea @bind-Value="hc.CustomScript" class="form-control" rows="4" />
+                <Field For="@($"{id}-script")" Label="Script" Hint="The check fails when the script ends with an error.">
+                    <InputTextArea id="@($"{id}-script")" @bind-Value="hc.CustomScript" class="form-control" rows="4" />
+                </Field>
                 break;
         }
         <button type="button" class="btn-link" @onclick="() => { Wizard.HealthChecks.Remove(hc); Wizard.NotifyChanged(); }">Remove</button>
@@ -53,6 +66,15 @@
         HealthCheckType.WindowsService => "Service",
         HealthCheckType.PortCheck => "Port",
         _ => "Your own script"
+    };
+
+    private static string Explain(HealthCheckType type) => type switch
+    {
+        HealthCheckType.HttpEndpoint => "Calls the address and expects the status code below.",
+        HealthCheckType.IisAppPool => "Checks that the app pool is started.",
+        HealthCheckType.WindowsService => "Checks that the service is running.",
+        HealthCheckType.PortCheck => "Checks that something answers on the port.",
+        _ => "Runs your script on the server."
     };
 
     private void Add()

@@ -5,7 +5,7 @@ The wizard's **Result** step lists what your pipeline needs. This page is the fu
 ## Always
 
 - A project and a Git repository. Commit the file as `azure-pipelines.yml` and create a pipeline from it.
-- An **environment** for each name in the wizard (e.g. `test`, `preprod`, `prod`). Add approvals to production here; approvals are not set in YAML.
+- An **environment** for each step of the flow: `test`, `preprod` and `prod`, or `test` and `prod` if you have no preprod. Add approvals to production here; approvals are not set in YAML.
 
 ## Depending on your choices
 
@@ -20,7 +20,7 @@ The wizard's **Result** step lists what your pipeline needs. This page is the fu
 
 ## Variables
 
-A field you leave empty in the wizard becomes a pipeline variable. Define the ones your pipeline uses in a variable group, and mark passwords and webhook URLs as secret.
+A field you leave empty in the wizard becomes a pipeline variable. Define the ones your pipeline uses on the pipeline itself (Edit → Variables), or in a variable group you add in the wizard. Mark passwords and webhook URLs as secret.
 
 | Variable | Used for |
 |---|---|

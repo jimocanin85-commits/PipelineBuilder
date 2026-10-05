@@ -11,6 +11,9 @@ public sealed class PipelineRequirement
     /// <summary>What it is used for, in a few words.</summary>
     public string Purpose { get; init; } = string.Empty;
 
+    /// <summary>Where in Azure DevOps it is created, as a menu path.</summary>
+    public string Where { get; init; } = string.Empty;
+
     /// <summary>A variable that should be marked as secret.</summary>
     public bool IsSecret { get; init; }
 }

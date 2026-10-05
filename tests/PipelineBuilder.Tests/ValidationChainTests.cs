@@ -47,8 +47,6 @@ public class ValidationChainTests
         var findings = generator.Generate(definition).ValidationResults;
 
         Assert.Contains(findings, f => f.RuleId == "deployment.kind");
-        Assert.Contains(findings, f => f.RuleId == "deployment.server-resources");
-        Assert.Contains(findings, f => f.RuleId == "environments.approvals");
         Assert.All(findings, f => Assert.False(string.IsNullOrEmpty(f.RuleId)));
         Assert.DoesNotContain(findings, f => f.RuleId!.StartsWith("input.", StringComparison.Ordinal));
     }

@@ -18,16 +18,21 @@
         </ol>
         <ul class="needs-list">
             <li>Needs in Azure DevOps</li>
-            @foreach (var need in result.Requirements)
+            @* Grouped by where in Azure DevOps each thing is created. *@
+            @foreach (var place in result.Requirements.GroupBy(need => need.Where))
             {
-                <li data-need="@need.Kind">
-                    <code>@need.Name</code>
-                    <span class="what">@need.Purpose</span>
-                    @if (need.IsSecret)
-                    {
-                        <span class="tag secret">secret</span>
-                    }
-                </li>
+                <li class="where">@place.Key</li>
+                foreach (var need in place)
+                {
+                    <li data-need="@need.Kind">
+                        <code>@need.Name</code>
+                        <span class="what">@need.Purpose</span>
+                        @if (need.IsSecret)
+                        {
+                            <span class="tag secret">secret</span>
+                        }
+                    </li>
+                }
             }
         </ul>
     </div>

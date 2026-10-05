@@ -21,6 +21,7 @@ body { margin: 0; font: 15px/1.5 var(--font); background: var(--canvas); color: 
 h1, h2, h3 { line-height: 1.25; margin: 0; }
 h2 { font-size: 1.5rem; font-weight: 600; margin-bottom: 1.25rem; }
 h3 { font-size: 1rem; font-weight: 600; margin-top: 1.75rem; }
+h2 + h3 { margin-top: 0; }
 code, pre { font-family: var(--mono); font-size: 0.875em; }
 button, input, select, textarea { font: inherit; }
 :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
@@ -65,7 +66,13 @@ textarea.form-control { max-width: none; font-family: var(--mono); font-size: 0.
 .fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 1.5rem; }
 .fields .wide { grid-column: 1 / -1; }
 .fields .form-control { max-width: none; }
-.hint { margin: 0.3rem 0 0; color: var(--muted); font-size: 0.85rem; }
+.hint { margin: 0.3rem 0 0; color: var(--muted); font-size: 0.85rem; max-width: 70ch; }
+.lead { margin: -0.75rem 0 1.25rem; color: var(--muted); }
+.order { margin: 0.5rem 0 0; font-weight: 600; }
+/* A longer explanation of a term, folded away until asked for. */
+details.explain { margin-top: 0.3rem; font-size: 0.85rem; }
+details.explain summary { cursor: pointer; color: var(--accent); }
+details.explain p { margin: 0.3rem 0 0; color: var(--muted); max-width: 70ch; }
 .card { margin-top: 0.75rem; padding: 0.25rem 1rem 1rem; border: 1px solid var(--line); border-radius: var(--radius); }
 .card.row { display: flex; flex-wrap: wrap; align-items: center; gap: 0.75rem; padding: 0.6rem 0.75rem; }
 .card.row label { margin: 0; }
@@ -100,6 +107,7 @@ details.more summary { cursor: pointer; font-weight: 600; color: var(--accent); 
 .needs-list li:first-child { border-top: 0; font-weight: 600; }
 .needs-list code { min-width: 15rem; }
 .needs-list .what { flex: 1; color: var(--muted); font-size: 0.9rem; }
+.needs-list li.where { background: var(--canvas); color: var(--muted); font-size: 0.8rem; }
 
 /* The YAML file */
 .file { margin-top: 1.25rem; border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; }
