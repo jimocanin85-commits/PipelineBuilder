@@ -101,7 +101,7 @@ public class GeneratedYamlTests
         var scripts = PowerShellScripts(Parse(yaml)).ToList();
 
         Assert.Contains(scripts, s => s.Contains("$uri = 'https://myapp.contoso.com/health'"));
-        Assert.Contains(scripts, s => s.Contains("#$(Build.BuildNumber)"));
+        Assert.Contains(scripts, s => s.Contains("#$env:BUILD_BUILDNUMBER"));
     }
 
     [Fact]
@@ -126,7 +126,7 @@ public class GeneratedYamlTests
         var stage = PipelineYaml.DeployStage(Parse(_generator.Generate(FullDefinition()).Yaml));
 
         var condition = Assert.IsType<Dictionary<object, object>>(stage["${{ if in(environment, 'prod') }}"]);
-        Assert.Equal("and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'))", (string)condition["condition"]);
+        Assert.Equal("and(succeeded(), ne(variables['Build.Reason'], 'PullRequest'), eq(variables['Build.SourceBranch'], 'refs/heads/main'))", (string)condition["condition"]);
         Assert.False(stage.ContainsKey("condition"));
         Assert.False(stage.ContainsKey("dependsOn"));
     }
@@ -148,12 +148,12 @@ public class GeneratedYamlTests
         var stages = StagesOf(Parse(yaml));
 
         var success = Assert.Single(stages, s => (string)s["stage"] == "Notify_Success");
-        Assert.Equal("succeeded()", (string)success["condition"]);
+        Assert.Equal("and(succeeded(), ne(variables['Build.Reason'], 'PullRequest'))", (string)success["condition"]);
         Assert.Contains("succeeded", string.Join("\n", PowerShellScripts(success)));
         Assert.DoesNotContain(" failed", string.Join("\n", PowerShellScripts(success)));
 
         var failure = Assert.Single(stages, s => (string)s["stage"] == "Notify_Failure");
-        Assert.Equal("failed()", (string)failure["condition"]);
+        Assert.Equal("and(failed(), ne(variables['Build.Reason'], 'PullRequest'))", (string)failure["condition"]);
         var failureDependencies = DependenciesOf(failure).ToList();
         Assert.Equal(new[] { "Build", PipelineYaml.DeployStageName }, failureDependencies);
         Assert.False(success.ContainsKey("dependsOn")); // follows the last deploy stage

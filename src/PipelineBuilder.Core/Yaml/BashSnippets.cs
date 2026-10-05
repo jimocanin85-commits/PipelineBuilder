@@ -15,6 +15,10 @@ public static class BashSnippets
     /// </summary>
     public const string SyncFolderFunction = """
 sync_folder() {
+  # A variable that is not set must never make this copy to, or empty, the wrong folder.
+  case "$2" in
+    ''|/|'$('*) echo "##vso[task.logissue type=error]The folder to copy to is not set: '$2'. Check the pipeline variables."; exit 1 ;;
+  esac
   mkdir -p "$2"
   if command -v rsync >/dev/null 2>&1; then
     rsync -a --delete "$1"/ "$2"/

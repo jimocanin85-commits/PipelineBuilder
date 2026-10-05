@@ -15,7 +15,7 @@ public sealed class FileShareDeploymentHandler : DeploymentKindHandler
         ServerScript.Step(definition.Deployment, ScriptShell.PowerShell, $$"""
 $ErrorActionPreference = 'Stop'
 $target = {{YamlBuilder.PsLiteral(definition.Deployment.TargetPathOrDefault)}}
-$package = {{YamlBuilder.PsLiteral(packagePath)}}
+$package = {{ServerScript.PathLiteral(ScriptShell.PowerShell, packagePath)}}
 {{PowerShellSnippets.SyncFolderFunction}}
 {{PowerShellSnippets.ResolvePackageSource}}
 Sync-Folder -Source $source -Destination $target -Mirror

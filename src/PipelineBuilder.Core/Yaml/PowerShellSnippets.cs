@@ -12,6 +12,10 @@ public static class PowerShellSnippets
     /// </summary>
     public const string SyncFolderFunction = """
 function Sync-Folder([string]$Source, [string]$Destination, [switch]$Mirror) {
+  # A variable that is not set must never make this copy to, or empty, the wrong folder.
+  if (-not $Destination -or $Destination.StartsWith('$(') -or $Destination -match '^([A-Za-z]:)?[\\/]*$') {
+    throw "The folder to copy to is not set: '$Destination'. Check the pipeline variables."
+  }
   New-Item -ItemType Directory -Force -Path $Destination | Out-Null
   $mode = if ($Mirror) { '/MIR' } else { '/E' }
   robocopy $Source $Destination $mode /R:2 /W:5 /NFL /NDL /NP | Out-Host

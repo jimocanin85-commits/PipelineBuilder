@@ -33,6 +33,7 @@ internal sealed class PolicyRules
             Rule("deployment.kind", rules.KindSpecific),
             Rule("deployment.rolling-without-servers", rules.RollingWithoutServers),
             Rule("deployment.from-agent-needs-own-pool", rules.FromAgentNeedsOwnPool),
+            Rule("deployment.from-agent-script-end", rules.ScriptsSentFromTheAgent),
             Rule("healthchecks.windows-only", rules.WindowsOnlyHealthChecks),
             Rule("healthchecks.need-servers", rules.HealthChecksThatNeedServers),
             Rule("notifications.email-recipients", EmailRecipients),
@@ -81,6 +82,27 @@ internal sealed class PolicyRules
                 "The build agent deploys over the network, but Microsoft's agents cannot reach servers inside your network.",
                 nameof(PipelineDefinition.BuildAgent),
                 "Tick 'Build on our own agent pool' under More settings, or let an agent on each server deploy.");
+        }
+    }
+
+    /// <summary>
+    /// A script is sent to the servers inside a PowerShell here-string, which ends at a line that
+    /// starts with <c>'@</c>. Such a line in the user's own script would end it early, and the rest
+    /// would run on the build agent.
+    /// </summary>
+    private IEnumerable<ValidationResult> ScriptsSentFromTheAgent(ValidationContext context)
+    {
+        var definition = context.Definition;
+        if (!_deploymentKinds.DeploysFromAgentToServers(definition))
+            yield break;
+
+        var scripts = definition.HealthChecks.Where(h => h.Enabled).Select(h => h.CustomScript).Append(definition.Deployment.CustomScript);
+        if (scripts.Any(script => script != null && script.Split('\n').Any(line => line.StartsWith("'@", StringComparison.Ordinal))))
+        {
+            yield return Finding(ValidationSeverity.Error,
+                "A script has a line that starts with '@. Sent from the build agent, the rest of that script would run on the agent, not on the server.",
+                nameof(PipelineDefinition.Deployment),
+                "Remove that line, or let an agent on each server deploy.");
         }
     }
 

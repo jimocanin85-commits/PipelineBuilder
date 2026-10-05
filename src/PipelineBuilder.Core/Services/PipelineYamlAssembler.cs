@@ -160,11 +160,11 @@ public sealed class PipelineYamlAssembler
 
         // Without dependsOn a stage follows the one before it, which is the last deployment.
         if (successSteps.Count > 0)
-            AppendNotifyStage("Notify_Success", "Notify on success", dependsOn: null, "succeeded()", successSteps);
+            AppendNotifyStage("Notify_Success", "Notify on success", dependsOn: null, $"and(succeeded(), {DeploymentStageGenerator.NotPullRequest})", successSteps);
 
         // Depend directly on every stage so failed() is true whichever one failed.
         if (failureSteps.Count > 0)
-            AppendNotifyStage("Notify_Failure", "Notify on failure", DeploymentStageGenerator.AllStagesDependsOn, "failed()", failureSteps);
+            AppendNotifyStage("Notify_Failure", "Notify on failure", DeploymentStageGenerator.AllStagesDependsOn, $"and(failed(), {DeploymentStageGenerator.NotPullRequest})", failureSteps);
 
         return this;
     }

@@ -37,7 +37,7 @@ public sealed class IisDeploymentHandler : DeploymentKindHandler
             ServerScript.Step(deployment, ScriptShell.PowerShell, $$"""
 $ErrorActionPreference = 'Stop'
 $site = {{YamlBuilder.PsLiteral(deployment.WebsiteNameOrDefault)}}
-$package = {{YamlBuilder.PsLiteral(packagePath)}}
+$package = {{ServerScript.PathLiteral(ScriptShell.PowerShell, packagePath)}}
 $target = $null
 {{PowerShellSnippets.ResolveIisSitePath}}
 {{PowerShellSnippets.SyncFolderFunction}}

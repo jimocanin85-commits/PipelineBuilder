@@ -18,7 +18,8 @@
                     <p class="signed-in">Signed in as <strong>@context.User.Identity?.Name</strong></p>
                 </Authorized>
             </AuthorizeView>
-            <button type="button" class="theme-toggle" onclick="pipelineBuilder.toggleTheme()" aria-label="Switch between light and dark">
+            @* js/theme.js listens for the click. *@
+            <button type="button" class="theme-toggle" aria-label="Switch between light and dark">
                 <svg viewBox="0 0 24 24" aria-hidden="true">
                     <circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2" />
                     <path d="M12 3a9 9 0 0 1 0 18z" fill="currentColor" />

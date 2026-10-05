@@ -24,3 +24,6 @@ Thumbs.db
 *.log
 build.log
 git-setup.log
+
+## Node (browser test)
+node_modules/

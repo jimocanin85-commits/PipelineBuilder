@@ -1,0 +1,8 @@
+{
+  "name": "pipelinebuilder-browser-test",
+  "private": true,
+  "type": "module",
+  "description": "Opens the running app in Chrome and clicks through the wizard. Run by the CI workflow.",
+  "scripts": { "test": "node wizard.mjs" },
+  "dependencies": { "playwright-core": "1.56.0" }
+}

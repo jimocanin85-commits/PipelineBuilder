@@ -6,10 +6,11 @@
     <base href="/" />
     <title>PipelineBuilder - Azure DevOps pipelines</title>
     <ResourcePreloader />
+    <link rel="icon" type="image/svg+xml" href="@Assets["favicon.svg"]" />
     <link rel="stylesheet" href="@Assets["app.css"]" />
     @* Applies a theme chosen earlier before the page is drawn, so it does not flash. *@
-    <script>try { var theme = localStorage.getItem('pipelinebuilder-theme'); if (theme) document.documentElement.dataset.theme = theme; } catch (e) { }</script>
-    <ImportMap />
+    <script src="@Assets["js/theme.js"]"></script>
+    @* No import map: it would be a script written into the page, which the Content-Security-Policy does not run. The app imports no modules. *@
     <HeadOutlet />
 </head>
 <body>

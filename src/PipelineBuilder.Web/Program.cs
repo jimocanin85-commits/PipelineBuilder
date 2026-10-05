@@ -11,6 +11,7 @@ builder.Services.AddScoped<WizardState>();
 var windowsLogin = builder.AddPipelineBuilderAuthentication();
 
 var app = builder.Build();
+app.UseSecurityHeaders();
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Error", createScopeForErrors: true);

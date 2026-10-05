@@ -37,7 +37,23 @@ On the Where step you choose who runs the deployment.
 - a variable per environment that names its servers: `SERVERS_TEST`, `SERVERS_PREPROD`, `SERVERS_PROD`, e.g. `web01, web02`;
 - for Windows servers: a Windows agent, PowerShell remoting (WinRM) enabled on the servers, and the agent's account in their Administrators group;
 - for Linux servers: `ssh` and `scp` on the agent (built into Windows Server 2019 and later), the agent account's public SSH key on the servers, and the `SSH_USER` variable;
+- for Linux servers, also: log in once from the agent to each server with `ssh`, so the agent knows the server. A server the agent does not know is refused;
 - for Docker: each server logged in to your registry once with `docker login`.
+
+## What the pipeline does to stay safe
+
+- **A pull request is built and tested, but never deployed.** Its code has not been reviewed yet, so it does not reach a server or a stage that holds secrets.
+- **Only the release branch is deployed to prod.**
+- **Secrets are never written in the file.** They are secret variables or come from Key Vault, and a script gets them through its environment.
+- **Text from the run is never run as code.** The build number and the pipeline's name are read as plain text.
+- **On your servers, the package lies in the login account's own folder**, not in a shared one such as `/tmp` or `C:\ProgramData`, where another account could change it before it is installed.
+- **A variable that is not set stops the deployment.** Nothing is copied to, or deleted from, the wrong folder.
+
+Three things only you can set, in Azure DevOps:
+
+1. An **approval** on the prod environment (Approvals and checks).
+2. A **branch control** check on each environment, so only your protected branches can deploy to it.
+3. Who may **start the pipeline by hand**. They can pick which environments a run deploys to. The approval on prod still applies.
 
 ## Variables
 
