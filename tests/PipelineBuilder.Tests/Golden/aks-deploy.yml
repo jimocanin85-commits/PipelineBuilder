@@ -28,7 +28,7 @@ pool:
   vmImage: 'ubuntu-latest'
 
 stages:
-# Build: build the Docker image once and push it. Every environment gets the same image.
+# Build once, deploy many: the Docker image is built and pushed here. Every environment gets this same image.
 - stage: Build
   displayName: 'Build'
   jobs:
@@ -43,7 +43,7 @@ stages:
           dockerfile: '**/Dockerfile'
           containerRegistry: '$(DOCKER_SERVICE_CONNECTION)'
           tags: '$(Build.BuildId)'
-# Deploy: this stage is repeated for each environment, one after the other.
+# Deploy: repeated for each environment, one after the other. Nothing is built again.
 - ${{ each environment in parameters.environments }}:
   - stage: Deploy_${{ replace(environment, '-', '_') }}
     displayName: 'Deploy ${{ environment }}'

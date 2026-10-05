@@ -28,7 +28,7 @@ pool:
   vmImage: 'ubuntu-latest'
 
 stages:
-# Build: compile, test and package once. Every environment gets the same package.
+# Build once, deploy many: the app is compiled, tested and packaged here. Every environment gets this same package.
 - stage: Build
   displayName: 'Build'
   jobs:
@@ -69,7 +69,7 @@ stages:
           targetPath: '$(Build.ArtifactStagingDirectory)/app'
           artifactName: 'drop'
           publishLocation: 'pipeline'
-# Deploy: this stage is repeated for each environment, one after the other.
+# Deploy: repeated for each environment, one after the other. Nothing is built again.
 - ${{ each environment in parameters.environments }}:
   - stage: Deploy_${{ replace(environment, '-', '_') }}
     displayName: 'Deploy ${{ environment }}'
