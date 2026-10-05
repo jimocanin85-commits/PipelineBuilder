@@ -29,6 +29,12 @@ Web  →  Core
 2. Add a class in `Deployment/` and list it in `DeploymentKindRegistry`.
 3. Add its fields in `TargetStep.razor`, and a template in `templates.json`.
 
+A script that runs on a server is created with `ServerScript.Step`. It becomes an ordinary step when an agent on the server deploys, and is sent over WinRM or SSH when the build agent deploys. Write the script once; do not handle the two cases yourself.
+
+## Generated scripts
+
+The tests cannot run the scripts, but `GeneratedScriptSyntaxTests` parses every one of them: PowerShell with PowerShell's parser (and only what Windows PowerShell 5.1 can run), bash with `bash -n`. It needs `pwsh` and `bash`; CI has both.
+
 ## Add a check
 
 Add one line and one method in `Validation/InputRules.cs` (blocks generation) or `Validation/PolicyRules.cs` (advice and governance).
