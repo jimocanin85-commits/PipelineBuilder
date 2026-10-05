@@ -51,23 +51,23 @@ public class ApprovalTests : BunitContext
     {
         var yaml = Yaml(WithApproval("preprod"));
 
-        Assert.Contains("      # A person must approve before this stage deploys to preprod.\n" +
-                        "      - ${{ if in(environment, 'preprod') }}:\n" +
-                        "        - job: Approve\n" +
-                        "          displayName: 'Wait for approval'\n" +
-                        "          pool: server\n" +
-                        "          timeoutInMinutes: 1445\n", yaml);
-        Assert.Contains("          - task: ManualValidation@0\n" +
-                        "            displayName: 'Approve the deployment to ${{ environment }}'\n" +
-                        "            timeoutInMinutes: 1440\n" +
-                        "            inputs:\n" +
-                        "              notifyUsers: ''\n" +
-                        "              instructions: 'Resume to deploy build $(Build.BuildNumber) to ${{ environment }}. Reject to stop here.'\n" +
-                        "              onTimeout: 'reject'\n", yaml);
-        Assert.Contains("      - deployment: Deploy\n" +
-                        "        displayName: 'Deploy to ${{ environment }}'\n" +
-                        "        ${{ if in(environment, 'preprod') }}:\n" +
-                        "          dependsOn: Approve\n", yaml);
+        Assert.Contains("    # A person must approve before this stage deploys to preprod.\n" +
+                        "    - ${{ if in(environment, 'preprod') }}:\n" +
+                        "      - job: Approve\n" +
+                        "        displayName: 'Wait for approval'\n" +
+                        "        pool: server\n" +
+                        "        timeoutInMinutes: 1445\n", yaml);
+        Assert.Contains("        - task: ManualValidation@0\n" +
+                        "          displayName: 'Approve the deployment to ${{ environment }}'\n" +
+                        "          timeoutInMinutes: 1440\n" +
+                        "          inputs:\n" +
+                        "            notifyUsers: ''\n" +
+                        "            instructions: 'Resume to deploy build $(Build.BuildNumber) to ${{ environment }}. Reject to stop here.'\n" +
+                        "            onTimeout: 'reject'\n", yaml);
+        Assert.Contains("    - deployment: Deploy\n" +
+                        "      displayName: 'Deploy to ${{ environment }}'\n" +
+                        "      ${{ if in(environment, 'preprod') }}:\n" +
+                        "        dependsOn: Approve\n", yaml);
         Assert.DoesNotContain("approvers:", yaml);
     }
 
