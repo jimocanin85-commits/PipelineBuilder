@@ -3,19 +3,29 @@
 
 <h2>What are you deploying?</h2>
 <p class="lead">Pick the closest match. Every detail can be changed on the next steps.</p>
-<ul class="template-grid">
-    @foreach (var t in Templates.GetAllTemplates())
+@* Grouped by where the app runs, so ten choices read as four. *@
+@foreach (var group in Groups)
+{
+    var templates = Templates.GetAllTemplates().Where(t => GroupOf(t) == group).ToList();
+    if (templates.Count == 0)
     {
-        var applied = Wizard.Definition.TemplateId == t.Id;
-        <li>
-            <button type="button" class="template @(applied ? "applied" : "")" data-template="@t.Id"
-                    aria-pressed="@(applied ? "true" : "false")" @onclick="() => Apply(t.Id)">
-                <strong>@t.Name</strong>
-                <span>@t.Description</span>
-            </button>
-        </li>
+        continue;
     }
-</ul>
+    <h3 class="group">@group</h3>
+    <ul class="template-grid">
+        @foreach (var t in templates)
+        {
+            var applied = Wizard.Definition.TemplateId == t.Id;
+            <li>
+                <button type="button" class="template @(applied ? "applied" : "")" data-template="@t.Id"
+                        aria-pressed="@(applied ? "true" : "false")" @onclick="() => Apply(t.Id)">
+                    <strong>@t.Name</strong>
+                    <span>@t.Description</span>
+                </button>
+            </li>
+        }
+    </ul>
+}
 
 <div class="fields">
     <Field For="pipeline-name" Label="Name" Hint="A short name for the app, e.g. orders-api.">
@@ -50,8 +60,6 @@
     }
 </div>
 
-<PipelineSummary Pipeline="Pipeline" />
-
 <div class="load-settings">
     <label for="settings-file">Open saved settings</label>
     <InputFile id="settings-file" accept=".json,application/json" OnChange="LoadSettings" />
@@ -63,8 +71,15 @@
 </div>
 
 @code {
-    /// <summary>The generated pipeline, passed in so this step is redrawn whenever it changes.</summary>
-    [Parameter] public GeneratedPipeline? Pipeline { get; set; }
+    private static readonly string[] Groups = { "Windows servers", "Linux servers", "Containers", "Your own tooling" };
+
+    private static string GroupOf(PipelineTemplate template) => template.Settings.DeploymentKind switch
+    {
+        DeploymentKind.Iis or DeploymentKind.WindowsService or DeploymentKind.FileShare => Groups[0],
+        DeploymentKind.LinuxService => Groups[1],
+        DeploymentKind.DockerContainer or DeploymentKind.Kubernetes => Groups[2],
+        _ => Groups[3]
+    };
 
     private void Apply(string templateId)
     {

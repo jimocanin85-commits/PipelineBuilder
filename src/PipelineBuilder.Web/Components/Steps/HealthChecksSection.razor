@@ -22,15 +22,18 @@
                 <Field For="@($"{id}-url")" Label="Address" Hint="{environment} is replaced with each environment's name.">
                     <InputText id="@($"{id}-url")" @bind-Value="hc.Url" class="form-control" placeholder="https://myapp-{environment}.contoso.com/health" />
                 </Field>
-                <Field For="@($"{id}-status")" Label="Expected status code">
-                    <InputNumber id="@($"{id}-status")" @bind-Value="hc.ExpectedStatusCode" class="form-control narrow" />
-                </Field>
-                <Field For="@($"{id}-timeout")" Label="Seconds to wait for an answer">
-                    <InputNumber id="@($"{id}-timeout")" @bind-Value="hc.TimeoutSeconds" class="form-control narrow" />
-                </Field>
-                <Field For="@($"{id}-retries")" Label="Attempts" Hint="The app may need a moment to start, so the check tries again.">
-                    <InputNumber id="@($"{id}-retries")" @bind-Value="hc.RetryCount" class="form-control narrow" />
-                </Field>
+                <div class="fields three">
+                    <Field For="@($"{id}-status")" Label="Expected status code">
+                        <InputNumber id="@($"{id}-status")" @bind-Value="hc.ExpectedStatusCode" class="form-control narrow" />
+                    </Field>
+                    <Field For="@($"{id}-timeout")" Label="Seconds to wait">
+                        <InputNumber id="@($"{id}-timeout")" @bind-Value="hc.TimeoutSeconds" class="form-control narrow" />
+                    </Field>
+                    <Field For="@($"{id}-retries")" Label="Attempts">
+                        <InputNumber id="@($"{id}-retries")" @bind-Value="hc.RetryCount" class="form-control narrow" />
+                    </Field>
+                </div>
+                <p class="hint">The app may need a moment to start, so the check tries again until it has used its attempts.</p>
                 break;
             case HealthCheckType.IisAppPool:
                 <Field For="@($"{id}-pool")" Label="App pool">

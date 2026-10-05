@@ -56,10 +56,10 @@ public class WizardPageTests : BunitContext
     {
         var cut = Render<Home>();
         GoTo(cut, WizardStep.Target);
-        Assert.Equal("test → preprod → prod", cut.Find("#environment-order").TextContent);
+        Assert.Equal(new[] { "test", "preprod", "prod" }, cut.FindAll("#environment-order li").Select(e => e.TextContent));
 
         cut.Find("#skip-preprod").Change(true);
-        Assert.Equal("test → prod", cut.Find("#environment-order").TextContent);
+        Assert.Equal(new[] { "test", "prod" }, cut.FindAll("#environment-order li").Select(e => e.TextContent));
         Assert.Equal("test, prod", cut.Find("#environments").GetAttribute("value"));
         GoTo(cut, WizardStep.Result);
         Assert.DoesNotContain("preprod", cut.Find(".yaml-preview").TextContent);
@@ -127,6 +127,93 @@ public class WizardPageTests : BunitContext
                 Assert.True(labelled, $"An input on the {step} step has no label: {input.OuterHtml}");
             }
         }
+    }
+
+    [Theory]
+    [MemberData(nameof(AllSteps))]
+    public void ThePipelineIsInViewOnEveryStep(WizardStep step)
+    {
+        var cut = Render<Home>();
+
+        GoTo(cut, step);
+
+        Assert.Equal(new[] { "Build", "test", "preprod", "prod" }, cut.FindAll(".wizard-side .flow li strong").Select(e => e.TextContent));
+        Assert.NotEmpty(cut.FindAll(".wizard-side .needs-list li[data-need='Environment']"));
+    }
+
+    [Fact]
+    public void ThePipelinePanelFollowsTheSafetyChoices()
+    {
+        var cut = Render<Home>();
+        GoTo(cut, WizardStep.Safety);
+        Assert.Contains("A failed deployment is rolled back", cut.Find(".wizard-side").TextContent);
+        Assert.Contains("Approval", cut.Find(".wizard-side .flow .pill").TextContent);
+        Assert.Contains("Only from main", cut.Find(".wizard-side .flow").TextContent);
+
+        cut.Find("#rollback-enabled").Change(false);
+        cut.Find("#add-health-check").Click();
+        cut.Find(".card input[placeholder^='https://']").Change("https://my-app.contoso.com/health");
+
+        Assert.DoesNotContain("rolled back", cut.Find(".wizard-side").TextContent);
+        Assert.Contains("Deploy, then health check", cut.Find(".wizard-side .flow").TextContent);
+    }
+
+    [Fact]
+    public void ThePipelinePanelSaysWhatToDoWhenTheSettingsAreInvalid()
+    {
+        var cut = Render<Home>();
+        GoTo(cut, WizardStep.Target);
+
+        cut.Find("#environments").Change("Bad Name");
+
+        Assert.Empty(cut.FindAll(".wizard-side .flow"));
+        Assert.Contains("Fix the settings marked with !", cut.Find(".wizard-side").TextContent);
+    }
+
+    [Fact]
+    public void TemplatesAreGroupedByWhereTheAppRuns()
+    {
+        var cut = Render<Home>();
+
+        Assert.Equal(new[] { "Windows servers", "Linux servers", "Containers", "Your own tooling" },
+            cut.FindAll("h3.group").Select(e => e.TextContent));
+        Assert.Equal(TemplateCatalogue.LoadBuiltIn().Count, cut.FindAll("button[data-template]").Count);
+        Assert.Equal(new[] { "iis-onprem", "windows-service-onprem", "windows-files" },
+            cut.FindAll(".template-grid")[0].QuerySelectorAll("button").Select(b => b.GetAttribute("data-template")));
+    }
+
+    [Fact]
+    public void TheNextButtonSaysWhereItLeads()
+    {
+        var cut = Render<Home>();
+        Assert.Equal("Next: Where", cut.Find("#next").TextContent);
+        Assert.True(cut.Find("#back").HasAttribute("disabled"));
+
+        cut.Find("#next").Click();
+        cut.Find("#next").Click();
+        Assert.Equal("Next: Result", cut.Find("#next").TextContent);
+
+        cut.Find("#next").Click();
+        Assert.True(cut.Find("#next").HasAttribute("disabled"));
+        cut.Find("#back").Click();
+        Assert.Contains("active", cut.Find($"button[data-step='{WizardStep.Safety}']").ClassList);
+    }
+
+    [Fact]
+    public void TheYamlIsShownLineByLineWithItsCommentsSetApart()
+    {
+        var cut = Render<Home>();
+        GoTo(cut, WizardStep.Result);
+
+        var lines = cut.FindAll(".yaml-preview .line");
+        Assert.StartsWith("# Made with PipelineBuilder", lines[0].TextContent);
+        Assert.Contains("comment", lines[0].ClassList);
+        Assert.Contains(lines, line => line.TextContent == "trigger:" && !line.ClassList.Contains("comment"));
+
+        // The text is the file itself: nothing added, nothing lost.
+        cut.Find("#copy-yaml").Click();
+        var copied = (string)JSInterop.VerifyInvoke("pipelineBuilder.copyText").Arguments[0]!;
+        Assert.Equal(copied.ReplaceLineEndings("\n"), cut.Find(".yaml-preview").TextContent);
     }
 
     [Fact]

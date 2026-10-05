@@ -1,21 +1,33 @@
 @inject WizardState Wizard
+@inject IDeploymentKinds DeploymentKinds
 
-@* The pipeline at a glance: its stages, and what it needs in Azure DevOps. *@
-@if (Pipeline is { } result)
-{
-    <div class="result">
-        <h3>Your Azure DevOps pipeline</h3>
+@* The pipeline at a glance, beside every step: its stages from top to bottom, then what it needs in Azure DevOps. *@
+<div class="result">
+    <h3>Your pipeline</h3>
+    @if (Pipeline is { } result)
+    {
         <ol class="flow">
-            <li><strong>Build</strong><span>Build, test, package</span></li>
+            <li><strong>Build</strong><span>@BuildText</span></li>
             @foreach (var env in Wizard.Definition.Environments)
             {
-                <li><strong>@env</strong><span>@(EnvironmentNames.IsProduction(env) ? "Approval, deploy" : "Deploy")</span></li>
+                if (EnvironmentNames.IsProduction(env))
+                {
+                    <li><strong>@env</strong><span class="pill">Approval</span><span>Only from @Wizard.Definition.ReleaseBranch. @DeployText</span></li>
+                }
+                else
+                {
+                    <li><strong>@env</strong><span>@DeployText</span></li>
+                }
             }
             @if (Wizard.Definition.Notifications.Count > 0)
             {
                 <li><strong>Notify</strong><span>@string.Join(", ", Wizard.Definition.Notifications.Select(n => NotificationName(n.NotificationType)).Distinct())</span></li>
             }
         </ol>
+        @if (RollsBack)
+        {
+            <p class="rail-note">A failed deployment is rolled back.</p>
+        }
         <ul class="needs-list">
             <li>Needs in Azure DevOps</li>
             @* Grouped by where in Azure DevOps each thing is created. *@
@@ -35,12 +47,25 @@
                 }
             }
         </ul>
-    </div>
-}
+    }
+    else
+    {
+        <p class="hint">Fix the settings marked with ! to see the pipeline.</p>
+    }
+</div>
 
 @code {
     /// <summary>The generated pipeline. A parameter, so the summary is redrawn whenever the settings change.</summary>
     [Parameter] public GeneratedPipeline? Pipeline { get; set; }
+
+    private string BuildText =>
+        Wizard.Definition.Artifact.ArtifactType == ArtifactType.DockerImage ? "Build and push the image" : "Compile, test, package";
+
+    private string DeployText =>
+        Wizard.Definition.HealthChecks.Any(check => check.Enabled) ? "Deploy, then health check" : "Deploy";
+
+    private bool RollsBack =>
+        Wizard.Definition.Rollback.Enabled && DeploymentKinds.For(Wizard.Definition.Deployment.Kind).SupportsRollback;
 
     private static string NotificationName(NotificationType type) => type switch
     {
