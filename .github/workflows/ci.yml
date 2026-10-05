@@ -10,6 +10,21 @@ permissions:
   contents: read
 
 jobs:
+  # Catches common misspellings in the code, the texts shown to users and the docs.
+  spelling:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Check spelling
+        run: |
+          pip install --quiet codespell
+          codespell src tests docs deploy README.md .github --skip="*/bin/*,*/obj/*" > spelling.log || {
+            echo "::error title=Spelling::$(sed ':a;N;$!ba;s/\n/%0A/g' spelling.log | head -c 6000)"
+            cat spelling.log
+            exit 1
+          }
+
   build-and-test:
     runs-on: ubuntu-latest
     env:

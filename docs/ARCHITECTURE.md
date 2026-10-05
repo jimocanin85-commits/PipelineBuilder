@@ -1,4 +1,4 @@
-# How the code is organised
+# How the code is organized
 
 Two projects:
 

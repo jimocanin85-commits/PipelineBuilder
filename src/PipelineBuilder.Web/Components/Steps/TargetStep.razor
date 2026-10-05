@@ -10,12 +10,12 @@
         <li><span>@environment</span></li>
     }
 </ol>
-<p class="hint">The pipeline deploys to them in this order, and stops when a deployment fails.</p>
+<p class="hint">Deployed in this order. If one fails, the rest are skipped.</p>
 <details class="explain">
     <summary>What is an environment?</summary>
     <p>@Help.Environment</p>
 </details>
-<label class="check"><InputCheckbox id="skip-preprod" @bind-Value="Wizard.SkipPreprod" /> We have no preprod: go straight from test to prod</label>
+<label class="check"><InputCheckbox id="skip-preprod" @bind-Value="Wizard.SkipPreprod" /> We have no preprod</label>
 
 @* An approval between two environments. The first environment has nothing before it to wait for. *@
 @for (var i = 1; i < Wizard.Definition.Environments.Count; i++)
@@ -30,19 +30,19 @@
 }
 @if (Wizard.Definition.Environments.Skip(1).Any(Wizard.WaitsForApproval))
 {
-    <p class="hint">The pipeline stops there and sends an email. It goes on when an approver presses Resume, and stops for good when the waiting time is up.</p>
+    <p class="hint">The pipeline waits there and sends an email. It continues when someone approves.</p>
     <details class="explain">
         <summary>How is this different from an approval on the environment?</summary>
         <p>@Help.ApprovalInFile</p>
     </details>
     <div class="fields">
-        <Field For="approvers" Label="Who may approve" Hint="Users or groups, comma-separated. Empty means everyone who may start the pipeline.">
+        <Field For="approvers" Label="Who may approve" Hint="Users or groups, separated by commas. Empty means anyone who can start the pipeline.">
             <InputText id="approvers" @bind-Value="Wizard.Definition.Approval.Approvers" class="form-control" placeholder="[Our project]\Release approvers" />
         </Field>
-        <Field For="approval-notify" Label="Who gets the email" Hint="Users or groups, comma-separated.">
+        <Field For="approval-notify" Label="Who gets the email" Hint="Users or groups, separated by commas.">
             <InputText id="approval-notify" @bind-Value="Wizard.Definition.Approval.NotifyUsers" class="form-control" placeholder="lead@contoso.com" />
         </Field>
-        <Field For="approval-wait" Label="Hours to wait" Hint="Without an answer in that time, the deployment is rejected.">
+        <Field For="approval-wait" Label="Hours to wait" Hint="With no answer in this time, the deployment is stopped.">
             <InputNumber id="approval-wait" @bind-Value="Wizard.Definition.Approval.WaitHours" class="form-control narrow" />
         </Field>
     </div>
@@ -51,27 +51,27 @@
 <h3>@KindTitle</h3>
 @if (Wizard.Definition.Deployment.Kind == DeploymentKind.Ansible)
 {
-    <p class="hint">Your playbook runs once per environment, on a Linux agent that has Ansible installed and can reach your servers. Ansible does not run on Windows agents.</p>
+    <p class="hint">The playbook runs once for each environment. It needs a Linux agent with Ansible that can reach your servers.</p>
 }
 <div class="fields">
     @switch (Wizard.Definition.Deployment.Kind)
     {
         case DeploymentKind.Iis:
-            <Field For="website" Label="IIS website" Hint="The site's name in IIS Manager. Its files are replaced with the new version.">
+            <Field For="website" Label="IIS website" Hint="The name in IIS Manager. Its files are replaced.">
                 <InputText id="website" @bind-Value="Wizard.Definition.Deployment.WebsiteName" class="form-control" placeholder="Default Web Site" />
             </Field>
             break;
         case DeploymentKind.WindowsService:
         case DeploymentKind.LinuxService:
-            <Field For="service" Label="Service name" Hint="The service is stopped, its files are replaced, and it is started again.">
+            <Field For="service" Label="Service name" Hint="The service is stopped, updated and started again.">
                 <InputText id="service" @bind-Value="Wizard.Definition.Deployment.ServiceName" class="form-control" placeholder="$(SERVICE_NAME)" />
             </Field>
-            <Field For="install-path" Label="Install folder" Hint="The folder on the server that the service runs from.">
+            <Field For="install-path" Label="Install folder" Hint="Where the service's files are on the server.">
                 <InputText id="install-path" @bind-Value="Wizard.Definition.Deployment.TargetPath" class="form-control" placeholder="@InstallFolderExample" />
             </Field>
             break;
         case DeploymentKind.FileShare:
-            <Field For="share" Label="Target folder or share" Hint="The folder is made identical to the build: files that are no longer in the build are deleted.">
+            <Field For="share" Label="Target folder or share" Hint="The folder becomes an exact copy of the build. Other files in it are deleted.">
                 <InputText id="share" @bind-Value="Wizard.Definition.Deployment.TargetPath" class="form-control" placeholder="\\server\share\app" />
             </Field>
             break;
@@ -82,17 +82,17 @@
                     <option value="@ServerOs.Windows">Windows</option>
                 </InputSelect>
             </Field>
-            <Field For="container" Label="Container name" Hint="A running container with this name is replaced by the new one.">
+            <Field For="container" Label="Container name" Hint="The container with this name is replaced.">
                 <InputText id="container" @bind-Value="Wizard.Definition.Deployment.ContainerName" class="form-control" placeholder="$(CONTAINER_NAME)" />
             </Field>
-            <Field For="container-ports" Label="Ports (host:container)" Hint="Without a port, nothing outside the server can reach the container.">
+            <Field For="container-ports" Label="Ports (host:container)" Hint="Without a port, the container cannot be reached from outside the server.">
                 <InputText id="container-ports" @bind-Value="Wizard.ContainerPorts" class="form-control" placeholder="8080:80" />
             </Field>
             <Field For="registry-connection" Label="Registry service connection" Hint="The connection's name, not the registry's address." More="@Help.ServiceConnection">
                 <InputText id="registry-connection" @bind-Value="Wizard.Definition.Artifact.ContainerRegistryConnection" class="form-control" placeholder="$(DOCKER_SERVICE_CONNECTION)" />
             </Field>
             <Field For="container-env" Label="Environment variables" Wide="true"
-                   Hint="One NAME=value per line. For a password, point to a secret variable instead of typing it: API_KEY=$(API_KEY).">
+                   Hint="One NAME=value per line. Never type a password here. Use a secret variable: API_KEY=$(API_KEY).">
                 <InputTextArea id="container-env" @bind-Value="Wizard.ContainerEnvironment" class="form-control" rows="3" />
             </Field>
             break;
@@ -100,13 +100,13 @@
             <Field For="k8s-connection" Label="Kubernetes service connection" Hint="The connection's name." More="@Help.ServiceConnection">
                 <InputText id="k8s-connection" @bind-Value="Wizard.Definition.Deployment.KubernetesServiceConnection" class="form-control" placeholder="$(K8S_SERVICE_CONNECTION)" />
             </Field>
-            <Field For="k8s-namespace" Label="Namespace" Hint="The namespace the manifests are applied to.">
+            <Field For="k8s-namespace" Label="Namespace" Hint="Where in the cluster the app runs.">
                 <InputText id="k8s-namespace" @bind-Value="Wizard.Definition.Deployment.KubernetesNamespace" class="form-control" placeholder="$(K8S_NAMESPACE)" />
             </Field>
-            <Field For="k8s-manifests" Label="Manifests in the repository" Hint="Your Kubernetes YAML files. The image in them is swapped for the one built by this run.">
+            <Field For="k8s-manifests" Label="Manifests in the repository" Hint="Your Kubernetes files. The pipeline puts in the new image.">
                 <InputText id="k8s-manifests" @bind-Value="Wizard.Definition.Deployment.ManifestsPath" class="form-control" placeholder="manifests/*.yaml" />
             </Field>
-            <Field For="k8s-deployment" Label="Deployment name" Hint="Used to roll back when a deployment fails.">
+            <Field For="k8s-deployment" Label="Deployment name" Hint="Used to roll back if the deployment fails.">
                 <InputText id="k8s-deployment" @bind-Value="Wizard.Definition.Deployment.KubernetesDeploymentName" class="form-control" placeholder="$(K8S_DEPLOYMENT)" />
             </Field>
             <Field For="registry-connection" Label="Registry service connection" Hint="The connection's name, not the registry's address." More="@Help.ServiceConnection">
@@ -114,16 +114,16 @@
             </Field>
             break;
         case DeploymentKind.Ansible:
-            <Field For="playbook" Label="Playbook" Hint="Its path in your repository." More="@Help.AnsibleValues">
+            <Field For="playbook" Label="Playbook" Hint="Where the playbook is in your repository." More="@Help.AnsibleValues">
                 <InputText id="playbook" @bind-Value="Wizard.Definition.Deployment.PlaybookPath" class="form-control" placeholder="site.yml" />
             </Field>
-            <Field For="inventory" Label="Inventory" Hint="{environment} is replaced with each environment's name, so test and prod can have their own servers.">
+            <Field For="inventory" Label="Inventory" Hint="{environment} becomes test, preprod or prod, so each can have its own servers.">
                 <InputText id="inventory" @bind-Value="Wizard.Definition.Deployment.InventoryPath" class="form-control" placeholder="inventories/{environment}" />
             </Field>
-            <Field For="ansible-pool" Label="Linux agent pool" Hint="Fill it in when the build runs on a Windows agent. Empty means the build's agent.">
+            <Field For="ansible-pool" Label="Linux agent pool" Hint="Only needed when you build on Windows. Empty means the same agent as the build.">
                 <InputText id="ansible-pool" @bind-Value="Wizard.Definition.Deployment.AgentPool" class="form-control" />
             </Field>
-            <Field For="ansible-key" Label="SSH key (secure file)" Hint="Empty means the agent already has a key for the servers." More="@Help.SecureFile">
+            <Field For="ansible-key" Label="SSH key (secure file)" Hint="Empty means the agent already has access to the servers." More="@Help.SecureFile">
                 <InputText id="ansible-key" @bind-Value="Wizard.Definition.Deployment.AnsibleSshKeyFile" class="form-control" />
             </Field>
             break;
@@ -157,7 +157,7 @@
         </Field>
         @if (FromAgent && LinuxServers)
         {
-            <Field For="ssh-user" Label="SSH user" Hint="The account on the servers that the build agent logs in as.">
+            <Field For="ssh-user" Label="SSH user" Hint="The user the build agent logs in as on the servers.">
                 <InputText id="ssh-user" @bind-Value="Wizard.Definition.Deployment.SshUser" class="form-control" placeholder="$(SSH_USER)" />
             </Field>
         }
@@ -184,13 +184,13 @@
     <summary>More settings</summary>
 
     <h3>Environment names</h3>
-    <Field For="environments" Label="Environments, in order" Hint="Change them only if yours are called something else. Use lowercase letters, digits and hyphens.">
+    <Field For="environments" Label="Environments, in order" Hint="Only change these if yours have other names. Use small letters, digits and hyphens.">
         <InputText id="environments" @bind-Value="Wizard.EnvironmentsCsv" class="form-control" placeholder="test, preprod, prod" />
     </Field>
 
     <h3>Build agent</h3>
     <label class="check"><InputCheckbox id="self-hosted" @bind-Value="SelfHosted" /> Build on our own agent pool</label>
-    <p class="hint">Needed when the build must reach things inside your network. Otherwise Microsoft's agents build.</p>
+    <p class="hint">Tick this if the build needs access to your network. Otherwise Microsoft's agents are used.</p>
     @if (SelfHosted)
     {
         <Field For="pool-name" Label="Agent pool" Hint="Its name under Project settings → Agent pools.">
@@ -199,13 +199,13 @@
     }
 
     <h3>Branches</h3>
-    <Field For="release-branch" Label="Release branch" Hint="Only this branch deploys to prod. Other branches stop after the environments before it.">
+    <Field For="release-branch" Label="Release branch" Hint="Only this branch is deployed to prod.">
         <InputText id="release-branch" @bind-Value="Wizard.Definition.ReleaseBranch" class="form-control" placeholder="main" />
     </Field>
-    <Field For="include-branches" Label="Branches that start the pipeline" Hint="Comma-separated, e.g. main, release/*.">
+    <Field For="include-branches" Label="Branches that start the pipeline" Hint="Separated by commas, e.g. main, release/*.">
         <InputText id="include-branches" @bind-Value="Wizard.IncludeBranches" class="form-control" placeholder="main, release/*" />
     </Field>
-    <Field For="path-filters" Label="Only when these paths change" Hint="Optional. Put ! in front of a path to leave it out, e.g. src/*, !docs/*.">
+    <Field For="path-filters" Label="Only when these paths change" Hint="Optional. Put ! in front of a path to skip it, e.g. src/*, !docs/*.">
         <InputText id="path-filters" @bind-Value="Wizard.PathFilters" class="form-control" placeholder="src/*, !docs/*" />
     </Field>
 
@@ -231,7 +231,7 @@
 
     <h3>Key Vault</h3>
     <label class="check"><InputCheckbox id="keyvault-enabled" @bind-Value="Wizard.KeyVaultEnabled" /> Load secrets from Azure Key Vault before deploying</label>
-    <p class="hint">Each secret in the vault becomes a variable with the secret's name.</p>
+    <p class="hint">Each secret becomes a variable with the same name.</p>
     @if (Wizard.KeyVaultEnabled)
     {
         <div class="fields">
@@ -271,15 +271,15 @@
         get
         {
             if (!FromAgent)
-                return "Each server has its own Azure DevOps agent and updates itself: Windows servers with Windows PowerShell, Linux servers with bash.";
+                return "Each server has its own Azure DevOps agent and updates itself.";
 
             var how = LinuxServers
-                ? "The build agent connects to each server with SSH, using its own SSH key."
-                : "A Windows build agent connects to each server with PowerShell remoting (WinRM), as the account the agent runs as.";
+                ? "The build agent connects to each server with SSH, one server at a time."
+                : "A Windows build agent connects to each server with PowerShell remoting (WinRM), one server at a time.";
             var docker = Wizard.Definition.Deployment.Kind == DeploymentKind.DockerContainer
-                ? " Log each server in to your registry once with docker login."
+                ? " Run docker login once on each server."
                 : string.Empty;
-            return how + " The servers are updated one at a time, and are named in variables listed on the Result step." + docker;
+            return how + " You name the servers in variables; the Result step lists them." + docker;
         }
     }
 

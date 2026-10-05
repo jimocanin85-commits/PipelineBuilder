@@ -94,7 +94,7 @@ public sealed class DeploymentStageGenerator
         stage.Append(ApprovalGate.Job(definition, EnvironmentToken));
         stage.Append(DeploymentJob(definition)).Append('\n');
 
-        return "# Deploy: this stage is repeated for each environment, one after the other.\n" +
+        return "# Deploy: repeated for each environment, one after the other. Nothing is built again.\n" +
                "- " + ForEachEnvironment + "\n" + YamlBuilder.Indent(stage.ToString().TrimEnd(), 2);
     }
 

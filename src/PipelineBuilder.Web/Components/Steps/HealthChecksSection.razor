@@ -1,7 +1,7 @@
 @inject WizardState Wizard
 
 <h3>Health checks</h3>
-<p class="hint">A check runs after each deployment and asks: is the app working? If not, the deployment fails and is rolled back.</p>
+<p class="hint">A check runs after each deployment. If the app does not answer, the deployment is rolled back.</p>
 @for (var i = 0; i < Wizard.HealthChecks.Count; i++)
 {
     var hc = Wizard.HealthChecks[i];
@@ -19,7 +19,7 @@
         @switch (hc.HealthCheckType)
         {
             case HealthCheckType.HttpEndpoint:
-                <Field For="@($"{id}-url")" Label="Address" Hint="{environment} is replaced with each environment's name.">
+                <Field For="@($"{id}-url")" Label="Address" Hint="{environment} becomes test, preprod or prod.">
                     <InputText id="@($"{id}-url")" @bind-Value="hc.Url" class="form-control" placeholder="https://myapp-{environment}.contoso.com/health" />
                 </Field>
                 <div class="fields three">
@@ -33,7 +33,7 @@
                         <InputNumber id="@($"{id}-retries")" @bind-Value="hc.RetryCount" class="form-control narrow" />
                     </Field>
                 </div>
-                <p class="hint">The app may need a moment to start, so the check tries again until it has used its attempts.</p>
+                <p class="hint">The check tries again, because an app can take a moment to start.</p>
                 break;
             case HealthCheckType.IisAppPool:
                 <Field For="@($"{id}-pool")" Label="App pool">

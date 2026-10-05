@@ -46,7 +46,7 @@ public sealed class VariableGroupService : IVariableGroupService
                 Severity = ValidationSeverity.Error,
                 Message = "Variable group name is required.",
                 AffectedField = "VariableGroups",
-                SuggestedFix = "Provide a valid Azure DevOps variable group name, e.g. vg-test."
+                SuggestedFix = "Type the name of the variable group, e.g. vg-test."
             });
         }
 
@@ -58,7 +58,7 @@ public sealed class VariableGroupService : IVariableGroupService
                 Severity = ValidationSeverity.Warning,
                 Message = $"Variable group '{g.Name}' contains secrets but is available to the whole pipeline, including the build.",
                 AffectedField = "VariableGroups",
-                SuggestedFix = "Set its scope to Environment so only the deployments that need the secrets can read them."
+                SuggestedFix = "Choose one environment for it under 'Used by', so only that deployment can read the secrets."
             });
         }
 

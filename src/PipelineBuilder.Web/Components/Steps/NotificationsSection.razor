@@ -1,7 +1,7 @@
 @inject WizardState Wizard
 
 <h3>Notifications</h3>
-<p class="hint">Tell the team when a run succeeds or fails. Webhook addresses are secrets: they come from pipeline variables, never from the file.</p>
+<p class="hint">Tell the team when a run succeeds or fails. Webhook addresses are secret, so they are kept in variables.</p>
 @for (var i = 0; i < Wizard.Notifications.Count; i++)
 {
     var n = Wizard.Notifications[i];
@@ -28,7 +28,7 @@
                 </Field>
                 break;
             case NotificationType.Email:
-                <Field For="@($"{id}-recipients")" Label="Recipients" Hint="Comma-separated. The mail server is set with the variables listed on the Result step.">
+                <Field For="@($"{id}-recipients")" Label="Recipients" Hint="Separated by commas. The mail server is set in variables; the Result step lists them.">
                     <input id="@($"{id}-recipients")" class="form-control" value="@string.Join(", ", n.EmailRecipients)"
                            @onchange="e => n.EmailRecipients = SplitList(e.Value?.ToString())" />
                 </Field>
