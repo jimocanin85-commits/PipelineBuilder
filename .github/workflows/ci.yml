@@ -19,7 +19,8 @@ jobs:
       - name: Check spelling
         run: |
           pip install --quiet codespell
-          codespell src tests docs deploy README.md .github --skip="*/bin/*,*/obj/*" > spelling.log || {
+          # notIn is an Azure Pipelines function, not a misspelling.
+          codespell src tests docs deploy README.md .github --skip="*/bin/*,*/obj/*,*/node_modules/*" --ignore-words-list notin > spelling.log || {
             echo "::error title=Spelling::$(sed ':a;N;$!ba;s/\n/%0A/g' spelling.log | head -c 6000)"
             cat spelling.log
             exit 1

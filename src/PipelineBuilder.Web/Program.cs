@@ -27,6 +27,7 @@ if (windowsLogin)
 
 app.UseAntiforgery();
 app.MapStaticAssets();
-app.MapRazorComponents<App>().AddInteractiveServerRenderMode();
+// Blazor would add its own frame-ancestors policy; UseSecurityHeaders already sets a stricter one for every response.
+app.MapRazorComponents<App>().AddInteractiveServerRenderMode(options => options.ContentSecurityFrameAncestorsPolicy = null);
 app.Run();
 public partial class Program { }

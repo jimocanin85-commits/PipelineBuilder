@@ -12,7 +12,7 @@ public static class PowerShellSnippets
     /// </summary>
     public const string SyncFolderFunction = """
 function Sync-Folder([string]$Source, [string]$Destination, [switch]$Mirror) {
-  # A variable that is not set must never make this copy to, or empty, the wrong folder.
+  # Stop if the folder is not set, so nothing is copied to or deleted from the wrong place.
   if (-not $Destination -or $Destination.StartsWith('$(') -or $Destination -match '^([A-Za-z]:)?[\\/]*$') {
     throw "The folder to copy to is not set: '$Destination'. Check the pipeline variables."
   }
