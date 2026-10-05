@@ -1,0 +1,103 @@
+# Made with PipelineBuilder. To change it, open your saved settings there, or edit this file.
+# Pipeline: my-app
+
+# Runs when one of these branches changes.
+trigger:
+  branches:
+    include:
+      - 'main'
+      - 'develop'
+
+# The environments to deploy to, in order. Each must exist under Pipelines > Environments.
+parameters:
+- name: environments
+  displayName: 'Environments, in deployment order'
+  type: object
+  default:
+  - 'test'
+  - 'preprod'
+  - 'prod'
+
+# Values used by the steps below.
+variables:
+  - name: BuildConfiguration
+    value: Release
+
+# Builds and deployments run on this agent.
+pool:
+  vmImage: 'ubuntu-latest'
+
+stages:
+# Build: compile, test and package once. Every environment gets the same package.
+- stage: Build
+  displayName: 'Build'
+  jobs:
+  - job: BuildJob
+    displayName: 'Build, test and package'
+    steps:
+      - task: DotNetCoreCLI@2
+        displayName: 'Restore NuGet packages'
+        inputs:
+          command: 'restore'
+          projects: '**/*.csproj'
+      - task: DotNetCoreCLI@2
+        displayName: 'Build'
+        inputs:
+          command: 'build'
+          projects: '**/*.csproj'
+          arguments: '--configuration $(BuildConfiguration) --no-restore'
+      - task: DotNetCoreCLI@2
+        displayName: 'Run tests'
+        inputs:
+          command: 'test'
+          projects: '**/*Tests*.csproj'
+          arguments: '--configuration $(BuildConfiguration) --no-build --collect:"XPlat Code Coverage"'
+      - task: DotNetCoreCLI@2
+        displayName: 'Publish application'
+        inputs:
+          command: 'publish'
+          publishWebProjects: 'true'
+          arguments: '--configuration $(BuildConfiguration) --no-build --output $(Build.ArtifactStagingDirectory)/app'
+          zipAfterPublish: 'false'
+          modifyOutputPath: 'false'
+      - task: PublishPipelineArtifact@1
+        displayName: 'Publish pipeline artifact: drop'
+        inputs:
+          targetPath: '$(Build.ArtifactStagingDirectory)/app'
+          artifactName: 'drop'
+          publishLocation: 'pipeline'
+# Deploy: this stage is repeated for each environment, one after the other.
+- ${{ each environment in parameters.environments }}:
+  - stage: Deploy_${{ replace(environment, '-', '_') }}
+    displayName: 'Deploy ${{ environment }}'
+    # Only the main branch deploys to prod.
+    ${{ if in(environment, 'prod') }}:
+      condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'))
+    jobs:
+    - deployment: Deploy
+      displayName: 'Deploy to ${{ environment }}'
+      # Approvals and checks are set on this environment in Azure DevOps.
+      environment: ${{ environment }}
+      strategy:
+        runOnce:
+          deploy:
+            steps:
+              - download: none
+              - checkout: self
+              - task: DownloadPipelineArtifact@2
+                displayName: 'Download artifact'
+                inputs:
+                  artifactName: 'drop'
+                  targetPath: '$(Pipeline.Workspace)/drop'
+              - bash: |
+                  set -euo pipefail
+                  if ! command -v ansible-playbook >/dev/null 2>&1; then
+                    echo "##vso[task.logissue type=error]Ansible is not installed on this agent. Ansible needs a Linux agent."
+                    exit 1
+                  fi
+                  ansible-playbook 'site.yml' \
+                    --inventory 'inventories/${{ environment }}' \
+                    --extra-vars 'environment_name=${{ environment }}' \
+                    --extra-vars 'build_id=$(Build.BuildId)' \
+                    --extra-vars 'package_path=$(Pipeline.Workspace)/drop'
+                displayName: 'Run Ansible playbook (${{ environment }})'
