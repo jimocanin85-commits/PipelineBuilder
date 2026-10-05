@@ -200,7 +200,7 @@
     };
 
     private bool HasProblemUnderMore =>
-        Wizard.IssuesFor(WizardStep.Target).Any(issue => issue.AffectedField is { } field && FieldsUnderMore.Contains(field));
+        Wizard.IssuesFor(WizardStep.Target).Any(issue => issue.AffectedField is { } setting && FieldsUnderMore.Contains(setting));
 
     private bool SelfHosted
     {
