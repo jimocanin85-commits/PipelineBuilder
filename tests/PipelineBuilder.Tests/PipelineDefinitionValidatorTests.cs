@@ -111,7 +111,7 @@ public class PipelineDefinitionValidatorTests
             }
         };
         var errors = Validate(definition);
-        Assert.Contains(errors, e => e.Contains("HTTP health check requires"));
+        Assert.Contains(errors, e => e.Contains("HTTP health check needs a full address"));
     }
 
     [Fact]
