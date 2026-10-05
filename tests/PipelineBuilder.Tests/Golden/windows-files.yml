@@ -108,8 +108,10 @@ stages:
                   } else {
                     Write-Host "Nothing to back up: $target does not exist yet"
                   }
-                  Get-ChildItem -Path $envRoot -Directory | Sort-Object LastWriteTime -Descending |
-                    Select-Object -Skip 5 | Remove-Item -Recurse -Force
+                  if (Test-Path $envRoot) {
+                    Get-ChildItem -Path $envRoot -Directory | Sort-Object LastWriteTime -Descending |
+                      Select-Object -Skip 5 | Remove-Item -Recurse -Force
+                  }
                 displayName: 'Back up deployment folder before deploy'
               - powershell: |
                   $ErrorActionPreference = 'Stop'

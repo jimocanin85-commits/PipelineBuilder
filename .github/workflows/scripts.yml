@@ -1,0 +1,58 @@
+name: Real scripts
+
+# Runs the generated deploy, backup, rollback and health check scripts for real, on a Linux and a
+# Windows machine, and checks what they did. The other tests only check that the scripts parse.
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  linux:
+    # systemd service, Docker container, and a build agent that deploys over SSH.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-dotnet@v6
+        with:
+          global-json-file: global.json
+
+      - name: Run the generated scripts
+        env:
+          PIPELINEBUILDER_REAL_SCRIPTS: linux
+        run: >-
+          dotnet test tests/PipelineBuilder.Tests --configuration Release
+          --filter "FullyQualifiedName~RealScripts"
+          --logger "console;verbosity=normal" --logger GitHubActions
+
+  windows:
+    # Files, a Windows service, and a build agent that deploys over WinRM, including an IIS website.
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-dotnet@v6
+        with:
+          global-json-file: global.json
+
+      - name: Install IIS and allow PowerShell remoting to this machine
+        shell: pwsh
+        run: |
+          Install-WindowsFeature -Name Web-Server -IncludeManagementTools | Out-Null
+          Enable-PSRemoting -Force -SkipNetworkProfileCheck | Out-Null
+          # Lets a local administrator account use remoting with full rights.
+          Set-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System' -Name LocalAccountTokenFilterPolicy -Value 1 -Type DWord
+          Invoke-Command -ComputerName localhost -ScriptBlock { "Remoting works on $env:COMPUTERNAME" }
+
+      - name: Run the generated scripts
+        env:
+          PIPELINEBUILDER_REAL_SCRIPTS: windows
+        run: >-
+          dotnet test tests/PipelineBuilder.Tests --configuration Release
+          --filter "FullyQualifiedName~RealScripts"
+          --logger "console;verbosity=normal" --logger GitHubActions

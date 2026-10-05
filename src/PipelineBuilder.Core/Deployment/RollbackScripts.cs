@@ -17,13 +17,18 @@ $envRoot = Join-Path {{YamlBuilder.PsLiteral(config.BackupRootOrDefault)}} {{Yam
 $backup = Join-Path $envRoot '$(Build.BuildId)'
 """;
 
-    /// <summary>Keeps the newest <see cref="RollbackConfig.RetentionCount"/> backups of the environment.</summary>
+    /// <summary>
+    /// Keeps the newest <see cref="RollbackConfig.RetentionCount"/> backups of the environment. On the
+    /// first deployment there is nothing to back up, so the folder may not exist yet.
+    /// </summary>
     public static string Prune(RollbackConfig config)
     {
         var retention = Math.Max(1, config.RetentionCount);
         return $$"""
-Get-ChildItem -Path $envRoot -Directory | Sort-Object LastWriteTime -Descending |
-  Select-Object -Skip {{retention}} | Remove-Item -Recurse -Force
+if (Test-Path $envRoot) {
+  Get-ChildItem -Path $envRoot -Directory | Sort-Object LastWriteTime -Descending |
+    Select-Object -Skip {{retention}} | Remove-Item -Recurse -Force
+}
 """;
     }
 
