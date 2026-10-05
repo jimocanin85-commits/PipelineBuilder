@@ -20,6 +20,7 @@ internal static class InputRules
         Rule("input.artifact", Artifact),
         Rule("input.docker-artifact", DockerArtifact),
         Rule("input.health-check-url", HealthCheckUrl),
+        Rule("input.approval-wait", ApprovalWait),
     };
 
     private static ValidationRule Rule(string id, Func<ValidationContext, IEnumerable<ValidationResult>> check) =>
@@ -85,6 +86,17 @@ internal static class InputRules
         var definition = context.Definition;
         if (definition.ProjectType == ProjectType.Docker && definition.Artifact?.ArtifactType != ArtifactType.DockerImage)
             yield return Error(nameof(PipelineDefinition.Artifact), "A Docker project is packaged as a Docker image.", "Pick one of the Docker templates on the first step.");
+    }
+
+    private static IEnumerable<ValidationResult> ApprovalWait(ValidationContext context)
+    {
+        var approval = context.Definition.Approval;
+        if (approval is { Environments.Count: > 0, WaitHours: < ApprovalConfig.MinWaitHours or > ApprovalConfig.MaxWaitHours })
+        {
+            yield return Error(nameof(PipelineDefinition.Approval),
+                $"An approval can wait between {ApprovalConfig.MinWaitHours} and {ApprovalConfig.MaxWaitHours} hours (four weeks).",
+                "Change 'Hours to wait'.");
+        }
     }
 
     private static IEnumerable<ValidationResult> HealthCheckUrl(ValidationContext context)

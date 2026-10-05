@@ -24,6 +24,9 @@ public sealed class PipelineDefinition
     /// <summary>Id of the template last applied, if any.</summary>
     public string? TemplateId { get; set; }
     public RollbackConfig Rollback { get; set; } = new();
+
+    /// <summary>Approvals written in the pipeline file, e.g. between test and preprod.</summary>
+    public ApprovalConfig Approval { get; set; } = new();
     public IReadOnlyList<HealthCheckConfig> HealthChecks { get; set; } = Array.Empty<HealthCheckConfig>();
     public IReadOnlyList<NotificationConfig> Notifications { get; set; } = Array.Empty<NotificationConfig>();
     public DeploymentStrategyConfig DeploymentStrategy { get; set; } = new();

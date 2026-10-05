@@ -31,7 +31,7 @@ On the Result step you can also save your settings, and open them later to chang
 | Deploy to | Windows servers (IIS, Windows service, file share), Linux servers (systemd service), Docker on either, Kubernetes, your own Ansible playbook, or your own script |
 | Run by | An agent on each server, or one build agent over the network (WinRM to Windows, SSH to Linux) |
 | Strategy | Standard, rolling |
-| Safety | Backup and rollback, health checks, secret scan |
+| Safety | Approval between environments, backup and rollback, health checks, secret scan |
 | Extras | Key Vault, notifications by Teams, email or webhook |
 
 ## Install on a server

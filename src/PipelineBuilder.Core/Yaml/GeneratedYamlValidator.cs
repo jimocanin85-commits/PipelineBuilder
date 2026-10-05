@@ -47,7 +47,7 @@ public static class GeneratedYamlValidator
             foreach (var dependency in DependsOn(stage).Where(d => !stageNames.Contains(d)))
                 problems.Add($"Stage '{stageName}' depends on unknown stage '{dependency}'.");
 
-            var jobs = (stage.GetValueOrDefault("jobs") as List<object> ?? new()).OfType<Dictionary<object, object>>().ToList();
+            var jobs = Flatten(stage.GetValueOrDefault("jobs") as List<object> ?? new()).OfType<Dictionary<object, object>>().ToList();
             var jobNames = jobs.Select(j => (j.GetValueOrDefault("job") ?? j.GetValueOrDefault("deployment")) as string ?? "").ToList();
             foreach (var name in jobNames.Where(n => !Identifier.IsMatch(n)))
                 problems.Add($"Invalid job name '{name}' in stage '{stageName}'.");
@@ -61,24 +61,34 @@ public static class GeneratedYamlValidator
         return problems;
     }
 
-    private static IEnumerable<string> DependsOn(Dictionary<object, object> node) =>
-        node.GetValueOrDefault("dependsOn") switch
+    /// <summary>What a stage or job depends on, including a <c>dependsOn</c> that is only set under <c>${{ if ... }}:</c>.</summary>
+    private static IEnumerable<string> DependsOn(Dictionary<object, object> node)
+    {
+        var own = node.GetValueOrDefault("dependsOn") switch
         {
             string single => new[] { WithoutExpressions(single) },
             List<object> list => Flatten(list).OfType<string>().Select(WithoutExpressions),
             _ => Array.Empty<string>()
         };
+        var conditional = node
+            .Where(entry => entry.Key is string key && key.StartsWith("${{ if ", StringComparison.Ordinal))
+            .Select(entry => entry.Value)
+            .OfType<Dictionary<object, object>>()
+            .SelectMany(DependsOn);
+        return own.Concat(conditional);
+    }
 
     /// <summary>
-    /// Replaces the items of <c>- ${{ each x in y }}:</c> blocks with the items they repeat, so a
-    /// repeated stage is checked once.
+    /// Replaces the items of <c>- ${{ each x in y }}:</c> and <c>- ${{ if ... }}:</c> blocks with the
+    /// items they hold, so a repeated stage is checked once and a conditional job is checked too.
     /// </summary>
     private static IEnumerable<object> Flatten(IEnumerable<object> items)
     {
         foreach (var item in items)
         {
             if (item is Dictionary<object, object> { Count: 1 } map
-                && map.Keys.Single() is string key && key.StartsWith("${{ each ", StringComparison.Ordinal)
+                && map.Keys.Single() is string key
+                && (key.StartsWith("${{ each ", StringComparison.Ordinal) || key.StartsWith("${{ if ", StringComparison.Ordinal))
                 && map.Values.Single() is List<object> repeated)
             {
                 foreach (var inner in Flatten(repeated))

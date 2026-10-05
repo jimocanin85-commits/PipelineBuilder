@@ -123,6 +123,32 @@ public sealed class DeploymentConfig
     public string ContainerNameOrDefault => string.IsNullOrWhiteSpace(ContainerName) ? "$(CONTAINER_NAME)" : ContainerName;
 }
 
+/// <summary>
+/// An approval written in the pipeline file: the pipeline waits for a person before it deploys to
+/// the listed environments. The approval on an Azure DevOps environment is separate and stays there.
+/// </summary>
+public sealed class ApprovalConfig
+{
+    /// <summary>Shortest and longest waiting time: one hour to four weeks.</summary>
+    public const int MinWaitHours = 1;
+    public const int MaxWaitHours = 672;
+
+    /// <summary>Environments that wait for approval before they are deployed to.</summary>
+    public IReadOnlyList<string> Environments { get; set; } = Array.Empty<string>();
+
+    /// <summary>Users or groups who may approve, comma-separated. Empty means everyone who may start the pipeline.</summary>
+    public string? Approvers { get; set; }
+
+    /// <summary>Users or groups who get the email, comma-separated.</summary>
+    public string? NotifyUsers { get; set; }
+
+    /// <summary>How long the pipeline waits before it rejects the deployment by itself.</summary>
+    public int WaitHours { get; set; } = 24;
+
+    [JsonIgnore]
+    public int WaitMinutes => Math.Clamp(WaitHours, MinWaitHours, MaxWaitHours) * 60;
+}
+
 public sealed class RollbackConfig
 {
     public bool Enabled { get; set; }

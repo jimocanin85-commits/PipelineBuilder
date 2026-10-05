@@ -25,6 +25,10 @@ public static class Help
     public const string AnsibleValues =
         "Your playbook is given three values it can use: package_path (the folder with the build), environment_name (test, preprod or prod) and build_id.";
 
+    public const string ApprovalInFile =
+        "This approval is written in the pipeline file, so it works at once and follows the file. " +
+        "An approval set on the environment in Azure DevOps (Approvals and checks) is stronger: it cannot be removed by editing the file. Keep that one for prod.";
+
     public const string EmptyField =
         "Leave a field empty to set it in Azure DevOps instead: it becomes a pipeline variable, listed on the Result step.";
 }
