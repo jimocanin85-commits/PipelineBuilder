@@ -27,7 +27,7 @@ public class GoldenFileTests
 
     /// <summary>The defaults plus every built-in template; each has a golden file named after it.</summary>
     private static IReadOnlyList<string> CaseNames() =>
-        new[] { DefaultCase }.Concat(TemplateMarketplaceService.LoadBuiltIn().Select(t => t.Id)).ToList();
+        new[] { DefaultCase }.Concat(TemplateCatalogue.LoadBuiltIn().Select(t => t.Id)).ToList();
 
     public static TheoryData<string> Cases()
     {
@@ -43,7 +43,7 @@ public class GoldenFileTests
     {
         var definition = WizardState.CreateDefault();
         if (name != DefaultCase)
-            Assert.True(new TemplateMarketplaceService().ApplyTo(name, definition), $"Unknown template '{name}'.");
+            Assert.True(new TemplateCatalogue().ApplyTo(name, definition), $"Unknown template '{name}'.");
 
         var actual = Normalize(Generator.Generate(definition).Yaml);
         var path = Path.Combine(RepositoryPaths.GoldenFolder, name + ".yml");

@@ -47,7 +47,7 @@ public sealed class KubernetesDeploymentHandler : DeploymentKindHandler
             yield return Finding(ValidationSeverity.Warning,
                 "Kubernetes deployments need a container image, but the artifact is not a Docker image.",
                 nameof(PipelineDefinition.Artifact),
-                "Set the artifact type to DockerImage.");
+                "Pick the Kubernetes template on the first step.");
         }
     }
 }

@@ -15,12 +15,12 @@ public class TemplateCatalogueTests
         new ServiceCollection().AddPipelineBuilderCore().BuildServiceProvider().GetRequiredService<IPipelineGeneratorService>();
 
     public static IEnumerable<object[]> BuiltInTemplateIds() =>
-        TemplateMarketplaceService.LoadBuiltIn().Select(t => new object[] { t.Id });
+        TemplateCatalogue.LoadBuiltIn().Select(t => new object[] { t.Id });
 
     [Fact]
     public void BuiltInCatalogueLoads()
     {
-        var templates = TemplateMarketplaceService.LoadBuiltIn();
+        var templates = TemplateCatalogue.LoadBuiltIn();
 
         Assert.True(templates.Count >= 5);
         Assert.All(templates, t =>
@@ -36,11 +36,20 @@ public class TemplateCatalogueTests
     {
         var definition = WizardState.CreateDefault();
 
-        Assert.True(new TemplateMarketplaceService().ApplyTo(templateId, definition));
+        Assert.True(new TemplateCatalogue().ApplyTo(templateId, definition));
         var result = _generator.Generate(definition); // throws if blocking errors or invalid YAML
 
         Assert.Equal(templateId, definition.TemplateId);
         Assert.Contains("- stage: Build", result.Yaml);
+    }
+
+    /// <summary>A deployment kind without a template cannot be chosen in the wizard.</summary>
+    [Fact]
+    public void EveryDeploymentKindHasATemplate()
+    {
+        var kinds = TemplateCatalogue.LoadBuiltIn().Select(t => t.Settings.DeploymentKind).OfType<DeploymentKind>().ToHashSet();
+
+        Assert.All(Enum.GetValues<DeploymentKind>(), kind => Assert.Contains(kind, kinds));
     }
 
     [Fact]
@@ -49,7 +58,7 @@ public class TemplateCatalogueTests
         var definition = WizardState.CreateDefault();
         definition.Name = "keep-me";
 
-        new TemplateMarketplaceService().ApplyTo("iis-onprem", definition);
+        new TemplateCatalogue().ApplyTo("iis-onprem", definition);
 
         Assert.Equal("keep-me", definition.Name);
         Assert.Equal(DeploymentKind.Iis, definition.Deployment.Kind);
@@ -63,19 +72,19 @@ public class TemplateCatalogueTests
         File.WriteAllText(path, """
             [
               // replaces the built-in template with the same id
-              { "id": "iis-onprem", "name": "Our IIS", "description": "Company standard", "category": "Iis",
+              { "id": "iis-onprem", "name": "Our IIS", "description": "Company standard",
                 "settings": { "deploymentKind": "Iis", "environments": ["dev", "prod"] } },
-              { "id": "file-share", "name": "File share", "description": "Copy to a share", "category": "FileShare",
+              { "id": "file-share", "name": "File share", "description": "Copy to a share",
                 "settings": { "deploymentKind": "FileShare" } },
             ]
             """);
         try
         {
-            var service = new TemplateMarketplaceService(new PipelineBuilderOptions { TemplatesFile = path });
+            var service = new TemplateCatalogue(new PipelineBuilderOptions { TemplatesFile = path });
 
             Assert.Equal("Our IIS", service.GetById("iis-onprem")!.Name);
             Assert.NotNull(service.GetById("file-share"));
-            Assert.Equal(TemplateMarketplaceService.LoadBuiltIn().Count + 1, service.GetAllTemplates().Count);
+            Assert.Equal(TemplateCatalogue.LoadBuiltIn().Count + 1, service.GetAllTemplates().Count);
 
             var definition = WizardState.CreateDefault();
             service.ApplyTo("iis-onprem", definition);
@@ -98,7 +107,7 @@ public class TemplateCatalogueTests
         File.WriteAllText(path, content);
         try
         {
-            Assert.Throws<InvalidDataException>(() => new TemplateMarketplaceService(new PipelineBuilderOptions { TemplatesFile = path }));
+            Assert.Throws<InvalidDataException>(() => new TemplateCatalogue(new PipelineBuilderOptions { TemplatesFile = path }));
         }
         finally
         {
@@ -110,7 +119,7 @@ public class TemplateCatalogueTests
     public void MissingTemplatesFileGivesAClearError()
     {
         var ex = Assert.Throws<InvalidDataException>(() =>
-            new TemplateMarketplaceService(new PipelineBuilderOptions { TemplatesFile = "/no/such/templates.json" }));
+            new TemplateCatalogue(new PipelineBuilderOptions { TemplatesFile = "/no/such/templates.json" }));
         Assert.Contains("was not found", ex.Message);
     }
 }

@@ -53,7 +53,7 @@ public sealed class PipelineGeneratorService : IPipelineGeneratorService
             .AddTrigger(definition.Trigger)
             .AddEnvironments(definition.Environments)
             .AddVariables(_variableGroupService.GeneratePipelineVariables(definition))
-            .AddPool(PoolConfigurationHelper.GeneratePoolConfiguration(definition.BuildAgent, definition.PoolName))
+            .AddPool(PoolConfigurationHelper.GeneratePoolConfiguration(definition.BuildAgent, definition.PoolName), _deploymentGenerator.RunsOnServers(definition))
             .StartStages()
             .AddStage(_buildGenerator.Generate(definition))
             .AddStage(_deploymentGenerator.Generate(definition))

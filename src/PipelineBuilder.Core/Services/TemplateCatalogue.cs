@@ -10,7 +10,7 @@ namespace PipelineBuilder.Core.Services;
 /// The template catalogue: the built-in <c>Templates/templates.json</c>, plus an optional file of
 /// your own templates (<see cref="PipelineBuilderOptions.TemplatesFile"/>).
 /// </summary>
-public sealed class TemplateMarketplaceService : ITemplateMarketplaceService
+public sealed class TemplateCatalogue : ITemplateCatalogue
 {
     private const string BuiltInResource = "PipelineBuilder.Core.Templates.templates.json";
 
@@ -23,11 +23,11 @@ public sealed class TemplateMarketplaceService : ITemplateMarketplaceService
 
     private readonly IReadOnlyList<PipelineTemplate> _templates;
 
-    public TemplateMarketplaceService() : this(new PipelineBuilderOptions())
+    public TemplateCatalogue() : this(new PipelineBuilderOptions())
     {
     }
 
-    public TemplateMarketplaceService(PipelineBuilderOptions options)
+    public TemplateCatalogue(PipelineBuilderOptions options)
     {
         var templates = LoadBuiltIn().ToList();
         if (!string.IsNullOrWhiteSpace(options.TemplatesFile))
@@ -68,7 +68,7 @@ public sealed class TemplateMarketplaceService : ITemplateMarketplaceService
     /// <summary>The templates shipped with PipelineBuilder.</summary>
     public static IReadOnlyList<PipelineTemplate> LoadBuiltIn()
     {
-        using var stream = typeof(TemplateMarketplaceService).Assembly.GetManifestResourceStream(BuiltInResource)
+        using var stream = typeof(TemplateCatalogue).Assembly.GetManifestResourceStream(BuiltInResource)
             ?? throw new InvalidOperationException($"Embedded resource '{BuiltInResource}' is missing.");
         return Parse(stream, "built-in templates");
     }

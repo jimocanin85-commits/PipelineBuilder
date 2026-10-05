@@ -19,7 +19,7 @@ public class PipelineGeneratorTests
     }
 
     [Fact]
-    public void Generate_IncludesEnterpriseStages()
+    public void Generate_IncludesBuildAndDeployStages()
     {
         var definition = WizardState_CreateDefinition();
         var result = _generator.Generate(definition);
@@ -50,7 +50,7 @@ public class PipelineGeneratorTests
 
     private static PipelineDefinition WizardState_CreateDefinition() => new()
     {
-        Name = "enterprise-pipeline",
+        Name = "orders",
         ProjectType = ProjectType.DotNet,
         Environments = new[] { "test", "preprod", "prod" },
         VariableGroups = new[] { new VariableGroupConfig { Name = "vg-test", Scope = VariableGroupScope.Pipeline } },

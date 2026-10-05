@@ -33,7 +33,7 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IHealthCheckYamlService, HealthCheckYamlService>();
         services.AddSingleton<INotificationYamlService, NotificationYamlService>();
         services.AddSingleton<ISecretsGovernanceService, SecretsGovernanceService>();
-        services.AddSingleton<ITemplateMarketplaceService, TemplateMarketplaceService>();
+        services.AddSingleton<ITemplateCatalogue, TemplateCatalogue>();
         // One validation chain: the built-in rules, then any ValidationRule the host has registered.
         services.AddSingleton<IPipelineValidator>(provider => new PipelineValidator(
             BuiltInRules.Create(

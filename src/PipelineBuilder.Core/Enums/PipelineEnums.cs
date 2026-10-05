@@ -8,11 +8,9 @@ public enum DeploymentStrategyType { Standard, Rolling }
 public enum ValidationSeverity { Info, Warning, Error }
 /// <summary>Input rules block generation; generated rules judge the finished pipeline.</summary>
 public enum ValidationStage { Input, Generated }
-public enum TemplateCategory { DotNet, Iis, Docker, Kubernetes, WindowsService, FileShare, Node }
-public enum TemplateRiskLevel { Low, Medium, High }
 public enum RollbackTarget { Iis, WindowsService, FileShare, DockerContainer, Kubernetes, LinuxService }
 
-/// <summary>What the deploy step does with the artifact. <see cref="Custom"/> emits a placeholder script.</summary>
+/// <summary>What the deploy step does with the artifact. <see cref="Custom"/> runs the user's own script.</summary>
 public enum DeploymentKind { Custom, Iis, WindowsService, FileShare, DockerContainer, Kubernetes, LinuxService }
 
 /// <summary>The operating system of the servers a deployment runs on.</summary>

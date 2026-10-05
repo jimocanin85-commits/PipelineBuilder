@@ -263,7 +263,7 @@ public class WizardPageTests : BunitContext
         Assert.Equal("my-app", cut.Find("#pipeline-name").GetAttribute("value"));
     }
 
-    public static IEnumerable<object[]> TemplateIds() => TemplateMarketplaceService.LoadBuiltIn().Select(t => new object[] { t.Id });
+    public static IEnumerable<object[]> TemplateIds() => TemplateCatalogue.LoadBuiltIn().Select(t => new object[] { t.Id });
 
     [Theory]
     [MemberData(nameof(TemplateIds))]
@@ -282,18 +282,29 @@ public class WizardPageTests : BunitContext
     }
 
     [Theory]
-    [InlineData(DeploymentKind.Custom, "#custom-script")]
-    [InlineData(DeploymentKind.FileShare, "#share")]
-    public void KindsWithoutATemplateShowTheirFields(DeploymentKind kind, string field)
+    [InlineData("own-script", "#custom-script")]
+    [InlineData("windows-files", "#share")]
+    public void FilesAndOwnScriptCanBeChosen(string templateId, string field)
     {
-        var saved = WizardState.CreateDefault();
-        saved.Deployment = new DeploymentConfig { Kind = kind };
         var cut = Render<Home>();
 
-        cut.FindComponent<InputFile>().UploadFiles(InputFileContent.CreateFromText(PipelineDefinitionSerializer.ToJson(saved), "settings.json"));
+        cut.Find($"button[data-template='{templateId}']").Click();
         GoTo(cut, WizardStep.Target);
 
         Assert.NotNull(cut.Find(field));
+    }
+
+    [Fact]
+    public void AnEmptyOwnScriptSaysWhereToWriteIt()
+    {
+        var cut = Render<Home>();
+        cut.Find("button[data-template='own-script']").Click();
+        GoTo(cut, WizardStep.Target);
+        Assert.Contains("Deploy script", cut.Find(".issue-list").TextContent);
+
+        cut.Find("#custom-script").Change("Write-Host 'deploying'");
+
+        Assert.Empty(cut.FindAll(".issue-list"));
     }
 
     [Fact]
@@ -335,7 +346,7 @@ public class WizardPageTests : BunitContext
         GoTo(cut, WizardStep.Target);
 
         cut.Find("#self-hosted").Change(true);
-        Assert.Contains("Pool name is required", cut.Find(".issue-list").TextContent);
+        Assert.Contains("Enter the agent pool", cut.Find(".issue-list").TextContent);
 
         cut.Find("#pool-name").Change("OnPremAgents");
         GoTo(cut, WizardStep.Result);
@@ -369,7 +380,7 @@ public class WizardPageTests : BunitContext
         GoTo(cut, WizardStep.Safety);
 
         cut.Find("#add-health-check").Click();
-        Assert.Contains("valid endpoint URL", cut.Find(".issue-list").TextContent);
+        Assert.Contains("needs a full address", cut.Find(".issue-list").TextContent);
         cut.Find(".card input[placeholder^='https://']").Change("https://my-app-{environment}.contoso.com/health");
         cut.Find("#add-notification").Click();
         GoTo(cut, WizardStep.Result);

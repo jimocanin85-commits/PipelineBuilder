@@ -27,7 +27,12 @@ public sealed class BuildStageGenerator
         steps.AddRange(_artifactService.GenerateBuildOutputSteps(definition));
         steps.AddRange(_artifactService.GeneratePublishSteps(definition.Artifact));
 
+        var comment = definition.Artifact.ArtifactType == ArtifactType.DockerImage
+            ? "# Build: build the Docker image once and push it. Every environment gets the same image."
+            : "# Build: compile, test and package once. Every environment gets the same package.";
+
         return $"""
+{comment}
 - stage: Build
   displayName: 'Build'
   jobs:

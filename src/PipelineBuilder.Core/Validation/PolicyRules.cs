@@ -84,7 +84,7 @@ internal sealed class PolicyRules
             yield return Finding(ValidationSeverity.Warning,
                 "Rolling deployments need servers registered in the environment; this pipeline deploys everything at once.",
                 nameof(PipelineDefinition.DeploymentStrategy),
-                "Choose the Standard strategy, or a deployment kind that runs on your servers.");
+                "Updating a few servers at a time only applies when the pipeline deploys to your own servers.");
         }
     }
 
@@ -97,7 +97,7 @@ internal sealed class PolicyRules
             yield return Finding(ValidationSeverity.Warning,
                 "IIS app pool checks only run on Windows servers, so this check is skipped.",
                 nameof(PipelineDefinition.HealthChecks),
-                "Remove the check, or use an HTTP or service check.");
+                "Remove the check, or change it to an HTTP address or Service check.");
         }
     }
 
@@ -107,7 +107,7 @@ internal sealed class PolicyRules
             .Select(_ => Finding(ValidationSeverity.Warning,
                 "An email notification has no recipients, so it will be skipped.",
                 nameof(PipelineDefinition.Notifications),
-                "Add at least one recipient on the Notifications step."));
+                "Add a recipient under Notifications."));
 
     private IEnumerable<ValidationResult> VariableGroups(ValidationContext context) =>
         _variableGroups.Validate(context.Definition.VariableGroups);

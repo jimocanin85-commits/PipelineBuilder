@@ -151,9 +151,9 @@ public sealed class WizardState
         Result = BlockingErrors.Count == 0 ? generator.Generate(Definition) : null;
     }
 
-    public bool ApplyTemplate(ITemplateMarketplaceService marketplace, string templateId)
+    public bool ApplyTemplate(ITemplateCatalogue templates, string templateId)
     {
-        if (!marketplace.ApplyTo(templateId, Definition))
+        if (!templates.ApplyTo(templateId, Definition))
             return false;
 
         // An image needs a real name; the artifact default "drop" only suits a folder of files.
