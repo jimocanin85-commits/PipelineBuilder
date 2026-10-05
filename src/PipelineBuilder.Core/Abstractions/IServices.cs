@@ -39,8 +39,8 @@ public interface IDeploymentKindHandler
     RollbackTarget? RollbackTarget { get; }
 
     /// <summary>
-    /// Deploys on the servers registered in each Azure DevOps environment (Virtual machine resources).
-    /// False means the deploy job runs on a pipeline agent, e.g. to reach a Kubernetes cluster.
+    /// Deploys to your own servers: its scripts run on each server. False means the deploy job only
+    /// talks to something else from a pipeline agent, e.g. a Kubernetes cluster.
     /// </summary>
     bool RunsOnServers { get; }
 
@@ -71,8 +71,11 @@ public interface IDeploymentKinds
     /// <summary>The handler for a kind; the Custom handler for a kind without one.</summary>
     IDeploymentKindHandler For(DeploymentKind kind);
 
-    /// <summary>True when deployments run on servers registered in the environment rather than on an agent pool.</summary>
+    /// <summary>True when an agent on each server deploys: the servers are registered in the environment (Virtual machine resources).</summary>
     bool UsesServerResources(PipelineDefinition definition);
+
+    /// <summary>True when the build agent deploys to your servers over the network (WinRM or SSH).</summary>
+    bool DeploysFromAgentToServers(PipelineDefinition definition);
 
     /// <summary>The shell for script steps in the deploy job (health checks, custom scripts).</summary>
     ScriptShell ShellFor(PipelineDefinition definition);
@@ -86,7 +89,11 @@ public interface IDeploymentKinds
 
 public interface IHealthCheckYamlService
 {
-    IReadOnlyList<string> GenerateHealthCheckSteps(HealthCheckConfig config, ScriptShell shell = ScriptShell.PowerShell);
+    /// <summary>
+    /// The check as steps. Pass <paramref name="deployment"/> when the check must run on the servers
+    /// a build agent deploys to; without it the check runs where the job runs.
+    /// </summary>
+    IReadOnlyList<string> GenerateHealthCheckSteps(HealthCheckConfig config, ScriptShell shell = ScriptShell.PowerShell, DeploymentConfig? deployment = null);
 }
 
 public interface INotificationYamlService

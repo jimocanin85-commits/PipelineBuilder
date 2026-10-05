@@ -91,6 +91,25 @@
     <p class="hint">@Help.EmptyField</p>
 }
 
+@if (DeploymentKinds.For(Wizard.Definition.Deployment.Kind).RunsOnServers)
+{
+    <h3>Who runs the deployment?</h3>
+    <div class="fields">
+        <Field For="run-from" Label="Deployed by" Hint="@RunFromHint">
+            <InputSelect id="run-from" @bind-Value="Wizard.Definition.Deployment.RunFrom" class="form-control">
+                <option value="@DeployFrom.Server">An agent on each server</option>
+                <option value="@DeployFrom.Agent">Our build agent, over the network</option>
+            </InputSelect>
+        </Field>
+        @if (FromAgent && LinuxServers)
+        {
+            <Field For="ssh-user" Label="SSH user" Hint="The account on the servers that the build agent logs in as.">
+                <InputText id="ssh-user" @bind-Value="Wizard.Definition.Deployment.SshUser" class="form-control" placeholder="$(SSH_USER)" />
+            </Field>
+        }
+    </div>
+}
+
 @if (DeploymentKinds.UsesServerResources(Wizard.Definition))
 {
     <label class="check"><InputCheckbox id="rolling" @bind-Value="Wizard.Rolling" /> Update the servers a few at a time</label>
@@ -189,13 +208,42 @@
     /// <summary>Kinds with fields that fall back to a pipeline variable when left empty.</summary>
     private bool HasVariableFields => Wizard.Definition.Deployment.Kind is not (DeploymentKind.Iis or DeploymentKind.Custom);
 
-    private string CustomScriptHint =>
-        $"Runs on each server. The build is in $(Pipeline.Workspace)/{Wizard.Definition.Artifact.ArtifactName}.";
+    private bool FromAgent => DeploymentKinds.DeploysFromAgentToServers(Wizard.Definition);
+    private bool LinuxServers => DeploymentKinds.ShellFor(Wizard.Definition) == ScriptShell.Bash;
+
+    private string RunFromHint
+    {
+        get
+        {
+            if (!FromAgent)
+                return "Each server has its own Azure DevOps agent and updates itself: Windows servers with Windows PowerShell, Linux servers with bash.";
+
+            var how = LinuxServers
+                ? "The build agent connects to each server with SSH, using its own SSH key."
+                : "A Windows build agent connects to each server with PowerShell remoting (WinRM), as the account the agent runs as.";
+            var docker = Wizard.Definition.Deployment.Kind == DeploymentKind.DockerContainer
+                ? " Log each server in to your registry once with docker login."
+                : string.Empty;
+            return how + " The servers are updated one at a time, and are named in variables listed on the Result step." + docker;
+        }
+    }
+
+    private string CustomScriptHint
+    {
+        get
+        {
+            var onAgent = $"$(Pipeline.Workspace)/{Wizard.Definition.Artifact.ArtifactName}";
+            var build = FromAgent
+                ? PipelineBuilder.Core.Yaml.ServerScript.RemotePackagePath(DeploymentKinds.ShellFor(Wizard.Definition), onAgent)
+                : onAgent;
+            return $"Runs on each server. The build is in {build}.";
+        }
+    }
 
     /// <summary>Settings under "More settings"; a problem in one of them must not stay hidden.</summary>
     private static readonly string[] FieldsUnderMore =
     {
-        nameof(PipelineDefinition.Environments), nameof(PipelineDefinition.PoolName), nameof(PipelineDefinition.ReleaseBranch),
+        nameof(PipelineDefinition.Environments), nameof(PipelineDefinition.BuildAgent), nameof(PipelineDefinition.PoolName), nameof(PipelineDefinition.ReleaseBranch),
         nameof(PipelineDefinition.VariableGroups), nameof(PipelineDefinition.KeyVault)
     };
 

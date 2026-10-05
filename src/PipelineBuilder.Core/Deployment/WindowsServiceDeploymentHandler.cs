@@ -15,7 +15,7 @@ public sealed class WindowsServiceDeploymentHandler : DeploymentKindHandler
         var deployment = definition.Deployment;
         return new[]
         {
-            YamlBuilder.PowerShellStep($$"""
+            ServerScript.Step(definition.Deployment, ScriptShell.PowerShell, $$"""
 $ErrorActionPreference = 'Stop'
 $service = {{YamlBuilder.PsLiteral(deployment.ServiceNameOrDefault)}}
 $target = {{YamlBuilder.PsLiteral(deployment.TargetPathOrDefault)}}
@@ -39,7 +39,7 @@ Write-Host "Deployed to $target"
 
     public override IReadOnlyList<string> GenerateRollbackSteps(RollbackConfig config, DeploymentConfig deployment, string environment) => new[]
     {
-        YamlBuilder.PowerShellStep($$"""
+        ServerScript.Step(deployment, ScriptShell.PowerShell, $$"""
 {{RollbackScripts.Header(config, environment)}}
 {{RollbackScripts.RequireBackup}}
 $service = {{YamlBuilder.PsLiteral(deployment.ServiceNameOrDefault)}}

@@ -5,8 +5,10 @@ using PipelineBuilder.Core.Yaml;
 namespace PipelineBuilder.Core.Deployment;
 
 /// <summary>
-/// Replaces a Docker container on the registered servers (Linux or Windows): logs in to the registry,
-/// pulls the image built by this run and starts it. Rollback restarts the previous image.
+/// Replaces a Docker container on the servers (Linux or Windows): logs in to the registry, pulls the
+/// image built by this run and starts it. Rollback restarts the previous image. When the build agent
+/// deploys over the network there is no login step: Azure's login task would log the agent in, not
+/// the servers, so each server is logged in to the registry once by hand.
 /// </summary>
 public sealed class DockerContainerDeploymentHandler : DeploymentKindHandler
 {
@@ -30,7 +32,7 @@ public sealed class DockerContainerDeploymentHandler : DeploymentKindHandler
         }, "Log in to the container registry");
 
         var run = Shell(deployment) == ScriptShell.Bash
-            ? YamlBuilder.BashStep($$"""
+            ? ServerScript.Step(definition.Deployment, ScriptShell.Bash, $$"""
 {{BashSnippets.Strict}}
 image={{YamlBuilder.BashLiteral(image)}}
 name={{YamlBuilder.BashLiteral(deployment.ContainerNameOrDefault)}}
@@ -39,7 +41,7 @@ docker rm -f "$name" >/dev/null 2>&1 || true
 docker run -d --name "$name" --restart unless-stopped{{RunOptions(deployment, YamlBuilder.BashLiteral)}} "$image"
 echo "Container $name is running $image"
 """, display)
-            : YamlBuilder.PowerShellStep($$"""
+            : ServerScript.Step(definition.Deployment, ScriptShell.PowerShell, $$"""
 # Windows PowerShell 5.1 turns redirected native stderr into errors under 'Stop'.
 $ErrorActionPreference = 'Continue'
 $image = {{YamlBuilder.PsLiteral(image)}}
@@ -52,7 +54,7 @@ docker run -d --name $name --restart unless-stopped{{RunOptions(deployment, Yaml
 Write-Host "Container $name is running $image"
 """, display);
 
-        return new[] { login, run };
+        return deployment.RunFrom == DeployFrom.Agent ? new[] { run } : new[] { login, run };
     }
 
     public override IReadOnlyList<string> GenerateBackupSteps(RollbackConfig config, DeploymentConfig deployment, string environment)
@@ -63,7 +65,7 @@ Write-Host "Container $name is running $image"
             // Three dollar signs: docker's own {{.Config.Image}} template must reach bash unchanged.
             return new[]
             {
-                YamlBuilder.BashStep($$$"""
+                ServerScript.Step(deployment, ScriptShell.Bash, $$$"""
 {{{RollbackScripts.BashHeader(config, environment)}}}
 name={{{YamlBuilder.BashLiteral(deployment.ContainerNameOrDefault)}}}
 image=`docker inspect --format '{{.Config.Image}}' "$name" 2>/dev/null || true`
@@ -81,7 +83,7 @@ fi
 
         return new[]
         {
-            YamlBuilder.PowerShellStep($$"""
+            ServerScript.Step(deployment, ScriptShell.PowerShell, $$"""
 {{RollbackScripts.Header(config, environment)}}
 # Windows PowerShell 5.1 turns redirected native stderr into errors under 'Stop'.
 $ErrorActionPreference = 'Continue'
@@ -107,7 +109,7 @@ if ($info) {
         {
             return new[]
             {
-                YamlBuilder.BashStep($$"""
+                ServerScript.Step(deployment, ScriptShell.Bash, $$"""
 {{RollbackScripts.BashHeader(config, environment)}}
 record="$backup/image.txt"
 if [ ! -f "$record" ]; then
@@ -125,7 +127,7 @@ echo "Rolled back container $name to $image"
 
         return new[]
         {
-            YamlBuilder.PowerShellStep($$"""
+            ServerScript.Step(deployment, ScriptShell.PowerShell, $$"""
 {{RollbackScripts.Header(config, environment)}}
 # Windows PowerShell 5.1 turns redirected native stderr into errors under 'Stop'.
 $ErrorActionPreference = 'Continue'

@@ -23,7 +23,7 @@ public sealed class CustomDeploymentHandler : DeploymentKindHandler
             ? $"echo '##vso[task.logissue type=warning]No deploy script yet: add your deploy commands here. The package is at {packagePath}'"
             : $"Write-Warning 'No deploy script yet: add your deploy commands here. The package is at {packagePath}'";
 
-        return new[] { YamlBuilder.ShellStep(shell, definition.Deployment.CustomScript ?? placeholder, $"Deploy to {environment}") };
+        return new[] { ServerScript.Step(definition.Deployment, shell, definition.Deployment.CustomScript ?? placeholder, $"Deploy to {environment}") };
     }
 
     public override IEnumerable<ValidationResult> Validate(PipelineDefinition definition)

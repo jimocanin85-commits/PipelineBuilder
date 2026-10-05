@@ -7,16 +7,22 @@ namespace PipelineBuilder.Core.Services;
 
 public sealed class HealthCheckYamlService : IHealthCheckYamlService
 {
-    public IReadOnlyList<string> GenerateHealthCheckSteps(HealthCheckConfig config, ScriptShell shell = ScriptShell.PowerShell)
+    public IReadOnlyList<string> GenerateHealthCheckSteps(HealthCheckConfig config, ScriptShell shell = ScriptShell.PowerShell, DeploymentConfig? deployment = null)
     {
         if (!config.Enabled) return Array.Empty<string>();
-        if (shell == ScriptShell.Bash) return BashSteps(config);
 
+        // Without deployment settings the check runs where the job runs; with them it runs on the servers.
+        var onServers = deployment ?? new DeploymentConfig();
+        return shell == ScriptShell.Bash ? BashSteps(config, onServers) : PowerShellSteps(config, onServers);
+    }
+
+    private static IReadOnlyList<string> PowerShellSteps(HealthCheckConfig config, DeploymentConfig deployment)
+    {
         return config.HealthCheckType switch
         {
             HealthCheckType.HttpEndpoint => new[]
             {
-                YamlBuilder.PowerShellStep($$"""
+                ServerScript.Step(deployment, ScriptShell.PowerShell, $$"""
 $uri = {{YamlBuilder.PsLiteral(config.Url ?? "https://localhost/health")}}
 $expected = {{config.ExpectedStatusCode}}
 $timeout = {{config.TimeoutSeconds}}
@@ -34,7 +40,7 @@ exit 1
             },
             HealthCheckType.IisAppPool => new[]
             {
-                YamlBuilder.PowerShellStep($$"""
+                ServerScript.Step(deployment, ScriptShell.PowerShell, $$"""
 Import-Module WebAdministration -ErrorAction Stop
 $pool = {{YamlBuilder.PsLiteral(config.AppPoolName ?? "DefaultAppPool")}}
 $state = (Get-WebAppPoolState -Name $pool).Value
@@ -44,7 +50,7 @@ Write-Host "App pool $pool is healthy"
             },
             HealthCheckType.WindowsService => new[]
             {
-                YamlBuilder.PowerShellStep($$"""
+                ServerScript.Step(deployment, ScriptShell.PowerShell, $$"""
 $svc = Get-Service -Name {{YamlBuilder.PsLiteral(config.ServiceName ?? "W3SVC")}} -ErrorAction Stop
 if ($svc.Status -ne 'Running') { throw "Service $($svc.Name) is $($svc.Status)" }
 Write-Host "Service $($svc.Name) is running"
@@ -52,7 +58,7 @@ Write-Host "Service $($svc.Name) is running"
             },
             HealthCheckType.PortCheck => new[]
             {
-                YamlBuilder.PowerShellStep($$"""
+                ServerScript.Step(deployment, ScriptShell.PowerShell, $$"""
 $port = {{config.Port ?? 80}}
 $r = Test-NetConnection -ComputerName localhost -Port $port -WarningAction SilentlyContinue
 if (-not $r.TcpTestSucceeded) { throw "Port $port is not reachable" }
@@ -61,18 +67,18 @@ Write-Host "Port $port is open"
             },
             HealthCheckType.CustomPowerShell => new[]
             {
-                YamlBuilder.PowerShellStep(config.CustomScript ?? "Write-Host 'Custom health check passed'", "Custom health check")
+                ServerScript.Step(deployment, ScriptShell.PowerShell, config.CustomScript ?? "Write-Host 'Custom health check passed'", "Custom health check")
             },
             _ => Array.Empty<string>()
         };
     }
 
     /// <summary>The same checks for Linux servers. IIS app pool checks have no Linux counterpart and are skipped.</summary>
-    private static IReadOnlyList<string> BashSteps(HealthCheckConfig config) => config.HealthCheckType switch
+    private static IReadOnlyList<string> BashSteps(HealthCheckConfig config, DeploymentConfig deployment) => config.HealthCheckType switch
     {
         HealthCheckType.HttpEndpoint => new[]
         {
-            YamlBuilder.BashStep($$"""
+            ServerScript.Step(deployment, ScriptShell.Bash, $$"""
 uri={{YamlBuilder.BashLiteral(config.Url ?? "https://localhost/health")}}
 expected={{config.ExpectedStatusCode}}
 timeout={{config.TimeoutSeconds}}
@@ -89,7 +95,7 @@ exit 1
         },
         HealthCheckType.WindowsService => new[]
         {
-            YamlBuilder.BashStep($$"""
+            ServerScript.Step(deployment, ScriptShell.Bash, $$"""
 service={{YamlBuilder.BashLiteral(config.ServiceName ?? "$(SERVICE_NAME)")}}
 if ! systemctl is-active --quiet "$service"; then
   echo "##vso[task.logissue type=error]Service $service is not running"
@@ -100,7 +106,7 @@ echo "Service $service is running"
         },
         HealthCheckType.PortCheck => new[]
         {
-            YamlBuilder.BashStep($$"""
+            ServerScript.Step(deployment, ScriptShell.Bash, $$"""
 port={{config.Port ?? 80}}
 if ! timeout 5 bash -c "</dev/tcp/localhost/$port" 2>/dev/null; then
   echo "##vso[task.logissue type=error]Port $port is not reachable"
@@ -111,7 +117,7 @@ echo "Port $port is open"
         },
         HealthCheckType.CustomPowerShell => new[]
         {
-            YamlBuilder.BashStep(config.CustomScript ?? "echo 'Custom health check passed'", "Custom health check")
+            ServerScript.Step(deployment, ScriptShell.Bash, config.CustomScript ?? "echo 'Custom health check passed'", "Custom health check")
         },
         _ => Array.Empty<string>()
     };

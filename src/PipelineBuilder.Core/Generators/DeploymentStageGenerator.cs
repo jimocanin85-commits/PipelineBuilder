@@ -10,7 +10,8 @@ namespace PipelineBuilder.Core.Generators;
 /// Generates the deploy stage, written once and repeated for each environment. The stage contains:
 /// <list type="bullet">
 /// <item>a <c>deployment</c> job targeting the Azure DevOps environment (so approvals and checks
-/// apply) that loads Key Vault secrets, backs up, deploys and health-checks;</item>
+/// apply) that loads Key Vault secrets, backs up, deploys and health-checks. It runs on each
+/// server, or on the build agent, which then sends the scripts to the servers;</item>
 /// <item>an <c>on: failure</c> hook on that job which rolls back on the same server.</item>
 /// </list>
 /// </summary>
@@ -43,6 +44,9 @@ public sealed class DeploymentStageGenerator
     public const string StageName = "Deploy_${{ replace(environment, '-', '_') }}";
 
     private const string ForEachEnvironment = "${{ each environment in parameters.environments }}:";
+
+    /// <summary>The variable naming the environment's servers, e.g. <c>$(SERVERS_PROD)</c>. Variable names cannot contain hyphens.</summary>
+    private const string ServersOfEnvironment = "$(" + ServerScript.ServersVariablePrefix + "${{ replace(environment, '-', '_') }})";
 
     /// <summary>A <c>dependsOn</c> list naming the build stage and every deploy stage.</summary>
     public const string AllStagesDependsOn =
@@ -97,6 +101,8 @@ public sealed class DeploymentStageGenerator
         const string env = EnvironmentToken;
         var kind = _deploymentKinds.For(definition.Deployment.Kind);
         var serverResources = _deploymentKinds.UsesServerResources(definition);
+        var fromAgent = _deploymentKinds.DeploysFromAgentToServers(definition);
+        var shell = _deploymentKinds.ShellFor(definition);
         var packagePath = _artifactService.GetDeployPackagePath(definition.Artifact);
 
         var deploySteps = new List<string> { "    - download: none" }; // we download explicitly below
@@ -105,12 +111,18 @@ public sealed class DeploymentStageGenerator
         deploySteps.AddRange(_artifactService.GenerateDownloadSteps(definition.Artifact));
         if (definition.KeyVault != null && !string.IsNullOrWhiteSpace(definition.KeyVault.KeyVaultName))
             deploySteps.Add(_keyVaultService.GeneratePreJobSteps(definition.KeyVault));
+        if (fromAgent && definition.Artifact.ArtifactType != ArtifactType.DockerImage)
+        {
+            // The package was downloaded to the agent; the scripts run on the servers.
+            deploySteps.Add(ServerScript.CopyPackageStep(definition.Deployment, shell, packagePath));
+            packagePath = ServerScript.RemotePackagePath(shell, packagePath);
+        }
         deploySteps.AddRange(_deploymentKinds.GenerateBackupSteps(definition, env));
 
         deploySteps.AddRange(kind.GenerateDeploySteps(definition, env, packagePath));
 
         foreach (var hc in definition.HealthChecks.Where(h => h.Enabled))
-            deploySteps.AddRange(_healthCheckService.GenerateHealthCheckSteps(ForEnvironment(hc, env), _deploymentKinds.ShellFor(definition)));
+            deploySteps.AddRange(_healthCheckService.GenerateHealthCheckSteps(ForEnvironment(hc, env), shell, fromAgent ? definition.Deployment : null));
 
         var rollbackSteps = definition.DeploymentStrategy.RollbackOnFailure
             ? _deploymentKinds.GenerateRollbackSteps(definition, env)
@@ -129,6 +141,13 @@ public sealed class DeploymentStageGenerator
         }
         else
         {
+            if (fromAgent)
+            {
+                sb.Append("    # Runs on the build agent, which connects to this environment's servers.\n");
+                sb.Append("    # They are named in a pipeline variable per environment, e.g. SERVERS_PROD = web01, web02.\n");
+                sb.Append("    variables:\n");
+                sb.Append($"      {ServerScript.ServersVariable}: {ServersOfEnvironment}\n");
+            }
             sb.Append("    # Approvals and checks are set on this environment in Azure DevOps.\n");
             sb.Append($"    environment: {env}\n");
         }

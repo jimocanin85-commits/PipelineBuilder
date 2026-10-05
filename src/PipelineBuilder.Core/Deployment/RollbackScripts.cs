@@ -1,3 +1,4 @@
+using PipelineBuilder.Core.Enums;
 using PipelineBuilder.Core.Models;
 using PipelineBuilder.Core.Yaml;
 
@@ -65,7 +66,7 @@ fi
     /// <summary>Copies the deployment folder (Windows service, file share) into the backup.</summary>
     public static IReadOnlyList<string> BackUpFolder(RollbackConfig config, DeploymentConfig deployment, string environment) => new[]
     {
-        YamlBuilder.PowerShellStep($$"""
+        ServerScript.Step(deployment, ScriptShell.PowerShell, $$"""
 {{Header(config, environment)}}
 $target = {{YamlBuilder.PsLiteral(deployment.TargetPathOrDefault)}}
 {{PowerShellSnippets.SyncFolderFunction}}
