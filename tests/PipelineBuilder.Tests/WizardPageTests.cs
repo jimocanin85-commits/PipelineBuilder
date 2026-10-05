@@ -395,7 +395,7 @@ public class WizardPageTests : BunitContext
 
         GoTo(cut, WizardStep.Result);
 
-        Assert.Contains("invalid characters", cut.Find(".generation-error").TextContent);
+        Assert.Contains("is not a valid name", cut.Find(".generation-error").TextContent);
     }
 
     [Fact]
@@ -406,7 +406,7 @@ public class WizardPageTests : BunitContext
 
         cut.Find("#environments").Change("Bad Name");
 
-        Assert.Contains("invalid characters", cut.Find(".issue-list").TextContent);
+        Assert.Contains("is not a valid name", cut.Find(".issue-list").TextContent);
         Assert.NotNull(cut.Find($"button[data-step='{WizardStep.Target}'] .badge"));
         Assert.Empty(cut.FindAll($"button[data-step='{WizardStep.Start}'] .badge"));
     }
@@ -548,7 +548,7 @@ public class WizardPageTests : BunitContext
         GoTo(cut, WizardStep.Target);
 
         cut.Find("#self-hosted").Change(true);
-        Assert.Contains("Enter the agent pool", cut.Find(".issue-list").TextContent);
+        Assert.Contains("Type the name of your agent pool", cut.Find(".issue-list").TextContent);
 
         cut.Find("#pool-name").Change("OnPremAgents");
         GoTo(cut, WizardStep.Result);

@@ -69,7 +69,7 @@ public sealed class SecretsGovernanceService : ISecretsGovernanceService
                     HasPlainTextSecret = true,
                     SecretLocation = $"Line {i + 1}: {line.Trim()}",
                     Severity = severity,
-                    Recommendation = $"Possible plaintext {label} detected. Use Azure DevOps secret variables, variable groups, or Azure Key Vault instead of embedding values in YAML."
+                    Recommendation = $"This looks like a {label} written in the file. Anyone who can read the repository can read it."
                 });
             }
         }
@@ -87,6 +87,6 @@ public sealed class SecretsGovernanceService : ISecretsGovernanceService
             },
             Message = r.Recommendation,
             AffectedField = r.SecretLocation,
-            SuggestedFix = "Store secrets in Azure DevOps Library (variable groups), mark variables as secret, or use AzureKeyVault@2."
+            SuggestedFix = "Keep it in a secret variable or in Key Vault, and use it as $(NAME)."
         }).ToList();
 }

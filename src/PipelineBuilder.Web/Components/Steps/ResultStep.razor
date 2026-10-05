@@ -36,7 +36,7 @@ else if (Pipeline is { } result)
 
     <div class="actions">
         <button type="button" class="btn-secondary" id="download-settings" @onclick="DownloadSettings">Save settings</button>
-        <span class="hint">Open the file on the first step to change this pipeline later.</span>
+        <span class="hint">To change the pipeline later, open this file on the first step.</span>
     </div>
 
     @if (_status != null)
@@ -82,7 +82,7 @@ else if (Pipeline is { } result)
         try
         {
             var copied = await JS.InvokeAsync<bool>("pipelineBuilder.copyText", content);
-            _status = copied ? "YAML copied to the clipboard." : "Copying is blocked by the browser; select the YAML instead.";
+            _status = copied ? "Copied." : "The browser blocked the copy. Select the text instead.";
         }
         catch (JSException ex)
         {

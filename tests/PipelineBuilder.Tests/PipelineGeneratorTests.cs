@@ -45,7 +45,7 @@ public class PipelineGeneratorTests
         var result = _generator.Generate(definition);
 
         Assert.Contains(result.ValidationResults, v =>
-            v.Severity == ValidationSeverity.Error && v.Message.Contains("plaintext password"));
+            v.Severity == ValidationSeverity.Error && v.Message.Contains("looks like a password"));
     }
 
     private static PipelineDefinition WizardState_CreateDefinition() => new()

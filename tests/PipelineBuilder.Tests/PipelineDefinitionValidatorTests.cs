@@ -26,7 +26,7 @@ public class PipelineDefinitionValidatorTests
     {
         var definition = new PipelineDefinition { Name = "" };
         var errors = Validate(definition);
-        Assert.Contains(errors, e => e.Contains("Pipeline name is required"));
+        Assert.Contains(errors, e => e.Contains("The pipeline needs a name"));
     }
 
     [Fact]
@@ -70,7 +70,7 @@ public class PipelineDefinitionValidatorTests
             Environments = new[] { "test@invalid", "Test_Name" }  // Invalid chars
         };
         var errors = Validate(definition);
-        Assert.Contains(errors, e => e.Contains("invalid characters"));
+        Assert.Contains(errors, e => e.Contains("is not a valid name"));
     }
 
     [Fact]
@@ -83,7 +83,7 @@ public class PipelineDefinitionValidatorTests
             PoolName = ""
         };
         var errors = Validate(definition);
-        Assert.Contains(errors, e => e.Contains("Enter the agent pool"));
+        Assert.Contains(errors, e => e.Contains("Type the name of your agent pool"));
     }
 
     [Fact]
@@ -121,7 +121,7 @@ public class PipelineDefinitionValidatorTests
         var generator = new ServiceCollection().AddPipelineBuilderCore().BuildServiceProvider().GetRequiredService<IPipelineGeneratorService>();
 
         var ex = Assert.Throws<ArgumentException>(() => generator.Generate(definition));
-        Assert.Contains("Pipeline name is required", ex.Message);
+        Assert.Contains("The pipeline needs a name", ex.Message);
     }
 
     [Fact]

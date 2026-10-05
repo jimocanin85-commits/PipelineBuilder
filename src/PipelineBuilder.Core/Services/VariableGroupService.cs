@@ -44,9 +44,9 @@ public sealed class VariableGroupService : IVariableGroupService
             results.Add(new ValidationResult
             {
                 Severity = ValidationSeverity.Error,
-                Message = "Variable group name is required.",
+                Message = "A variable group has no name.",
                 AffectedField = "VariableGroups",
-                SuggestedFix = "Type the name of the variable group, e.g. vg-test."
+                SuggestedFix = "Type its name, e.g. vg-test."
             });
         }
 
@@ -56,9 +56,9 @@ public sealed class VariableGroupService : IVariableGroupService
             results.Add(new ValidationResult
             {
                 Severity = ValidationSeverity.Warning,
-                Message = $"Variable group '{g.Name}' contains secrets but is available to the whole pipeline, including the build.",
+                Message = $"Variable group '{g.Name}' has secrets, but the whole pipeline can read it, including the build.",
                 AffectedField = "VariableGroups",
-                SuggestedFix = "Choose one environment for it under 'Used by', so only that deployment can read the secrets."
+                SuggestedFix = "Choose one environment under 'Used by'. Then only that deployment can read the secrets."
             });
         }
 
