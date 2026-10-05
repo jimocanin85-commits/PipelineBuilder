@@ -15,6 +15,7 @@ parameters:
   type: object
   default:
   - 'test'
+  - 'preprod'
   - 'prod'
 
 # Values used by the steps below.
