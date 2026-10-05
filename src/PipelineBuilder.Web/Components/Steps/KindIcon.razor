@@ -3,40 +3,40 @@
     @switch (Kind)
     {
         case DeploymentKind.Iis:
-            @* a browser window *@
+            // a browser window
             <rect x="3" y="4.5" width="18" height="15" rx="2.5" />
             <path d="M3 9h18M6.5 6.8h.01M9.5 6.8h.01" />
             break;
         case DeploymentKind.WindowsService:
         case DeploymentKind.LinuxService:
-            @* a server that keeps running *@
+            // a server that keeps running
             <rect x="3.5" y="4" width="17" height="7" rx="2" />
             <rect x="3.5" y="13" width="17" height="7" rx="2" />
             <path d="M7 7.5h.01M7 16.5h.01M11 7.5h6M11 16.5h6" />
             break;
         case DeploymentKind.FileShare:
-            @* a folder *@
+            // a folder
             <path d="M3 7.5a2 2 0 0 1 2-2h4l2 2.5h8a2 2 0 0 1 2 2V17a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
             break;
         case DeploymentKind.DockerContainer:
-            @* a box *@
+            // a box
             <path d="M12 3l8 4.5v9L12 21l-8-4.5v-9z" />
             <path d="M4 7.5l8 4.5 8-4.5M12 12v9" />
             break;
         case DeploymentKind.Kubernetes:
-            @* a cluster: nodes joined together *@
+            // a cluster: nodes joined together
             <circle cx="12" cy="6" r="2.5" />
             <circle cx="6" cy="17" r="2.5" />
             <circle cx="18" cy="17" r="2.5" />
             <path d="M10.8 8.2l-3.6 6.6M13.2 8.2l3.6 6.6M8.5 17h7" />
             break;
         case DeploymentKind.Ansible:
-            @* a playbook: a list of tasks *@
+            // a playbook: a list of tasks
             <rect x="5" y="3.5" width="14" height="17" rx="2" />
             <path d="M8.5 8h7M8.5 12h7M8.5 16h4" />
             break;
         default:
-            @* a command prompt *@
+            // a command prompt
             <rect x="3" y="4.5" width="18" height="15" rx="2.5" />
             <path d="M7 10l3 2.5-3 2.5M12.5 15h4.5" />
             break;
