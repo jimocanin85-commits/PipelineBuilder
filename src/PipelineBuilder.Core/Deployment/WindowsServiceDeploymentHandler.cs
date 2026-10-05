@@ -19,7 +19,7 @@ public sealed class WindowsServiceDeploymentHandler : DeploymentKindHandler
 $ErrorActionPreference = 'Stop'
 $service = {{YamlBuilder.PsLiteral(deployment.ServiceNameOrDefault)}}
 $target = {{YamlBuilder.PsLiteral(deployment.TargetPathOrDefault)}}
-$package = {{YamlBuilder.PsLiteral(packagePath)}}
+$package = {{ServerScript.PathLiteral(ScriptShell.PowerShell, packagePath)}}
 {{PowerShellSnippets.SyncFolderFunction}}
 {{PowerShellSnippets.ResolvePackageSource}}
 $svc = Get-Service -Name $service -ErrorAction SilentlyContinue

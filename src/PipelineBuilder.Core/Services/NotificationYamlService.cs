@@ -9,6 +9,11 @@ namespace PipelineBuilder.Core.Services;
 /// Generates notification steps. Whether a step runs on success or failure is decided by the
 /// stage it is placed in (see <see cref="PipelineYamlAssembler.AddNotificationStages"/>), not by
 /// the step itself.
+/// <para>
+/// The pipeline's name and build number are read from the environment (<c>$env:BUILD_BUILDNUMBER</c>),
+/// not written into the script with <c>$(Build.BuildNumber)</c>: a build can change its own number,
+/// and text pasted into a script would run as code in a stage that holds the webhook and mail secrets.
+/// </para>
 /// </summary>
 public sealed class NotificationYamlService : INotificationYamlService
 {
@@ -20,27 +25,27 @@ public sealed class NotificationYamlService : INotificationYamlService
             NotificationType.TeamsWebhook => new[]
             {
                 YamlBuilder.PowerShellStep($$"""
-$webhook = {{WebhookMacro(config.TeamsWebhookVariable, "TEAMS_WEBHOOK_URL")}}
+$webhook = $env:WEBHOOK_URL
 if ([string]::IsNullOrWhiteSpace($webhook) -or $webhook.StartsWith('$(')) {
   Write-Warning 'Teams webhook variable is not set; skipping notification.'
   exit 0
 }
-$body = @{ text = "Pipeline $(Build.DefinitionName) #$(Build.BuildNumber) {{outcome}}" } | ConvertTo-Json
+$body = @{ text = "Pipeline $env:BUILD_DEFINITIONNAME #$env:BUILD_BUILDNUMBER {{outcome}}" } | ConvertTo-Json
 Invoke-RestMethod -Uri $webhook -Method Post -Body $body -ContentType 'application/json'
-""", succeeded ? "Notify Teams on success" : "Notify Teams on failure")
+""", succeeded ? "Notify Teams on success" : "Notify Teams on failure", env: WebhookEnv(config.TeamsWebhookVariable, "TEAMS_WEBHOOK_URL"))
             },
             NotificationType.Email => new[] { EmailStep(config, succeeded, outcome) },
             NotificationType.CustomWebhook => new[]
             {
                 YamlBuilder.PowerShellStep($$"""
-$webhook = {{WebhookMacro(config.WebhookUrlVariable, "CUSTOM_WEBHOOK_URL")}}
+$webhook = $env:WEBHOOK_URL
 if ([string]::IsNullOrWhiteSpace($webhook) -or $webhook.StartsWith('$(')) {
   Write-Warning 'Webhook variable is not set; skipping notification.'
   exit 0
 }
-$payload = @{ event = '{{outcome}}'; build = '$(Build.BuildNumber)' } | ConvertTo-Json
+$payload = @{ event = '{{outcome}}'; build = $env:BUILD_BUILDNUMBER } | ConvertTo-Json
 Invoke-RestMethod -Uri $webhook -Method Post -Body $payload -ContentType 'application/json'
-""", succeeded ? "Custom webhook on success" : "Custom webhook on failure")
+""", succeeded ? "Custom webhook on success" : "Custom webhook on failure", env: WebhookEnv(config.WebhookUrlVariable, "CUSTOM_WEBHOOK_URL"))
             },
             _ => Array.Empty<string>()
         };
@@ -76,8 +81,8 @@ $user = '$(SMTP_USERNAME)'
 $message = New-Object System.Net.Mail.MailMessage
 $message.From = $from
 foreach ($recipient in $recipients) { $message.To.Add($recipient) }
-$message.Subject = "Pipeline $(Build.DefinitionName) #$(Build.BuildNumber) {{outcome}}"
-$message.Body = "Run: $(System.CollectionUri)$(System.TeamProject)/_build/results?buildId=$(Build.BuildId)"
+$message.Subject = "Pipeline $env:BUILD_DEFINITIONNAME #$env:BUILD_BUILDNUMBER {{outcome}}"
+$message.Body = 'Run: {0}{1}/_build/results?buildId={2}' -f $env:SYSTEM_COLLECTIONURI, $env:SYSTEM_TEAMPROJECT, $env:BUILD_BUILDID
 $client = New-Object System.Net.Mail.SmtpClient($smtpHost, [int]$port)
 $client.EnableSsl = $true
 if (-not $user.StartsWith('$(')) {
@@ -89,16 +94,16 @@ Write-Host "Email sent to $($recipients -join ', ')"
     }
 
     /// <summary>
-    /// Builds a PowerShell string literal holding an Azure DevOps macro such as
-    /// <c>'$(TEAMS_WEBHOOK_URL)'</c>, which the agent replaces with the variable's value at runtime.
-    /// Invalid variable names fall back to the default name.
+    /// Maps the webhook variable into the step's environment as <c>WEBHOOK_URL</c>. A secret is only
+    /// visible to a script when it is mapped like this, and the address never becomes part of the
+    /// script text. Invalid variable names fall back to the default name.
     /// </summary>
-    private static string WebhookMacro(string? variableName, string fallback)
+    private static Dictionary<string, string> WebhookEnv(string? variableName, string fallback)
     {
         var name = string.IsNullOrWhiteSpace(variableName) || !IsValidVariableName(variableName)
             ? fallback
             : variableName.Trim();
-        return YamlBuilder.PsLiteral($"$({name})");
+        return new Dictionary<string, string> { ["WEBHOOK_URL"] = $"$({name})" };
     }
 
     private static bool IsValidVariableName(string name) =>

@@ -188,6 +188,10 @@ public class LinuxRealScriptTests
         ScriptHost.AssertSucceeded(first);
         Assert.Equal("Copy the package to the servers", first[0].Name);
         Assert.Equal("1", Served(port));
+        // On the server everything lies in a folder only the login account can open, and no script is left behind.
+        Assert.Equal("700", ScriptHost.Shell("stat -c %a ~/.pipelinebuilder"));
+        Assert.Equal("1", ScriptHost.Shell("cat ~/.pipelinebuilder/42/drop/version.txt"));
+        Assert.Equal("42", ScriptHost.Shell("ls ~/.pipelinebuilder"));
 
         host.NewBuild("122", "drop", Package("2", folder, port));
         ScriptHost.AssertSucceeded(host.Deploy(definition));
@@ -218,5 +222,26 @@ public class LinuxRealScriptTests
         Assert.NotEqual(0, deploy.ExitCode);
         Assert.Contains("about to fail", deploy.Output);
         Assert.Contains("exit code 3", deploy.Output);
+    }
+
+    [SkippableFact]
+    public void AFolderVariableThatIsNotSetStopsTheDeployment()
+    {
+        Skip.IfNot(ScriptHost.EnabledFor("linux"), NotPrepared);
+        const string service = "pbunset";
+        CreateService(service, "/opt/pbunset");
+
+        var definition = Template("linux-service");
+        definition.Deployment.ServiceName = service;
+        definition.Deployment.TargetPath = null; // becomes $(DEPLOY_PATH), which nobody has set
+        definition.Rollback.Enabled = false;
+        var host = new ScriptHost();
+        host.NewBuild("141", "drop", Package("1", "/opt/pbunset", 8761));
+
+        var deploy = host.Deploy(definition)[^1];
+
+        Assert.NotEqual(0, deploy.ExitCode);
+        Assert.Contains("The folder to copy to is not set", deploy.Output);
+        Assert.False(Directory.Exists(Path.Combine(host.Workspace, "$(DEPLOY_PATH)")), "Nothing is copied to a folder named after the missing variable.");
     }
 }

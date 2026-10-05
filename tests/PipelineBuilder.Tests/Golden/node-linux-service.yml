@@ -73,9 +73,12 @@ stages:
 - ${{ each environment in parameters.environments }}:
   - stage: Deploy_${{ replace(environment, '-', '_') }}
     displayName: 'Deploy ${{ environment }}'
+    # A pull request is built and tested, but never deployed.
+    ${{ if notIn(environment, 'prod') }}:
+      condition: and(succeeded(), ne(variables['Build.Reason'], 'PullRequest'))
     # Only the main branch deploys to prod.
     ${{ if in(environment, 'prod') }}:
-      condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'))
+      condition: and(succeeded(), ne(variables['Build.Reason'], 'PullRequest'), eq(variables['Build.SourceBranch'], 'refs/heads/main'))
     jobs:
     - deployment: Deploy
       displayName: 'Deploy to ${{ environment }}'
@@ -99,6 +102,10 @@ stages:
                   backup="$envRoot/$(Build.BuildId)"
                   target='$(DEPLOY_PATH)'
                   sync_folder() {
+                    # Stop if the folder is not set, so nothing is copied to or deleted from the wrong place.
+                    case "$2" in
+                      ''|/|\$\(*) echo "##vso[task.logissue type=error]The folder to copy to is not set: '$2'. Check the pipeline variables."; exit 1 ;;
+                    esac
                     mkdir -p "$2"
                     if command -v rsync >/dev/null 2>&1; then
                       rsync -a --delete "$1"/ "$2"/
@@ -123,6 +130,10 @@ stages:
                   target='$(DEPLOY_PATH)'
                   package='$(Pipeline.Workspace)/drop'
                   sync_folder() {
+                    # Stop if the folder is not set, so nothing is copied to or deleted from the wrong place.
+                    case "$2" in
+                      ''|/|\$\(*) echo "##vso[task.logissue type=error]The folder to copy to is not set: '$2'. Check the pipeline variables."; exit 1 ;;
+                    esac
                     mkdir -p "$2"
                     if command -v rsync >/dev/null 2>&1; then
                       rsync -a --delete "$1"/ "$2"/
@@ -162,6 +173,10 @@ stages:
                     service='$(SERVICE_NAME)'
                     target='$(DEPLOY_PATH)'
                     sync_folder() {
+                      # Stop if the folder is not set, so nothing is copied to or deleted from the wrong place.
+                      case "$2" in
+                        ''|/|\$\(*) echo "##vso[task.logissue type=error]The folder to copy to is not set: '$2'. Check the pipeline variables."; exit 1 ;;
+                      esac
                       mkdir -p "$2"
                       if command -v rsync >/dev/null 2>&1; then
                         rsync -a --delete "$1"/ "$2"/

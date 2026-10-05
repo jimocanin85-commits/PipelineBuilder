@@ -101,6 +101,27 @@ public class WindowsRealScriptTests
         host.Set("DeployServers", "localhost");
 
         DeployTwiceAndRollBack(host, definition, definition.Deployment.TargetPath, definition.Rollback.BackupPath, 321);
+
+        // On the server the package lies in the login account's own profile, not in a folder every account can write to.
+        var staged = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "PipelineBuilder", "42", "drop");
+        Assert.True(File.Exists(Path.Combine(staged, "version.txt")), $"Expected the package in {staged}.");
+    }
+
+    [SkippableFact]
+    public void AFolderVariableThatIsNotSetStopsTheDeployment()
+    {
+        Skip.IfNot(ScriptHost.EnabledFor("windows"), NotPrepared);
+        var definition = Template("windows-files");
+        definition.Deployment.TargetPath = null; // becomes $(DEPLOY_PATH), which nobody has set
+        definition.Rollback.BackupPath = Path.Combine(NewFolder("unset"), "backups");
+        var host = new ScriptHost();
+        host.NewBuild("341", "drop", Package("1"));
+
+        var deploy = host.Deploy(definition)[^1];
+
+        Assert.NotEqual(0, deploy.ExitCode);
+        Assert.Contains("The folder to copy to is not set", deploy.Output);
+        Assert.False(Directory.Exists(Path.Combine(host.Workspace, "$(DEPLOY_PATH)")), "Nothing is copied to a folder named after the missing variable.");
     }
 
     [SkippableFact]

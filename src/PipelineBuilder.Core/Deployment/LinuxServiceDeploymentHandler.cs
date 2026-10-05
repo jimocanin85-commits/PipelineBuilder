@@ -24,7 +24,7 @@ public sealed class LinuxServiceDeploymentHandler : DeploymentKindHandler
 {{BashSnippets.Strict}}
 service={{YamlBuilder.BashLiteral(deployment.ServiceNameOrDefault)}}
 target={{YamlBuilder.BashLiteral(deployment.TargetPathOrDefault)}}
-package={{YamlBuilder.BashLiteral(packagePath)}}
+package={{ServerScript.PathLiteral(ScriptShell.Bash, packagePath)}}
 {{BashSnippets.SyncFolderFunction}}
 {{BashSnippets.AsRootFunction}}
 {{BashSnippets.ResolvePackageSource}}

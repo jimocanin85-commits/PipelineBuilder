@@ -19,11 +19,46 @@ jobs:
       - name: Check spelling
         run: |
           pip install --quiet codespell
-          codespell src tests docs deploy README.md .github --skip="*/bin/*,*/obj/*" > spelling.log || {
+          # notIn is an Azure Pipelines function, not a misspelling.
+          codespell src tests docs deploy README.md .github --skip="*/bin/*,*/obj/*,*/node_modules/*" --ignore-words-list notin > spelling.log || {
             echo "::error title=Spelling::$(sed ':a;N;$!ba;s/\n/%0A/g' spelling.log | head -c 6000)"
             cat spelling.log
             exit 1
           }
+
+  # Opens the published app in a real browser and clicks through the wizard. The other tests never
+  # run the page's JavaScript or its Content-Security-Policy.
+  browser:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-dotnet@v6
+        with:
+          global-json-file: global.json
+
+      - name: Publish and start the app
+        env:
+          # As on a server, but without Windows login: this machine is not in a domain.
+          ASPNETCORE_ENVIRONMENT: Production
+          ASPNETCORE_URLS: http://localhost:5150
+          Authentication__Mode: None
+        run: |
+          dotnet publish src/PipelineBuilder.Web --configuration Release --output publish
+          cd publish
+          nohup dotnet PipelineBuilder.Web.dll > ../app.log 2>&1 &
+          for i in $(seq 1 30); do curl -sf http://localhost:5150/ > /dev/null && exit 0; sleep 1; done
+          echo "::error title=Browser test::The app did not start."; cat ../app.log; exit 1
+
+      - name: Click through the wizard
+        working-directory: tests/browser
+        run: |
+          npm install --no-audit --no-fund --silent
+          node wizard.mjs
+
+      - name: App log
+        if: failure()
+        run: cat app.log
 
   build-and-test:
     runs-on: ubuntu-latest

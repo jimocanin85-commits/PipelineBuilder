@@ -77,7 +77,7 @@ public class DeployFromAgentTests : BunitContext
 
         // The package is copied to the servers first, and the script reads it from there.
         Assert.Contains("Copy-Item -Path $package -Destination $folder -ToSession $session -Recurse -Force", deploy);
-        Assert.Contains(@"$package = 'C:\ProgramData\PipelineBuilder\$(System.DefinitionId)\drop'", deploy);
+        Assert.Contains(@"$package = (Join-Path $env:LOCALAPPDATA 'PipelineBuilder\$(System.DefinitionId)\drop')", deploy);
         Assert.True(deploy.IndexOf("Copy the package to the servers", StringComparison.Ordinal)
                     < deploy.IndexOf("Deploy Windows service", StringComparison.Ordinal));
     }
@@ -94,7 +94,7 @@ public class DeployFromAgentTests : BunitContext
         Assert.Contains("scp -q -o BatchMode=yes $file \"${login}:$remote\"", deploy);
         Assert.Contains("ssh -o BatchMode=yes $login \"bash $remote;", deploy);
         Assert.Contains("as_root systemctl start \"$service\"", deploy); // the ordinary bash script, sent as text
-        Assert.Contains("package='/tmp/pipelinebuilder-$(System.DefinitionId)/drop'", deploy);
+        Assert.Contains("package=\"$HOME\"'/.pipelinebuilder/$(System.DefinitionId)/drop'", deploy);
         Assert.Contains("scp -q -r -o BatchMode=yes $package \"${login}:$folder\"", deploy);
         Assert.DoesNotContain("- bash: |", deploy); // the agent runs PowerShell; bash runs on the servers
         Assert.DoesNotContain("Invoke-Command", deploy);
@@ -202,7 +202,7 @@ public class DeployFromAgentTests : BunitContext
 
         Assert.Equal(YamlBuilder.BashStep("echo hi", "Say hi"), ServerScript.Step(onServer, ScriptShell.Bash, "echo hi", "Say hi"));
         Assert.Equal(YamlBuilder.PowerShellStep("Write-Host hi", "Say hi"), ServerScript.Step(onServer, ScriptShell.PowerShell, "Write-Host hi", "Say hi"));
-        Assert.Equal("/tmp/pipelinebuilder-$(System.DefinitionId)/drop.zip", ServerScript.RemotePackagePath(ScriptShell.Bash, "$(Pipeline.Workspace)/drop/drop.zip"));
+        Assert.Equal("$HOME/.pipelinebuilder/$(System.DefinitionId)/drop.zip", ServerScript.RemotePackagePath(ScriptShell.Bash, "$(Pipeline.Workspace)/drop/drop.zip"));
     }
 
     [Fact]
@@ -246,6 +246,61 @@ public class DeployFromAgentTests : BunitContext
 
         cut.Find("#run-from-Agent").Change(true);
 
-        Assert.Contains(@"The build is in C:\ProgramData\PipelineBuilder\$(System.DefinitionId)\drop.", cut.Find(".wizard-content").TextContent);
+        Assert.Contains(@"The build is in $env:LOCALAPPDATA\PipelineBuilder\$(System.DefinitionId)\drop.", cut.Find(".wizard-content").TextContent);
+    }
+
+    // The package and the scripts may hold secrets, and what is copied to a server is installed
+    // there. So nothing is put in a folder that other accounts on the server can write to.
+    [Theory]
+    [InlineData("windows-service-onprem")]
+    [InlineData("iis-onprem")]
+    [InlineData("windows-files")]
+    [InlineData("linux-service")]
+    [InlineData("docker-build-push")]
+    public void NothingIsPutInAFolderSharedByAllAccountsOnTheServer(string template)
+    {
+        var definition = FromAgent(template);
+        definition.HealthChecks = new[] { new HealthCheckConfig { Enabled = true, HealthCheckType = HealthCheckType.HttpEndpoint, Url = "https://localhost/health" } };
+        var yaml = Yaml(definition);
+
+        Assert.DoesNotContain("/tmp/", yaml);
+        Assert.DoesNotContain("/var/tmp", yaml);
+        Assert.DoesNotContain("ProgramData", yaml);
+    }
+
+    [Fact]
+    public void TheWorkFolderOnALinuxServerIsOpenToTheLoginAccountOnly()
+    {
+        var yaml = Yaml(FromAgent("linux-service"));
+
+        // Before the package, and before every script, is copied there.
+        Assert.Contains("\"mkdir -p .pipelinebuilder && chmod 700 .pipelinebuilder && rm -rf '$folder' && mkdir '$folder'\"", yaml);
+        Assert.Contains("ssh -o BatchMode=yes $login \"mkdir -p .pipelinebuilder && chmod 700 .pipelinebuilder\"", yaml);
+        Assert.Contains("$remote = '.pipelinebuilder/step-$(Build.BuildId).sh'", yaml);
+        // Host keys are checked: an unknown server is refused, never accepted silently.
+        Assert.DoesNotContain("StrictHostKeyChecking", yaml);
+    }
+
+    [Fact]
+    public void APathInTheHomeFolderIsFilledInByTheShellAndTheRestIsQuoted()
+    {
+        Assert.Equal("\"$HOME\"'/.pipelinebuilder/7/it'\\''s'", ServerScript.PathLiteral(ScriptShell.Bash, "$HOME/.pipelinebuilder/7/it's"));
+        Assert.Equal("'/opt/my app'", ServerScript.PathLiteral(ScriptShell.Bash, "/opt/my app"));
+        Assert.Equal(@"(Join-Path $env:LOCALAPPDATA 'PipelineBuilder\7\it''s')", ServerScript.PathLiteral(ScriptShell.PowerShell, @"$env:LOCALAPPDATA\PipelineBuilder\7\it's"));
+        Assert.Equal(@"'D:\apps\my app'", ServerScript.PathLiteral(ScriptShell.PowerShell, @"D:\apps\my app"));
+    }
+
+    [Fact]
+    public void AScriptThatWouldEndTheHereStringIsReported()
+    {
+        var definition = FromAgent("own-script");
+        definition.Deployment.CustomScript = "$text = @'\nhello\n'@\nWrite-Host $text";
+
+        var findings = _generator.Generate(definition).ValidationResults;
+
+        Assert.Contains(findings, f => f.Severity == ValidationSeverity.Error && f.Message.Contains("starts with '@"));
+
+        definition.Deployment.RunFrom = DeployFrom.Server;
+        Assert.DoesNotContain(_generator.Generate(definition).ValidationResults, f => f.Message.Contains("starts with '@"));
     }
 }

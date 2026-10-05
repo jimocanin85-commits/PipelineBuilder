@@ -79,6 +79,10 @@ internal static class InputRules
         else if (string.IsNullOrWhiteSpace(artifact.ArtifactName))
             yield return Error(nameof(PipelineDefinition.Artifact),
                 artifact.ArtifactType == ArtifactType.DockerImage ? "The image needs a name." : "The artifact needs a name.");
+        // The name becomes part of paths and commands, so it may only hold characters that are safe there.
+        else if (!Regex.IsMatch(artifact.ArtifactName, "^[A-Za-z0-9._/-]+$") || artifact.ArtifactName.Contains("..", StringComparison.Ordinal))
+            yield return Error(nameof(PipelineDefinition.Artifact),
+                (artifact.ArtifactType == ArtifactType.DockerImage ? "The image name" : "The artifact name") + " can only have letters, digits, '.', '_', '-' and '/'.");
     }
 
     private static IEnumerable<ValidationResult> DockerArtifact(ValidationContext context)

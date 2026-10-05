@@ -34,12 +34,26 @@ public static class ServerScript
         return YamlBuilder.PowerShellStep(transport, displayName);
     }
 
+    /// <summary>The login account's home folder in bash, and its own application data folder in PowerShell.</summary>
+    private const string BashHome = "$HOME/";
+    private const string PowerShellHome = @"$env:LOCALAPPDATA\";
+
+    /// <summary>Folder in the login account's home folder on a Linux server, for the package and the step scripts.</summary>
+    private const string LinuxWorkFolder = ".pipelinebuilder";
+
     /// <summary>
     /// The folder the package is copied to on each server, when the build agent deploys. It is replaced
     /// on every run, so nothing piles up.
+    /// <para>
+    /// It lies in the home folder of the account that logs in, not in a shared place such as
+    /// <c>/tmp</c> or <c>C:\ProgramData</c>. Any account on the server can create files in those, and
+    /// could swap the package for its own before it is installed.
+    /// </para>
     /// </summary>
     public static string RemotePackageFolder(ScriptShell shell) =>
-        shell == ScriptShell.Bash ? "/tmp/pipelinebuilder-$(System.DefinitionId)" : @"C:\ProgramData\PipelineBuilder\$(System.DefinitionId)";
+        shell == ScriptShell.Bash
+            ? BashHome + LinuxWorkFolder + "/$(System.DefinitionId)"
+            : PowerShellHome + @"PipelineBuilder\$(System.DefinitionId)";
 
     /// <summary>Where a package downloaded to <paramref name="localPackage"/> on the agent ends up on the server.</summary>
     public static string RemotePackagePath(ScriptShell shell, string localPackage)
@@ -48,19 +62,40 @@ public static class ServerScript
         return RemotePackageFolder(shell) + (shell == ScriptShell.Bash ? "/" : @"\") + name;
     }
 
+    /// <summary>
+    /// A path as a value in a script. A path under the account's home folder (see
+    /// <see cref="RemotePackageFolder"/>) keeps the part that the shell must fill in; everything else
+    /// is quoted, so nothing in it is run as code.
+    /// </summary>
+    public static string PathLiteral(ScriptShell shell, string path)
+    {
+        if (shell == ScriptShell.Bash)
+        {
+            return path.StartsWith(BashHome, StringComparison.Ordinal)
+                ? "\"$HOME\"" + YamlBuilder.BashLiteral(path[(BashHome.Length - 1)..])
+                : YamlBuilder.BashLiteral(path);
+        }
+
+        return path.StartsWith(PowerShellHome, StringComparison.Ordinal)
+            ? $"(Join-Path $env:LOCALAPPDATA {YamlBuilder.PsLiteral(path[PowerShellHome.Length..])})"
+            : YamlBuilder.PsLiteral(path);
+    }
+
     /// <summary>A step on the build agent that copies the downloaded package to every server.</summary>
     public static string CopyPackageStep(DeploymentConfig deployment, ScriptShell shell, string localPackage)
     {
+        var folder = RemotePackageFolder(shell);
         var script = shell == ScriptShell.Bash
             ? $$"""
 {{Servers}}
 {{SshLogin(deployment)}}
 $package = {{YamlBuilder.PsLiteral(localPackage)}}
-$folder = {{YamlBuilder.PsLiteral(RemotePackageFolder(shell))}}
+# In the home folder of the account that logs in. No other account on the server can change it.
+$folder = {{YamlBuilder.PsLiteral(folder[BashHome.Length..])}}
 foreach ($server in $servers) {
   Write-Host "--- $server"
   $login = $user + '@' + $server
-  ssh -o BatchMode=yes $login "rm -rf '$folder' && mkdir -p '$folder'"
+  ssh -o BatchMode=yes $login "{{PrivateWorkFolder}} && rm -rf '$folder' && mkdir '$folder'"
   if ($LASTEXITCODE -ne 0) { throw "Could not prepare $folder on $server. Check that the agent can log in there with SSH." }
   scp -q -r -o BatchMode=yes $package "${login}:$folder"
   if ($LASTEXITCODE -ne 0) { throw "Could not copy the package to $server." }
@@ -69,15 +104,16 @@ foreach ($server in $servers) {
             : $$"""
 {{Servers}}
 $package = {{YamlBuilder.PsLiteral(localPackage)}}
-$folder = {{YamlBuilder.PsLiteral(RemotePackageFolder(shell))}}
 foreach ($server in $servers) {
   Write-Host "--- $server"
   $session = New-PSSession -ComputerName $server
   try {
-    Invoke-Command -Session $session -ArgumentList $folder -ScriptBlock {
-      param($folder)
+    # In the profile of the account that logs in. No other account on the server can change it.
+    $folder = Invoke-Command -Session $session -ScriptBlock {
+      $folder = Join-Path $env:LOCALAPPDATA {{YamlBuilder.PsLiteral(folder[PowerShellHome.Length..])}}
       if (Test-Path $folder) { Remove-Item -Path $folder -Recurse -Force }
       New-Item -ItemType Directory -Force -Path $folder | Out-Null
+      $folder
     }
     Copy-Item -Path $package -Destination $folder -ToSession $session -Recurse -Force
   } finally {
@@ -87,6 +123,9 @@ foreach ($server in $servers) {
 """;
         return YamlBuilder.PowerShellStep(script, "Copy the package to the servers");
     }
+
+    /// <summary>Creates the work folder on a Linux server, open to the login account only.</summary>
+    private const string PrivateWorkFolder = "mkdir -p " + LinuxWorkFolder + " && chmod 700 " + LinuxWorkFolder;
 
     /// <summary>Reads the server list, and stops with a clear message when the variable is not defined.</summary>
     private const string Servers = """
@@ -133,7 +172,8 @@ foreach ($server in $servers) {
     /// <summary>
     /// Runs a bash script on each Linux server: copies it there with <c>scp</c> and runs it with
     /// <c>ssh</c>. The agent logs in with its own SSH key; <c>BatchMode</c> makes a missing key fail
-    /// at once instead of waiting for a password.
+    /// at once instead of waiting for a password, and refuses a server whose host key the agent does
+    /// not know already.
     /// </summary>
     private static string OverSsh(DeploymentConfig deployment, string script) => $$"""
 {{Servers}}
@@ -143,12 +183,15 @@ $script = @'
 '@
 $file = Join-Path $env:AGENT_TEMPDIRECTORY 'pipelinebuilder-step.sh'
 [IO.File]::WriteAllText($file, $script.Replace("`r`n", "`n") + "`n")
-$remote = '/tmp/pipelinebuilder-step-$(Build.BuildId).sh'
+# The script may hold secret values, so on the server it lies in a folder only this account can read.
+$remote = '{{LinuxWorkFolder}}/step-$(Build.BuildId).sh'
 foreach ($server in $servers) {
   Write-Host "--- $server"
   $login = $user + '@' + $server
-  scp -q -o BatchMode=yes $file "${login}:$remote"
+  ssh -o BatchMode=yes $login "{{PrivateWorkFolder}}"
   if ($LASTEXITCODE -ne 0) { throw "Could not reach $server. Check that the agent can log in there with SSH." }
+  scp -q -o BatchMode=yes $file "${login}:$remote"
+  if ($LASTEXITCODE -ne 0) { throw "Could not copy the script to $server." }
   ssh -o BatchMode=yes $login "bash $remote; code=`$?; rm -f $remote; exit `$code"
   if ($LASTEXITCODE -ne 0) { throw "The step failed on $server (exit code $LASTEXITCODE)." }
 }

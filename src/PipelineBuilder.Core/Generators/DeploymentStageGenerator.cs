@@ -57,6 +57,12 @@ public sealed class DeploymentStageGenerator
         "    - " + StageName;
 
     /// <summary>True when deployments run on the servers registered in each environment, not on the build agent.</summary>
+    /// <summary>
+    /// False for a pull request build. Such a build runs code nobody has reviewed yet, so it must not
+    /// reach a server or a stage that holds secrets.
+    /// </summary>
+    public const string NotPullRequest = "ne(variables['Build.Reason'], 'PullRequest')";
+
     public bool RunsOnServers(PipelineDefinition definition) => _deploymentKinds.UsesServerResources(definition);
 
     /// <summary>
@@ -69,13 +75,22 @@ public sealed class DeploymentStageGenerator
         stage.Append("- stage: ").Append(StageName).Append('\n');
         stage.Append("  displayName: ").Append(YamlBuilder.YamlString($"Deploy {EnvironmentToken}")).Append('\n');
 
-        // Production only deploys from the release branch.
+        // A pull request build runs code nobody has reviewed yet, so it never reaches a server.
+        // Production also only deploys from the release branch.
         var production = definition.Environments.Where(EnvironmentNames.IsProduction).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+        stage.Append("  # A pull request is built and tested, but never deployed.\n");
         if (production.Count > 0)
         {
+            var names = string.Join(", ", production.Select(YamlBuilder.YamlString));
+            stage.Append("  ${{ if notIn(environment, ").Append(names).Append(") }}:\n");
+            stage.Append($"    condition: and(succeeded(), {NotPullRequest})\n");
             stage.Append($"  # Only the {definition.ReleaseBranch} branch deploys to {string.Join(" and ", production)}.\n");
-            stage.Append("  ${{ if in(environment, ").Append(string.Join(", ", production.Select(YamlBuilder.YamlString))).Append(") }}:\n");
-            stage.Append($"    condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/{definition.ReleaseBranch}'))\n");
+            stage.Append("  ${{ if in(environment, ").Append(names).Append(") }}:\n");
+            stage.Append($"    condition: and(succeeded(), {NotPullRequest}, eq(variables['Build.SourceBranch'], 'refs/heads/{definition.ReleaseBranch}'))\n");
+        }
+        else
+        {
+            stage.Append($"  condition: and(succeeded(), {NotPullRequest})\n");
         }
 
         // Variable groups that only one environment may read.

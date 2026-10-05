@@ -31,6 +31,12 @@ public static class PipelineDefinitionSerializer
         public PipelineDefinition? Definition { get; set; }
     }
 
+    /// <summary>
+    /// For reading. A settings file can come from anywhere, so a value the wizard counts on must not
+    /// be missing: <c>"deployment": null</c> is refused here instead of failing later, mid-click.
+    /// </summary>
+    private static readonly JsonSerializerOptions ReadOptions = new(Options) { RespectNullableAnnotations = true };
+
     public static string ToJson(PipelineDefinition definition) =>
         JsonSerializer.Serialize(new SettingsFile { Definition = definition }, Options);
 
@@ -40,7 +46,7 @@ public static class PipelineDefinitionSerializer
         SettingsFile? file;
         try
         {
-            file = JsonSerializer.Deserialize<SettingsFile>(json, Options);
+            file = JsonSerializer.Deserialize<SettingsFile>(json, ReadOptions);
         }
         catch (JsonException ex)
         {
@@ -50,6 +56,22 @@ public static class PipelineDefinitionSerializer
         if ((file?.Format != Format && file?.Format != LegacyFormat) || file.Definition == null)
             throw new FormatException($"The file is not a PipelineBuilder settings file (expected format '{Format}').");
 
+        RejectEmptyItems(file.Definition);
         return file.Definition;
+    }
+
+    /// <summary>A list may be empty, but an item in it may not be <c>null</c>.</summary>
+    private static void RejectEmptyItems(PipelineDefinition definition)
+    {
+        var lists = new IEnumerable<object?>[]
+        {
+            definition.Environments, definition.VariableGroups, definition.HealthChecks, definition.Notifications,
+            definition.Approval.Environments, definition.Deployment.ContainerPorts, definition.Deployment.ContainerEnvironment,
+            definition.Trigger.IncludeBranches, definition.Trigger.ExcludeBranches, definition.Trigger.PathFilters
+        };
+        if (lists.Any(list => list.Contains(null)))
+            throw new FormatException("The file has an empty item (null) in a list.");
+        if (definition.Notifications.Any(notification => notification.EmailRecipients.Contains(null!)))
+            throw new FormatException("The file has an empty item (null) in a list.");
     }
 }

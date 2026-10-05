@@ -59,6 +59,12 @@ public class SettingsAndValidationTests
     [InlineData("not json")]
     [InlineData("{\"format\":\"something-else\",\"definition\":{}}")]
     [InlineData("{}")]
+    // A file from someone else may leave out what the wizard counts on. It is refused on opening, not mid-click.
+    [InlineData("{\"format\":\"pipelinebuilder-settings/v1\",\"definition\":{\"deployment\":null}}")]
+    [InlineData("{\"format\":\"pipelinebuilder-settings/v1\",\"definition\":{\"environments\":null}}")]
+    [InlineData("{\"format\":\"pipelinebuilder-settings/v1\",\"definition\":{\"environments\":[\"test\",null]}}")]
+    [InlineData("{\"format\":\"pipelinebuilder-settings/v1\",\"definition\":{\"healthChecks\":[null]}}")]
+    [InlineData("{\"format\":\"pipelinebuilder-settings/v1\",\"definition\":{\"notifications\":[{\"emailRecipients\":[null]}]}}")]
     public void InvalidSettingsFilesAreRejected(string json)
     {
         Assert.Throws<FormatException>(() => PipelineDefinitionSerializer.FromJson(json));
