@@ -8,7 +8,7 @@
 }
 @if (!kind.SupportsRollback)
 {
-    <p class="hint">Rollback is up to your playbook, for example with block and rescue. The pipeline stops at the environment that failed.</p>
+    <p class="hint">Rollback is up to your playbook. The pipeline stops at the environment that failed.</p>
 }
 else
 {
@@ -17,15 +17,15 @@ else
         @(onServers ? "Back up before deploying, and roll back if the deployment fails" : "Roll back if the deployment fails")
     </label>
     <p class="hint">@(onServers
-        ? "The running version is saved first. If a step fails, it is put back, so the servers are left as they were."
-        : "If a step fails, the cluster goes back to the version that ran before.")</p>
+        ? "The current version is saved first. If something fails, it is put back."
+        : "If something fails, the cluster goes back to the previous version.")</p>
 }
 @if (kind.SupportsRollback && Wizard.Definition.Rollback.Enabled)
 {
     @* Your own script does not say what it deploys, so the user chooses what to back up. *@
     if (kind.RollbackTarget is null)
     {
-        <Field For="rollback-target" Label="What your script deploys" Hint="Decides what is backed up and how it is put back.">
+        <Field For="rollback-target" Label="What your script deploys" Hint="Decides what is backed up.">
             <InputSelect id="rollback-target" @bind-Value="Wizard.Definition.Rollback.Target" class="form-control">
                 @foreach (var target in Enum.GetValues<RollbackTarget>())
                 {

@@ -33,7 +33,7 @@ internal static class InputRules
     {
         var name = context.Definition.Name;
         if (string.IsNullOrWhiteSpace(name))
-            yield return Error(nameof(PipelineDefinition.Name), "Pipeline name is required and cannot be empty.");
+            yield return Error(nameof(PipelineDefinition.Name), "Pipeline name is required.");
         if (name?.Length > 255)
             yield return Error(nameof(PipelineDefinition.Name), "Pipeline name cannot exceed 255 characters.");
         if (name?.Any(char.IsControl) == true)
@@ -44,14 +44,14 @@ internal static class InputRules
     {
         var environments = context.Definition.Environments;
         if (environments == null || environments.Count == 0)
-            yield return Error(nameof(PipelineDefinition.Environments), "At least one environment must be specified.", "Add e.g. test, preprod, prod.");
+            yield return Error(nameof(PipelineDefinition.Environments), "Add at least one environment.", "Add e.g. test, preprod, prod.");
 
         foreach (var env in environments ?? Array.Empty<string>())
         {
             if (string.IsNullOrWhiteSpace(env))
-                yield return Error(nameof(PipelineDefinition.Environments), "Environment names cannot be empty or whitespace.");
+                yield return Error(nameof(PipelineDefinition.Environments), "An environment name is empty.");
             else if (!Regex.IsMatch(env, "^[a-z0-9-]+$"))
-                yield return Error(nameof(PipelineDefinition.Environments), $"Environment name '{env}' contains invalid characters. Use lowercase letters, digits and hyphens only.");
+                yield return Error(nameof(PipelineDefinition.Environments), $"Environment name '{env}' has invalid characters. Use small letters, digits and hyphens.");
         }
 
         if (environments?.Count > 0 && environments.Count != environments.Distinct(StringComparer.OrdinalIgnoreCase).Count())

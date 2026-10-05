@@ -49,5 +49,5 @@ Users sign in with their Windows account. Details: [docs/INSTALL.md](docs/INSTAL
 
 - [What to set up in Azure DevOps](docs/AZURE-DEVOPS.md), including the variables
 - [Install guide](docs/INSTALL.md)
-- [How the code is organised](docs/ARCHITECTURE.md)
+- [How the code is organized](docs/ARCHITECTURE.md)
 - Run the tests: `dotnet test`

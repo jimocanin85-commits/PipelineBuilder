@@ -58,7 +58,7 @@ public class PipelineDefinitionValidatorTests
             Environments = new[] { "", "test" }
         };
         var errors = Validate(definition);
-        Assert.Contains(errors, e => e.Contains("Environment names cannot be empty"));
+        Assert.Contains(errors, e => e.Contains("An environment name is empty"));
     }
 
     [Fact]

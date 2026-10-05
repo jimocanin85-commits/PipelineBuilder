@@ -28,8 +28,8 @@ public sealed class BuildStageGenerator
         steps.AddRange(_artifactService.GeneratePublishSteps(definition.Artifact));
 
         var comment = definition.Artifact.ArtifactType == ArtifactType.DockerImage
-            ? "# Build: build the Docker image once and push it. Every environment gets the same image."
-            : "# Build: compile, test and package once. Every environment gets the same package.";
+            ? "# Build once, deploy many: the Docker image is built and pushed here. Every environment gets this same image."
+            : "# Build once, deploy many: the app is compiled, tested and packaged here. Every environment gets this same package.";
 
         return $"""
 {comment}

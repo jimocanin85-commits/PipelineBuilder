@@ -101,7 +101,7 @@ public static class PipelineRequirements
                 {
                     Kind = RequirementKind.Variable,
                     Name = ServerScript.ServersVariablePrefix + environment.ToUpperInvariant().Replace('-', '_'),
-                    Purpose = $"Servers in {environment}, comma-separated, e.g. web01, web02",
+                    Purpose = $"Servers in {environment}, separated by commas, e.g. web01, web02",
                     Where = VariablesPath
                 });
             }

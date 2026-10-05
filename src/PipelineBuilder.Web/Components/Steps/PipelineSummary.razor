@@ -63,7 +63,9 @@
     [Parameter] public GeneratedPipeline? Pipeline { get; set; }
 
     private string BuildText =>
-        Wizard.Definition.Artifact.ArtifactType == ArtifactType.DockerImage ? "Build and push the image" : "Compile, test, package";
+        Wizard.Definition.Artifact.ArtifactType == ArtifactType.DockerImage
+            ? "Built once. Every environment gets the same image."
+            : "Built once. Every environment gets the same package.";
 
     private string DeployText =>
         Wizard.Definition.HealthChecks.Any(check => check.Enabled) ? "Deploy, then health check" : "Deploy";

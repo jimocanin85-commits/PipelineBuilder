@@ -1,6 +1,6 @@
 /*
   Layout: the form on the left, the pipeline it builds on the right, always in view.
-  Colours follow the system theme. System fonts only, so the app also works on servers without internet access.
+  Colors follow the system theme. System fonts only, so the app also works on servers without internet access.
 */
 :root {
   --canvas: #eef1f6; --surface: #ffffff; --ink: #13202f; --muted: #55647a; --line: #d4dbe6;
