@@ -92,6 +92,19 @@ public sealed class WizardState
         set => Definition.Environments = SplitList(value);
     }
 
+    /// <summary>True when the pipeline waits for a person before it deploys to the environment.</summary>
+    public bool WaitsForApproval(string environment) =>
+        Definition.Approval.Environments.Contains(environment, StringComparer.OrdinalIgnoreCase);
+
+    public void SetApproval(string environment, bool wait)
+    {
+        var environments = Definition.Approval.Environments.Where(e => !e.Equals(environment, StringComparison.OrdinalIgnoreCase)).ToList();
+        if (wait)
+            environments.Add(environment);
+        Definition.Approval.Environments = environments;
+        NotifyChanged();
+    }
+
     /// <summary>The environment between test and production.</summary>
     public const string Preprod = "preprod";
 

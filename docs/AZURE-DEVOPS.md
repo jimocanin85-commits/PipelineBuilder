@@ -19,6 +19,12 @@ The wizard's **Result** step lists what your pipeline needs. This page is the fu
 | Ansible | A Linux agent with Ansible installed that can reach your servers; your playbook and inventory in the repository. Optionally the SSH key as a **secure file** |
 | Self-hosted build agent | The agent pool |
 
+## Two kinds of approval
+
+**On the environment.** Set in Azure DevOps under Pipelines → Environments → the environment → Approvals and checks. It is not in the file, so it cannot be removed by editing the file. Use it for production.
+
+**In the pipeline file.** On the Where step, tick "Wait for approval between test and preprod" (or any two environments). The pipeline stops there, sends an email and goes on when an approver presses Resume. You choose who may approve, who gets the email and how long it waits. Nothing has to be set up in Azure DevOps. Naming approvers needs a recent Azure DevOps; without names, everyone who may start the pipeline can approve.
+
 ## Two ways to reach your servers
 
 On the Where step you choose who runs the deployment.

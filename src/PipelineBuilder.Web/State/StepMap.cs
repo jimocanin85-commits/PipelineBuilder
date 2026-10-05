@@ -12,6 +12,7 @@ public static class StepMap
         [nameof(PipelineDefinition.Artifact)] = WizardStep.Start,
         [nameof(PipelineDefinition.Environments)] = WizardStep.Target,
         [nameof(PipelineDefinition.ReleaseBranch)] = WizardStep.Target,
+        [nameof(PipelineDefinition.Approval)] = WizardStep.Target,
         [nameof(PipelineDefinition.Trigger)] = WizardStep.Target,
         [nameof(PipelineDefinition.Deployment)] = WizardStep.Target,
         [nameof(PipelineDefinition.DeploymentStrategy)] = WizardStep.Target,

@@ -12,7 +12,8 @@ namespace PipelineBuilder.Core.Generators;
 /// <item>a <c>deployment</c> job targeting the Azure DevOps environment (so approvals and checks
 /// apply) that loads Key Vault secrets, backs up, deploys and health-checks. It runs on each
 /// server, or on the build agent, which then sends the scripts to the servers;</item>
-/// <item>an <c>on: failure</c> hook on that job which rolls back on the same server.</item>
+/// <item>an <c>on: failure</c> hook on that job which rolls back on the same server;</item>
+/// <item>for environments that ask for it, a job before it that waits for a person to approve.</item>
 /// </list>
 /// </summary>
 public sealed class DeploymentStageGenerator
@@ -90,6 +91,7 @@ public sealed class DeploymentStageGenerator
         }
 
         stage.Append("  jobs:\n");
+        stage.Append(ApprovalGate.Job(definition, EnvironmentToken));
         stage.Append(DeploymentJob(definition)).Append('\n');
 
         return "# Deploy: this stage is repeated for each environment, one after the other.\n" +
@@ -131,6 +133,7 @@ public sealed class DeploymentStageGenerator
         var sb = new StringBuilder();
         sb.Append("  - deployment: Deploy\n");
         sb.Append($"    displayName: {YamlBuilder.YamlString($"Deploy to {env}")}\n");
+        sb.Append(ApprovalGate.DependsOn(definition));
 
         if (serverResources)
         {
