@@ -107,8 +107,22 @@ public static class PipelineRequirements
             }
         }
 
+        // A secret named for Key Vault is created in the vault; the pipeline gets it as a variable of the same name.
+        var fromVault = definition.KeyVault?.SecretNames ?? Array.Empty<string>();
+        foreach (var name in fromVault)
+        {
+            needs.Add(new PipelineRequirement
+            {
+                Kind = RequirementKind.Variable,
+                Name = name,
+                Purpose = "Secret in the vault",
+                Where = $"Azure portal → Key vault {definition.KeyVault!.KeyVaultName.Trim()} → Secrets",
+                IsSecret = true
+            });
+        }
+
         var variables = Macro.Matches(yaml).Select(m => m.Groups[1].Value)
-            .Where(name => !DefinedInYaml.Contains(name))
+            .Where(name => !DefinedInYaml.Contains(name) && !fromVault.Contains(name, StringComparer.OrdinalIgnoreCase))
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .OrderBy(name => name, StringComparer.OrdinalIgnoreCase);
         foreach (var name in variables)

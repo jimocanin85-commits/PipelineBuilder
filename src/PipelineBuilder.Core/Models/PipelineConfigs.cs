@@ -13,10 +13,26 @@ public sealed class VariableGroupConfig
 
 public sealed class KeyVaultConfig
 {
+    private static readonly char[] NameSeparators = { ',', ';', '\n', '\r' };
+
     public string ServiceConnection { get; set; } = "$(AZURE_SERVICE_CONNECTION)";
     public string KeyVaultName { get; set; } = string.Empty;
+
+    /// <summary>
+    /// The secrets to get, by name and separated by commas. <c>*</c> gets every secret in the vault,
+    /// which hands the deployment more than it needs.
+    /// </summary>
     public string SecretsFilter { get; set; } = "*";
     public bool RunAsPreJob { get; set; } = true;
+
+    /// <summary>The names in <see cref="SecretsFilter"/>, each once; empty when every secret is fetched.</summary>
+    [JsonIgnore]
+    public IReadOnlyList<string> SecretNames =>
+        (SecretsFilter ?? string.Empty)
+            .Split(NameSeparators, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .Where(name => name != "*")
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
 }
 
 public sealed class ArtifactConfig

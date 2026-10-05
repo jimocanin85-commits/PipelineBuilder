@@ -165,6 +165,13 @@ public sealed class WizardState
         set => Definition.KeyVault = value ? _keyVault : null;
     }
 
+    /// <summary>The Key Vault secrets to get, separated by commas. Empty means every secret, which the wizard warns about.</summary>
+    public string KeyVaultSecrets
+    {
+        get => string.Join(", ", _keyVault.SecretNames);
+        set => _keyVault.SecretsFilter = string.IsNullOrWhiteSpace(value) ? "*" : value.Trim();
+    }
+
     /// <summary>Sets the Azure service connection everywhere it is used.</summary>
     public string AzureServiceConnection
     {
