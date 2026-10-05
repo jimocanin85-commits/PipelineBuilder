@@ -364,8 +364,16 @@ public class WizardPageTests : BunitContext
 
         cut.Find("#keyvault-enabled").Change(true);
         cut.Find("#kv-name").Change("kv-orders");
+        // With no names the pipeline would get every secret in the vault, and the wizard says so.
+        Assert.Contains("every secret in the Key Vault", cut.Find(".issue-list").TextContent);
+
+        cut.Find("#kv-secrets").Change("DbPassword, ApiKey");
+        Assert.DoesNotContain("every secret in the Key Vault", cut.Find(".wizard-content").TextContent);
+        Assert.Equal("DbPassword, ApiKey", cut.Find("#kv-secrets").GetAttribute("value"));
         GoTo(cut, WizardStep.Result);
         Assert.Contains("AzureKeyVault@2", cut.Find(".yaml-preview").TextContent);
+        Assert.Contains("SecretsFilter: 'DbPassword,ApiKey'", cut.Find(".yaml-preview").TextContent);
+        Assert.Contains("DbPassword", cut.Find(".needs-list").TextContent);
 
         GoTo(cut, WizardStep.Target);
         cut.Find("#keyvault-enabled").Change(false);

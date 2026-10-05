@@ -51,6 +51,8 @@ The scripts in the generated pipeline are checked in two ways:
 
 The **browser** job in CI opens the published app in Chrome and clicks through the wizard (`tests/browser/wizard.mjs`).
 
+The **CodeQL** workflow scans the code for security mistakes on every pull request and once a week. Its findings are under Security → Code scanning on GitHub.
+
 Azure DevOps itself is not part of the tests. Try a new kind of pipeline in a test project first.
 
 ## Add a check

@@ -13,7 +13,7 @@ The wizard lists what your pipeline needs under "Needs in Azure DevOps". This pa
 |---|---|
 | Anything on your own servers (Windows or Linux) | The servers registered as **Virtual machine resources** in each environment |
 | A Linux service | The agent's user may run `systemctl` with `sudo` without a password, and owns the install folder |
-| Key Vault | An **Azure Resource Manager service connection** |
+| Key Vault | An **Azure Resource Manager service connection** that may read secrets in the vault. Name the secrets in the wizard, so the pipeline gets only those |
 | Docker | A **Docker registry service connection**; the servers use it to log in and pull the image |
 | Kubernetes | A **Kubernetes service connection**, and your manifests in the repository |
 | Ansible | A Linux agent with Ansible installed that can reach your servers; your playbook and inventory in the repository. Optionally the SSH key as a **secure file** |
