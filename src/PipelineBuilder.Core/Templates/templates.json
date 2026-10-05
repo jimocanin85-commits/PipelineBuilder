@@ -2,7 +2,7 @@
   {
     "id": "iis-onprem",
     "name": "IIS website",
-    "description": ".NET web app on your Windows servers",
+    "description": ".NET web app in IIS",
     "settings": {
       "projectType": "DotNet",
       "artifactType": "PipelineArtifact",
@@ -13,7 +13,7 @@
   {
     "id": "windows-service-onprem",
     "name": "Windows service",
-    "description": ".NET service on your Windows servers",
+    "description": ".NET app that runs as a service",
     "settings": {
       "projectType": "DotNet",
       "artifactType": "PipelineArtifact",
@@ -24,7 +24,7 @@
   {
     "id": "windows-files",
     "name": "Files to a folder",
-    "description": ".NET app copied to a folder or share from your Windows servers",
+    "description": ".NET app copied to a folder or share",
     "settings": {
       "projectType": "DotNet",
       "artifactType": "PipelineArtifact",
@@ -35,7 +35,7 @@
   {
     "id": "linux-service",
     "name": "Linux service",
-    "description": ".NET app on your Linux servers (systemd)",
+    "description": ".NET app that runs as a systemd service",
     "settings": {
       "projectType": "DotNet",
       "artifactType": "PipelineArtifact",
@@ -46,7 +46,7 @@
   {
     "id": "node-linux-service",
     "name": "Node.js on Linux",
-    "description": "Node.js app on your Linux servers (systemd)",
+    "description": "Node.js app that runs as a systemd service",
     "settings": {
       "projectType": "Node",
       "artifactType": "PipelineArtifact",
@@ -93,7 +93,7 @@
   {
     "id": "ansible-playbook",
     "name": "Ansible playbook",
-    "description": ".NET app, deployed by your own playbook from a Linux agent",
+    "description": ".NET app, deployed by your own playbook",
     "settings": {
       "projectType": "DotNet",
       "artifactType": "PipelineArtifact",

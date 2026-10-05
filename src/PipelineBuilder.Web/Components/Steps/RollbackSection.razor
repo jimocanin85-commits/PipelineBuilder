@@ -36,12 +36,14 @@ else
     }
     if (onServers)
     {
-        <Field For="backup-path" Label="Backup folder on the server" Hint="Empty means D:\backups on Windows and /var/backups/pipelinebuilder on Linux.">
-            <InputText id="backup-path" @bind-Value="Wizard.Definition.Rollback.BackupPath" class="form-control" />
-        </Field>
-        <Field For="retention" Label="Backups to keep per environment" Hint="Older backups are deleted.">
-            <InputNumber id="retention" @bind-Value="Wizard.Definition.Rollback.RetentionCount" class="form-control narrow" />
-        </Field>
+        <div class="fields">
+            <Field For="backup-path" Label="Backup folder on the server" Hint="Empty means D:\backups on Windows and /var/backups/pipelinebuilder on Linux.">
+                <InputText id="backup-path" @bind-Value="Wizard.Definition.Rollback.BackupPath" class="form-control" />
+            </Field>
+            <Field For="retention" Label="Backups to keep per environment" Hint="Older backups are deleted.">
+                <InputNumber id="retention" @bind-Value="Wizard.Definition.Rollback.RetentionCount" class="form-control narrow" />
+            </Field>
+        </div>
     }
     <Field For="rollback-script" Label="Your own rollback command (optional)" Hint="Runs instead of the built-in rollback.">
         <InputText id="rollback-script" @bind-Value="Wizard.Definition.Rollback.RollbackScript" class="form-control" placeholder="scripts/rollback.cmd" />

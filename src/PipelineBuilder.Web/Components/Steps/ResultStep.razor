@@ -1,7 +1,7 @@
 @inject WizardState Wizard
 @inject IJSRuntime JS
 
-<h2>Your pipeline</h2>
+<h2>Your pipeline file</h2>
 @if (Wizard.BlockingErrors.Count > 0)
 {
     <div class="generation-error">
@@ -17,8 +17,6 @@ else if (Pipeline is { } result)
         <IssueList Issues="issues" ShowGoTo="true" />
     }
 
-    <PipelineSummary Pipeline="result" />
-
     <div class="file">
         <div class="file-head">
             <span>@PipelineFileName</span>
@@ -27,7 +25,7 @@ else if (Pipeline is { } result)
                 <button type="button" class="btn-secondary" id="copy-yaml" @onclick="() => Copy(result.Yaml)">Copy</button>
             </span>
         </div>
-        <pre class="yaml-preview">@result.Yaml</pre>
+        <pre class="yaml-preview">@Lines(result.Yaml)</pre>
     </div>
 
     <ol class="next">
@@ -55,6 +53,13 @@ else if (Pipeline is { } result)
     [Parameter] public GeneratedPipeline? Pipeline { get; set; }
 
     private string? _status;
+
+    /// <summary>
+    /// The YAML with each line in its own element, so the stylesheet can number the lines and set the
+    /// comments apart. The text itself is unchanged.
+    /// </summary>
+    private static MarkupString Lines(string yaml) => new(string.Join("\n", yaml.ReplaceLineEndings("\n").Split('\n').Select(line =>
+        $"<span class=\"{(line.TrimStart().StartsWith('#') ? "line comment" : "line")}\">{System.Net.WebUtility.HtmlEncode(line)}</span>")));
 
     private async Task Download(string fileName, string content, string mimeType)
     {

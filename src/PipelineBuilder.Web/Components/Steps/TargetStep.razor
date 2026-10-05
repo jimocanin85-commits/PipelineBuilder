@@ -4,7 +4,12 @@
 <h2>Where does it run?</h2>
 
 <h3>Environments</h3>
-<p class="order" id="environment-order">@string.Join(" → ", Wizard.Definition.Environments)</p>
+<ol class="order" id="environment-order">
+    @foreach (var environment in Wizard.Definition.Environments)
+    {
+        <li><span>@environment</span></li>
+    }
+</ol>
 <p class="hint">The pipeline deploys to them in this order, and stops when a deployment fails.</p>
 <label class="check"><InputCheckbox id="skip-preprod" @bind-Value="Wizard.SkipPreprod" /> We have no preprod: go straight from test to prod</label>
 <details class="explain">

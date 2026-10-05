@@ -23,6 +23,8 @@
         }
     </nav>
 
+    @* The step being filled in, and beside it the pipeline it produces. *@
+    <div class="wizard-body">
     <section class="wizard-content">
         @if (Wizard.CurrentStep != WizardStep.Result)
         {
@@ -33,7 +35,7 @@
             @switch (Wizard.CurrentStep)
             {
                 case WizardStep.Start:
-                    <StartStep Pipeline="Wizard.Result" />
+                    <StartStep />
                     break;
                 case WizardStep.Target:
                     <TargetStep />
@@ -46,12 +48,17 @@
                     break;
             }
         </EditForm>
+
+        <footer class="wizard-footer">
+            <button type="button" class="btn-secondary" id="back" disabled="@(Wizard.CurrentStep == WizardStep.Start)" @onclick="Prev">Back</button>
+            <button type="button" class="btn-primary" id="next" disabled="@(Wizard.CurrentStep == WizardStep.Result)" @onclick="Next">@NextLabel</button>
+        </footer>
     </section>
 
-    <footer class="wizard-footer">
-        <button type="button" class="btn-secondary" disabled="@(Wizard.CurrentStep == WizardStep.Start)" @onclick="Prev">Back</button>
-        <button type="button" class="btn-primary" disabled="@(Wizard.CurrentStep == WizardStep.Result)" @onclick="Next">Next</button>
-    </footer>
+    <aside class="wizard-side" aria-label="Your pipeline">
+        <PipelineSummary Pipeline="Wizard.Result" />
+    </aside>
+    </div>
 </div>
 
 @code {
@@ -106,6 +113,10 @@
         GoTo(step);
         StateHasChanged();
     }
+
+    /// <summary>The Next button says where it leads.</summary>
+    private string NextLabel =>
+        Wizard.CurrentStep == WizardStep.Result ? "Next" : $"Next: {StepTitles.For(Wizard.CurrentStep + 1)}";
 
     private void Prev() => GoTo((WizardStep)Math.Max((int)WizardStep.Start, (int)Wizard.CurrentStep - 1));
     private void Next() => GoTo((WizardStep)Math.Min((int)WizardStep.Result, (int)Wizard.CurrentStep + 1));
