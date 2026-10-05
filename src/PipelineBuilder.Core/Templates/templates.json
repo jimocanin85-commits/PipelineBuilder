@@ -91,6 +91,18 @@
     }
   },
   {
+    "id": "ansible-playbook",
+    "name": "Ansible playbook",
+    "description": ".NET app, deployed by your own playbook from a Linux agent",
+    "settings": {
+      "projectType": "DotNet",
+      "artifactType": "PipelineArtifact",
+      "deploymentKind": "Ansible",
+      "strategy": "Standard",
+      "rollbackEnabled": false
+    }
+  },
+  {
     "id": "own-script",
     "name": "Your own script",
     "description": ".NET app, deployed by commands you write",

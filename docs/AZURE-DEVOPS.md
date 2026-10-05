@@ -16,6 +16,7 @@ The wizard's **Result** step lists what your pipeline needs. This page is the fu
 | Key Vault | An **Azure Resource Manager service connection** |
 | Docker | A **Docker registry service connection**; the servers use it to log in and pull the image |
 | Kubernetes | A **Kubernetes service connection**, and your manifests in the repository |
+| Ansible | A Linux agent with Ansible installed that can reach your servers; your playbook and inventory in the repository. Optionally the SSH key as a **secure file** |
 | Self-hosted build agent | The agent pool |
 
 ## Two ways to reach your servers

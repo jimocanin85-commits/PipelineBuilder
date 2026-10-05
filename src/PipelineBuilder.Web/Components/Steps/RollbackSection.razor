@@ -6,14 +6,21 @@
     var kind = DeploymentKinds.For(Wizard.Definition.Deployment.Kind);
     var onServers = kind.RunsOnServers;
 }
-<label class="check">
-    <InputCheckbox id="rollback-enabled" @bind-Value="Wizard.Definition.Rollback.Enabled" />
-    @(onServers ? "Back up before deploying, and roll back if the deployment fails" : "Roll back if the deployment fails")
-</label>
-<p class="hint">@(onServers
-    ? "The running version is saved first. If a step fails, it is put back, so the servers are left as they were."
-    : "If a step fails, the cluster goes back to the version that ran before.")</p>
-@if (Wizard.Definition.Rollback.Enabled)
+@if (!kind.SupportsRollback)
+{
+    <p class="hint">Rollback is up to your playbook, for example with block and rescue. The pipeline stops at the environment that failed.</p>
+}
+else
+{
+    <label class="check">
+        <InputCheckbox id="rollback-enabled" @bind-Value="Wizard.Definition.Rollback.Enabled" />
+        @(onServers ? "Back up before deploying, and roll back if the deployment fails" : "Roll back if the deployment fails")
+    </label>
+    <p class="hint">@(onServers
+        ? "The running version is saved first. If a step fails, it is put back, so the servers are left as they were."
+        : "If a step fails, the cluster goes back to the version that ran before.")</p>
+}
+@if (kind.SupportsRollback && Wizard.Definition.Rollback.Enabled)
 {
     @* Your own script does not say what it deploys, so the user chooses what to back up. *@
     if (kind.RollbackTarget is null)

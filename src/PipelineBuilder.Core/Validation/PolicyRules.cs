@@ -34,6 +34,7 @@ internal sealed class PolicyRules
             Rule("deployment.rolling-without-servers", rules.RollingWithoutServers),
             Rule("deployment.from-agent-needs-own-pool", rules.FromAgentNeedsOwnPool),
             Rule("healthchecks.windows-only", rules.WindowsOnlyHealthChecks),
+            Rule("healthchecks.need-servers", rules.HealthChecksThatNeedServers),
             Rule("notifications.email-recipients", EmailRecipients),
             Rule("variables.groups", rules.VariableGroups),
             Rule("secrets.plain-text", rules.PlainTextSecrets),
@@ -93,6 +94,20 @@ internal sealed class PolicyRules
                 "IIS app pool checks only run on Windows servers, so this check is skipped.",
                 nameof(PipelineDefinition.HealthChecks),
                 "Remove the check, or change it to an HTTP address or Service check.");
+        }
+    }
+
+    /// <summary>A service, port or app pool check looks at the machine it runs on, which must be one of the servers.</summary>
+    private IEnumerable<ValidationResult> HealthChecksThatNeedServers(ValidationContext context)
+    {
+        var definition = context.Definition;
+        if (!_deploymentKinds.For(definition.Deployment.Kind).RunsOnServers
+            && definition.HealthChecks.Any(h => h.Enabled && h.HealthCheckType is HealthCheckType.IisAppPool or HealthCheckType.WindowsService or HealthCheckType.PortCheck))
+        {
+            yield return Finding(ValidationSeverity.Warning,
+                "A service, port or app pool check looks at the machine it runs on. Here that is the build agent, not your servers.",
+                nameof(PipelineDefinition.HealthChecks),
+                "Change the check to an HTTP address.");
         }
     }
 

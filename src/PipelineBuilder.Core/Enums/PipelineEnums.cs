@@ -11,7 +11,7 @@ public enum ValidationStage { Input, Generated }
 public enum RollbackTarget { Iis, WindowsService, FileShare, DockerContainer, Kubernetes, LinuxService }
 
 /// <summary>What the deploy step does with the artifact. <see cref="Custom"/> runs the user's own script.</summary>
-public enum DeploymentKind { Custom, Iis, WindowsService, FileShare, DockerContainer, Kubernetes, LinuxService }
+public enum DeploymentKind { Custom, Iis, WindowsService, FileShare, DockerContainer, Kubernetes, LinuxService, Ansible }
 
 /// <summary>The operating system of the servers a deployment runs on.</summary>
 public enum ServerOs { Windows, Linux }
@@ -29,4 +29,4 @@ public enum ProjectType { DotNet, Node, Docker }
 public enum BuildAgentType { MicrosoftHosted, SelfHosted }
 
 /// <summary>Something that must exist in Azure DevOps before the pipeline can run.</summary>
-public enum RequirementKind { Environment, ServiceConnection, VariableGroup, Variable }
+public enum RequirementKind { Environment, ServiceConnection, VariableGroup, SecureFile, Variable }
