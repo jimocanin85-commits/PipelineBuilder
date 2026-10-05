@@ -11,6 +11,7 @@ public abstract class DeploymentKindHandler : IDeploymentKindHandler
     public abstract RollbackTarget? RollbackTarget { get; }
     public virtual bool RunsOnServers => true;
     public virtual bool NeedsRepositoryCheckout => false;
+    public virtual bool SupportsRollback => true;
 
     public virtual ScriptShell Shell(DeploymentConfig deployment) => ScriptShell.PowerShell;
 

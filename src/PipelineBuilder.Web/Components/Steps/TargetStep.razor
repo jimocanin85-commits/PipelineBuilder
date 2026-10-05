@@ -13,6 +13,10 @@
 </details>
 
 <h3>@KindTitle</h3>
+@if (Wizard.Definition.Deployment.Kind == DeploymentKind.Ansible)
+{
+    <p class="hint">Your playbook runs once per environment, on a Linux agent that has Ansible installed and can reach your servers. Ansible does not run on Windows agents.</p>
+}
 <div class="fields">
     @switch (Wizard.Definition.Deployment.Kind)
     {
@@ -71,6 +75,20 @@
             </Field>
             <Field For="registry-connection" Label="Registry service connection" Hint="The connection's name, not the registry's address." More="@Help.ServiceConnection">
                 <InputText id="registry-connection" @bind-Value="Wizard.Definition.Artifact.ContainerRegistryConnection" class="form-control" placeholder="$(DOCKER_SERVICE_CONNECTION)" />
+            </Field>
+            break;
+        case DeploymentKind.Ansible:
+            <Field For="playbook" Label="Playbook" Hint="Its path in your repository." More="@Help.AnsibleValues">
+                <InputText id="playbook" @bind-Value="Wizard.Definition.Deployment.PlaybookPath" class="form-control" placeholder="site.yml" />
+            </Field>
+            <Field For="inventory" Label="Inventory" Hint="{environment} is replaced with each environment's name, so test and prod can have their own servers.">
+                <InputText id="inventory" @bind-Value="Wizard.Definition.Deployment.InventoryPath" class="form-control" placeholder="inventories/{environment}" />
+            </Field>
+            <Field For="ansible-pool" Label="Linux agent pool" Hint="Fill it in when the build runs on a Windows agent. Empty means the build's agent.">
+                <InputText id="ansible-pool" @bind-Value="Wizard.Definition.Deployment.AgentPool" class="form-control" />
+            </Field>
+            <Field For="ansible-key" Label="SSH key (secure file)" Hint="Empty means the agent already has a key for the servers." More="@Help.SecureFile">
+                <InputText id="ansible-key" @bind-Value="Wizard.Definition.Deployment.AnsibleSshKeyFile" class="form-control" />
             </Field>
             break;
         default:
@@ -202,11 +220,12 @@
         DeploymentKind.FileShare => "Files",
         DeploymentKind.DockerContainer => "Docker container",
         DeploymentKind.Kubernetes => "Kubernetes",
+        DeploymentKind.Ansible => "Ansible playbook",
         _ => "Your own script"
     };
 
     /// <summary>Kinds with fields that fall back to a pipeline variable when left empty.</summary>
-    private bool HasVariableFields => Wizard.Definition.Deployment.Kind is not (DeploymentKind.Iis or DeploymentKind.Custom);
+    private bool HasVariableFields => Wizard.Definition.Deployment.Kind is not (DeploymentKind.Iis or DeploymentKind.Custom or DeploymentKind.Ansible);
 
     private bool FromAgent => DeploymentKinds.DeploysFromAgentToServers(Wizard.Definition);
     private bool LinuxServers => DeploymentKinds.ShellFor(Wizard.Definition) == ScriptShell.Bash;

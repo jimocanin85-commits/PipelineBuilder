@@ -80,6 +80,18 @@ public static class PipelineRequirements
             });
         }
 
+        if (definition.Deployment.Kind == DeploymentKind.Ansible && !string.IsNullOrWhiteSpace(definition.Deployment.AnsibleSshKeyFile))
+        {
+            needs.Add(new PipelineRequirement
+            {
+                Kind = RequirementKind.SecureFile,
+                Name = definition.Deployment.AnsibleSshKeyFile.Trim(),
+                Purpose = "Private SSH key Ansible logs in to the servers with",
+                Where = "Pipelines → Library → Secure files",
+                IsSecret = true
+            });
+        }
+
         // A build agent that deploys over the network reads each environment's servers from a variable.
         if (yaml.Contains($"$({ServerScript.ServersVariable})", StringComparison.Ordinal))
         {

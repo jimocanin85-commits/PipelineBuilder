@@ -148,6 +148,12 @@ public sealed class DeploymentStageGenerator
                 sb.Append("    variables:\n");
                 sb.Append($"      {ServerScript.ServersVariable}: {ServersOfEnvironment}\n");
             }
+            if (!string.IsNullOrWhiteSpace(definition.Deployment.AgentPool))
+            {
+                sb.Append("    # This job needs another agent than the build.\n");
+                sb.Append("    pool:\n");
+                sb.Append($"      name: {YamlBuilder.YamlString(definition.Deployment.AgentPool.Trim())}\n");
+            }
             sb.Append("    # Approvals and checks are set on this environment in Azure DevOps.\n");
             sb.Append($"    environment: {env}\n");
         }

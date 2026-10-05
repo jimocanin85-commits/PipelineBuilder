@@ -18,6 +18,13 @@ public static class Help
         "A variable group is a named set of values kept in Azure DevOps under Pipelines → Library, for example server paths and passwords. " +
         "The pipeline reads them when it runs, so they are not written in the file.";
 
+    public const string SecureFile =
+        "A secure file is a file kept in Azure DevOps under Pipelines → Library → Secure files. Upload the private key there and type the file's name here. " +
+        "The pipeline downloads it when it runs and removes it afterwards.";
+
+    public const string AnsibleValues =
+        "Your playbook is given three values it can use: package_path (the folder with the build), environment_name (test, preprod or prod) and build_id.";
+
     public const string EmptyField =
         "Leave a field empty to set it in Azure DevOps instead: it becomes a pipeline variable, listed on the Result step.";
 }

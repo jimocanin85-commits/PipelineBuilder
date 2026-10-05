@@ -51,6 +51,21 @@ public sealed class DeploymentConfig
     /// <summary>Account the build agent logs in as on Linux servers (<see cref="DeployFrom.Agent"/>).</summary>
     public string? SshUser { get; set; }
 
+    /// <summary>Playbook in the repository (Ansible).</summary>
+    public string? PlaybookPath { get; set; }
+
+    /// <summary>Inventory in the repository; <c>{environment}</c> is replaced per environment (Ansible).</summary>
+    public string? InventoryPath { get; set; }
+
+    /// <summary>Name of the secure file holding the SSH key; empty when the agent has its own key (Ansible).</summary>
+    public string? AnsibleSshKeyFile { get; set; }
+
+    /// <summary>
+    /// Agent pool for the deploy job when it differs from the build's, e.g. a Linux pool for Ansible
+    /// when the build runs on Windows. Only used when the deploy job runs on an agent.
+    /// </summary>
+    public string? AgentPool { get; set; }
+
     /// <summary>Folder the app is deployed to (IIS site folder, service folder or file share).</summary>
     public string? TargetPath { get; set; }
 
@@ -98,6 +113,10 @@ public sealed class DeploymentConfig
     public string ManifestsPathOrDefault => string.IsNullOrWhiteSpace(ManifestsPath) ? "manifests/*.yaml" : ManifestsPath;
     [JsonIgnore]
     public string KubernetesDeploymentNameOrDefault => string.IsNullOrWhiteSpace(KubernetesDeploymentName) ? "$(K8S_DEPLOYMENT)" : KubernetesDeploymentName;
+    [JsonIgnore]
+    public string PlaybookPathOrDefault => string.IsNullOrWhiteSpace(PlaybookPath) ? "site.yml" : PlaybookPath.Trim();
+    [JsonIgnore]
+    public string InventoryPathOrDefault => string.IsNullOrWhiteSpace(InventoryPath) ? "inventories/{environment}" : InventoryPath.Trim();
     [JsonIgnore]
     public string SshUserOrDefault => string.IsNullOrWhiteSpace(SshUser) ? "$(SSH_USER)" : SshUser.Trim();
     [JsonIgnore]

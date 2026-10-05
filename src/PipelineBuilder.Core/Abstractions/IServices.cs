@@ -47,6 +47,9 @@ public interface IDeploymentKindHandler
     /// <summary>The deploy job checks out the repository (e.g. for Kubernetes manifests).</summary>
     bool NeedsRepositoryCheckout { get; }
 
+    /// <summary>False when the kind leaves rollback to something else, e.g. an Ansible playbook.</summary>
+    bool SupportsRollback { get; }
+
     /// <summary>The shell scripts run in where this kind deploys: PowerShell on Windows, bash on Linux servers.</summary>
     ScriptShell Shell(DeploymentConfig deployment);
 

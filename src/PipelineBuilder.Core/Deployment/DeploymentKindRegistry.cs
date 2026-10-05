@@ -34,6 +34,7 @@ public sealed class DeploymentKindRegistry : IDeploymentKinds
         new DockerContainerDeploymentHandler(),
         new KubernetesDeploymentHandler(),
         new LinuxServiceDeploymentHandler(),
+        new AnsibleDeploymentHandler(),
     };
 
     /// <summary>A registry with the built-in handlers, for use without dependency injection.</summary>
@@ -55,20 +56,23 @@ public sealed class DeploymentKindRegistry : IDeploymentKinds
 
     public IReadOnlyList<string> GenerateBackupSteps(PipelineDefinition definition, string environment)
     {
-        if (!definition.Rollback.Enabled) return Array.Empty<string>();
+        if (!RollsBack(definition)) return Array.Empty<string>();
         return RollbackHandler(definition).GenerateBackupSteps(definition.Rollback, definition.Deployment, environment);
     }
 
     public IReadOnlyList<string> GenerateRollbackSteps(PipelineDefinition definition, string environment)
     {
         var config = definition.Rollback;
-        if (!config.Enabled) return Array.Empty<string>();
+        if (!RollsBack(definition)) return Array.Empty<string>();
 
         if (!string.IsNullOrWhiteSpace(config.RollbackScript))
             return new[] { YamlBuilder.ScriptStep(config.RollbackScript, "Execute custom rollback script") };
 
         return RollbackHandler(definition).GenerateRollbackSteps(config, definition.Deployment, environment);
     }
+
+    private bool RollsBack(PipelineDefinition definition) =>
+        definition.Rollback.Enabled && For(definition.Deployment.Kind).SupportsRollback;
 
     /// <summary>The kind's own handler, or for a kind without a rollback target (Custom), the chosen target's handler.</summary>
     private IDeploymentKindHandler RollbackHandler(PipelineDefinition definition)
