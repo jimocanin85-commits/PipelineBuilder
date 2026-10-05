@@ -335,7 +335,7 @@ public class WizardPageTests : BunitContext
         cut.Find("#copy-yaml").Click();
 
         JSInterop.VerifyInvoke("pipelineBuilder.copyText");
-        Assert.Contains("copied", cut.Find("[role=status]").TextContent);
+        Assert.Contains("Copied", cut.Find("[role=status]").TextContent);
     }
 
     [Fact]
