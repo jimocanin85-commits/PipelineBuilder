@@ -183,6 +183,42 @@ public class WizardPageTests : BunitContext
     }
 
     [Fact]
+    public void EveryTemplateHasAnIconAndTheChosenOneIsMarked()
+    {
+        var cut = Render<Home>();
+
+        Assert.Equal(TemplateCatalogue.LoadBuiltIn().Count, cut.FindAll("button[data-template] .icon svg").Count);
+        Assert.Equal("iis-onprem", Assert.Single(cut.FindAll("button.template.applied")).GetAttribute("data-template"));
+    }
+
+    [Fact]
+    public void ThePipelinePanelSaysWhetherThePipelineIsReady()
+    {
+        var cut = Render<Home>();
+        Assert.Equal("Ready", cut.Find(".wizard-side .chip").TextContent);
+
+        GoTo(cut, WizardStep.Target);
+        cut.Find("#environments").Change("Bad Name");
+
+        Assert.Equal("Not ready", cut.Find(".wizard-side .chip").TextContent);
+    }
+
+    [Fact]
+    public void AChoiceShowsAllItsOptionsAndMarksTheChosenOne()
+    {
+        var cut = Render<Home>();
+        GoTo(cut, WizardStep.Target);
+
+        Assert.Equal(new[] { "run-from-Server", "run-from-Agent" }, cut.FindAll("#run-from input[type=radio]").Select(e => e.Id));
+        Assert.True(cut.Find("#run-from-Server").HasAttribute("checked"));
+
+        cut.Find("#run-from-Agent").Change(true);
+
+        Assert.True(cut.Find("#run-from-Agent").HasAttribute("checked"));
+        Assert.False(cut.Find("#run-from-Server").HasAttribute("checked"));
+    }
+
+    [Fact]
     public void TheNextButtonSaysWhereItLeads()
     {
         var cut = Render<Home>();
@@ -299,7 +335,7 @@ public class WizardPageTests : BunitContext
         cut.Find("#copy-yaml").Click();
 
         JSInterop.VerifyInvoke("pipelineBuilder.copyText");
-        Assert.Contains("copied", cut.Find("[role=status]").TextContent);
+        Assert.Contains("Copied", cut.Find("[role=status]").TextContent);
     }
 
     [Fact]
@@ -359,7 +395,7 @@ public class WizardPageTests : BunitContext
 
         GoTo(cut, WizardStep.Result);
 
-        Assert.Contains("invalid characters", cut.Find(".generation-error").TextContent);
+        Assert.Contains("is not a valid name", cut.Find(".generation-error").TextContent);
     }
 
     [Fact]
@@ -370,7 +406,7 @@ public class WizardPageTests : BunitContext
 
         cut.Find("#environments").Change("Bad Name");
 
-        Assert.Contains("invalid characters", cut.Find(".issue-list").TextContent);
+        Assert.Contains("is not a valid name", cut.Find(".issue-list").TextContent);
         Assert.NotNull(cut.Find($"button[data-step='{WizardStep.Target}'] .badge"));
         Assert.Empty(cut.FindAll($"button[data-step='{WizardStep.Start}'] .badge"));
     }
@@ -512,7 +548,7 @@ public class WizardPageTests : BunitContext
         GoTo(cut, WizardStep.Target);
 
         cut.Find("#self-hosted").Change(true);
-        Assert.Contains("Enter the agent pool", cut.Find(".issue-list").TextContent);
+        Assert.Contains("Type the name of your agent pool", cut.Find(".issue-list").TextContent);
 
         cut.Find("#pool-name").Change("OnPremAgents");
         GoTo(cut, WizardStep.Result);
@@ -637,7 +673,7 @@ public class WizardPageTests : BunitContext
         GoTo(cut, WizardStep.Target);
         cut.Find("#container-ports").Change("8080:80");
         cut.Find("#container-env").Change("ASPNETCORE_ENVIRONMENT=Production");
-        cut.Find("#server-os").Change(ServerOs.Windows.ToString());
+        cut.Find("#server-os-Windows").Change(true);
         GoTo(cut, WizardStep.Result);
         Assert.Contains("-p '8080:80' -e 'ASPNETCORE_ENVIRONMENT=Production' $image", cut.Find(".yaml-preview").TextContent);
     }

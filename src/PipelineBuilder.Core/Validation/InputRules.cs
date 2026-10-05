@@ -33,11 +33,11 @@ internal static class InputRules
     {
         var name = context.Definition.Name;
         if (string.IsNullOrWhiteSpace(name))
-            yield return Error(nameof(PipelineDefinition.Name), "Pipeline name is required.");
+            yield return Error(nameof(PipelineDefinition.Name), "The pipeline needs a name.");
         if (name?.Length > 255)
-            yield return Error(nameof(PipelineDefinition.Name), "Pipeline name cannot exceed 255 characters.");
+            yield return Error(nameof(PipelineDefinition.Name), "The name can be at most 255 characters.");
         if (name?.Any(char.IsControl) == true)
-            yield return Error(nameof(PipelineDefinition.Name), "Pipeline name cannot contain line breaks or other control characters.");
+            yield return Error(nameof(PipelineDefinition.Name), "The name cannot contain line breaks.");
     }
 
     private static IEnumerable<ValidationResult> Environments(ValidationContext context)
@@ -51,7 +51,7 @@ internal static class InputRules
             if (string.IsNullOrWhiteSpace(env))
                 yield return Error(nameof(PipelineDefinition.Environments), "An environment name is empty.");
             else if (!Regex.IsMatch(env, "^[a-z0-9-]+$"))
-                yield return Error(nameof(PipelineDefinition.Environments), $"Environment name '{env}' has invalid characters. Use small letters, digits and hyphens.");
+                yield return Error(nameof(PipelineDefinition.Environments), $"Environment '{env}' is not a valid name. Use small letters, digits and hyphens.");
         }
 
         if (environments?.Count > 0 && environments.Count != environments.Distinct(StringComparer.OrdinalIgnoreCase).Count())
@@ -62,13 +62,13 @@ internal static class InputRules
     {
         var branch = context.Definition.ReleaseBranch;
         if (string.IsNullOrWhiteSpace(branch) || !Regex.IsMatch(branch, "^[A-Za-z0-9._/-]+$"))
-            yield return Error(nameof(PipelineDefinition.ReleaseBranch), "Release branch must be a branch name such as 'main' (letters, digits, '.', '_', '/', '-').");
+            yield return Error(nameof(PipelineDefinition.ReleaseBranch), "The release branch must be a branch name, e.g. main.");
     }
 
     private static IEnumerable<ValidationResult> PoolName(ValidationContext context)
     {
         if (context.Definition.BuildAgent == BuildAgentType.SelfHosted && string.IsNullOrWhiteSpace(context.Definition.PoolName))
-            yield return Error(nameof(PipelineDefinition.PoolName), "Enter the agent pool to build on.", "Type its name under 'Build agent', or untick 'Build on our own agent pool'.");
+            yield return Error(nameof(PipelineDefinition.PoolName), "Type the name of your agent pool.", "It is under 'Build agent'. Or untick 'Build on our own agent pool'.");
     }
 
     private static IEnumerable<ValidationResult> Artifact(ValidationContext context)

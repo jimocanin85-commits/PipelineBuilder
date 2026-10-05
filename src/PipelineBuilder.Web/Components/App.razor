@@ -7,6 +7,8 @@
     <title>PipelineBuilder - Azure DevOps pipelines</title>
     <ResourcePreloader />
     <link rel="stylesheet" href="@Assets["app.css"]" />
+    @* Applies a theme chosen earlier before the page is drawn, so it does not flash. *@
+    <script>try { var theme = localStorage.getItem('pipelinebuilder-theme'); if (theme) document.documentElement.dataset.theme = theme; } catch (e) { }</script>
     <ImportMap />
     <HeadOutlet />
 </head>

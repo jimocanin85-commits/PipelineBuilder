@@ -66,9 +66,9 @@ internal sealed class PolicyRules
             && !_deploymentKinds.DeploysFromAgentToServers(definition))
         {
             yield return Finding(ValidationSeverity.Warning,
-                "Rolling deployments need servers registered in the environment; this pipeline deploys everything at once.",
+                "Updating a few servers at a time needs an agent on each server. This pipeline updates everything at once.",
                 nameof(PipelineDefinition.DeploymentStrategy),
-                "Updating a few servers at a time only applies when the pipeline deploys to your own servers.");
+                "Untick 'Update the servers a few at a time'.");
         }
     }
 
@@ -91,7 +91,7 @@ internal sealed class PolicyRules
             && definition.HealthChecks.Any(h => h.Enabled && h.HealthCheckType == HealthCheckType.IisAppPool))
         {
             yield return Finding(ValidationSeverity.Warning,
-                "IIS app pool checks only run on Windows servers, so this check is skipped.",
+                "An IIS app pool check only works on Windows servers, so it is skipped.",
                 nameof(PipelineDefinition.HealthChecks),
                 "Remove the check, or change it to an HTTP address or Service check.");
         }
@@ -115,7 +115,7 @@ internal sealed class PolicyRules
         context.Definition.Notifications
             .Where(n => n.NotificationType == NotificationType.Email && !n.EmailRecipients.Any(r => !string.IsNullOrWhiteSpace(r)))
             .Select(_ => Finding(ValidationSeverity.Warning,
-                "An email notification has no recipients, so it will be skipped.",
+                "An email notification has no recipients, so it is skipped.",
                 nameof(PipelineDefinition.Notifications),
                 "Add a recipient under Notifications."));
 

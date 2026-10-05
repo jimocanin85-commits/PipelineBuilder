@@ -29,5 +29,5 @@ public static class Help
         "because it cannot be removed by changing the file. Use that one for prod.";
 
     public const string EmptyField =
-        "An empty field becomes a variable you set in Azure DevOps. The Result step lists them.";
+        "An empty field becomes a variable you set in Azure DevOps. They are listed under 'Needs in Azure DevOps'.";
 }

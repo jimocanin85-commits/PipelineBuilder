@@ -1,11 +1,11 @@
 # What to set up in Azure DevOps
 
-The wizard's **Result** step lists what your pipeline needs. This page is the full reference.
+The wizard lists what your pipeline needs under "Needs in Azure DevOps". This page explains the whole list.
 
 ## Always
 
 - A project and a Git repository. Commit the file as `azure-pipelines.yml` and create a pipeline from it.
-- An **environment** for each step of the flow: `test`, `preprod` and `prod`, or `test` and `prod` if you have no preprod. Add approvals to production here; approvals are not set in YAML.
+- An **environment** for each step of the flow: `test`, `preprod` and `prod`, or `test` and `prod` if you have no preprod. Put the approval for prod on its environment (see below).
 
 ## Depending on your choices
 
@@ -21,9 +21,9 @@ The wizard's **Result** step lists what your pipeline needs. This page is the fu
 
 ## Two kinds of approval
 
-**On the environment.** Set in Azure DevOps under Pipelines → Environments → the environment → Approvals and checks. It is not in the file, so it cannot be removed by editing the file. Use it for production.
+**On the environment.** Set in Azure DevOps under Pipelines → Environments → the environment → Approvals and checks. It is not in the file, so nobody can remove it by changing the file. Use it for prod.
 
-**In the pipeline file.** On the Where step, tick "Wait for approval between test and preprod" (or any two environments). The pipeline stops there, sends an email and goes on when an approver presses Resume. You choose who may approve, who gets the email and how long it waits. Nothing has to be set up in Azure DevOps. Naming approvers needs a recent Azure DevOps; without names, everyone who may start the pipeline can approve.
+**In the pipeline file.** On the Where step, tick "Wait for approval between test and preprod" (or any two environments). The pipeline stops there, sends an email and continues when someone presses Resume. You choose who may approve, who gets the email and how long it waits. Nothing has to be set up in Azure DevOps. Naming who may approve needs a recent Azure DevOps. With no names, anyone who can start the pipeline can approve.
 
 ## Two ways to reach your servers
 
@@ -41,7 +41,7 @@ On the Where step you choose who runs the deployment.
 
 ## Variables
 
-A field you leave empty in the wizard becomes a pipeline variable. Define the ones your pipeline uses on the pipeline itself (Edit → Variables), or in a variable group you add in the wizard. Mark passwords and webhook URLs as secret.
+A field you leave empty in the wizard becomes a variable. Set it on the pipeline (Edit → Variables), or in a variable group you add in the wizard. Mark passwords and webhook addresses as secret.
 
 | Variable | Used for |
 |---|---|
@@ -57,4 +57,6 @@ A field you leave empty in the wizard becomes a pipeline variable. Define the on
 
 **Build → one deploy stage per environment → notify.**
 
-Each deploy stage backs up the current version, deploys, runs the health checks, and rolls back if a step fails. Production only deploys from the release branch (`main` unless you change it).
+The app is built once. Every environment gets that same package or image.
+
+Each deploy stage backs up the current version, deploys, runs the health checks, and rolls back if a step fails. Only the release branch (`main` unless you change it) is deployed to prod.

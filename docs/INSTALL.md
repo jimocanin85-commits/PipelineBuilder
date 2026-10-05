@@ -1,25 +1,19 @@
 # Installing PipelineBuilder
 
-There are two ways to run PipelineBuilder:
+- **On your own machine**, to try it or work on the code: [section 1](#1-run-locally). No login.
+- **On an IIS server**, for the team: [section 2](#2-install-on-an-iis-server). Users sign in with their Windows account.
 
-| | Who | Login | Section |
-|---|---|---|---|
-| **Locally** | A developer trying it out or working on the code | None | [Run locally](#1-run-locally) |
-| **On an IIS server** | The team, in the browser | Windows login (Kerberos/NTLM), optionally limited to AD groups | [Install on IIS](#2-install-on-an-iis-server) |
-
-Using the pipelines PipelineBuilder generates is a separate setup in Azure DevOps. See [section 3](#3-before-the-first-generated-pipeline-runs).
+What the generated pipelines need in Azure DevOps is in [AZURE-DEVOPS.md](AZURE-DEVOPS.md).
 
 ---
 
 ## 1. Run locally
 
-### Prerequisites
+### You need
 
-- **.NET 10 SDK 10.0.401 or later**. It's pinned in `global.json`, and older SDKs (including 10.0.1xx) are rejected. Download it from <https://dotnet.microsoft.com/download/dotnet/10.0>, then check with `dotnet --version`.
-- **Git**.
-- Windows, macOS or Linux.
+- The **.NET 10 SDK, 10.0.401 or later** from <https://dotnet.microsoft.com/download/dotnet/10.0>. Older SDKs are rejected. Check with `dotnet --version`.
+- Git.
 - Internet access to nuget.org the first time you build.
-- Free ports 5150 (http) and 7150 (https).
 
 ### Steps
 
@@ -29,9 +23,9 @@ cd PipelineBuilder
 dotnet run --project src/PipelineBuilder.Web
 ```
 
-Open <http://localhost:5150>. There's no login locally, because Windows login is off in the Development environment.
+Open <http://localhost:5150>. There is no login when you run it this way.
 
-- To use <https://localhost:7150>, trust the development certificate once: `dotnet dev-certs https --trust`.
+- For <https://localhost:7150>, first run `dotnet dev-certs https --trust` once.
 - To reload on code changes: `dotnet watch --project src/PipelineBuilder.Web`.
 - To run all tests: `dotnet test`.
 - If a port is taken, change it in `src/PipelineBuilder.Web/Properties/launchSettings.json`.
@@ -40,28 +34,25 @@ Open <http://localhost:5150>. There's no login locally, because Windows login is
 
 ## 2. Install on an IIS server
 
-The install script `deploy/Install-PipelineBuilder.ps1` does the IIS work: it adds the features, app pool, website, Windows login and file permissions. The same script also updates an existing installation. The [IIS workflow](../.github/workflows/iis.yml) runs it on every change to the web app and checks the login, so the steps below are tested.
+The script `deploy/Install-PipelineBuilder.ps1` sets up IIS: the features, the app pool, the website, the Windows login and the file permissions. Run it again to update. It is tested on every change by the [IIS workflow](../.github/workflows/iis.yml).
 
-### 2.1 Checklist
+### 2.1 What you need
 
-**Build machine** (your PC, or any machine with the code):
-- [ ] .NET 10 SDK 10.0.401 or later
+On the machine you build on: the .NET 10 SDK, 10.0.401 or later.
 
-**Server:**
-- [ ] Windows Server 2019 or later (Windows 10/11 also works for a test)
-- [ ] **Joined to the domain**, which Windows login needs
-- [ ] Administrator access
-- [ ] **ASP.NET Core Hosting Bundle for .NET 10**, installed *after* IIS (see 2.3)
-- [ ] IIS features: Web Server, **WebSockets** and **Windows Authentication**. The script can install them with `-InstallMissingFeatures`.
-- [ ] A free port: 443 for HTTPS (recommended) or 80, open in the firewall
+On the server:
 
-**For HTTPS and a friendly address (recommended):**
-- [ ] A DNS name, e.g. `pipelines.contoso.local`, pointing to the server
-- [ ] A certificate for that name in the server's *Local Computer → Personal* store, and its thumbprint
-- [ ] An SPN for the name, so Kerberos works (see 2.6)
+- Windows Server 2019 or later, **joined to the domain** (Windows login needs it), and Administrator access.
+- The **ASP.NET Core Hosting Bundle for .NET 10**, installed after IIS (see 2.3).
+- A free port, open in the firewall: 443 for HTTPS, or 80.
 
-**To limit who can use it (optional):**
-- [ ] One or more AD groups, e.g. `CONTOSO\Platform-Team`
+For HTTPS, which we recommend:
+
+- A DNS name that points to the server, e.g. `pipelines.contoso.local`.
+- A certificate for that name in the server's *Local Computer → Personal* store. You need its thumbprint.
+- An SPN for the name (see 2.6).
+
+To limit who can use it: one or more AD groups, e.g. `CONTOSO\Platform-Team`.
 
 ### 2.2 Build the app
 
@@ -71,9 +62,7 @@ On the build machine, from the repository folder:
 dotnet publish src/PipelineBuilder.Web -c Release -o .\publish
 ```
 
-Copy two things to the server, e.g. to `C:\Install\PipelineBuilder`:
-- the **`publish`** folder
-- the **`deploy`** folder (it holds the install script)
+Copy the `publish` folder and the `deploy` folder to the server, e.g. to `C:\Install\PipelineBuilder`.
 
 ### 2.3 Install the Hosting Bundle
 
@@ -84,9 +73,9 @@ net stop was /y
 net start w3svc
 ```
 
-> If IIS isn't installed yet, run the install script with `-InstallMissingFeatures` first (step 2.4), then install the Hosting Bundle, then run the script again. If the Hosting Bundle was installed **before** IIS, run its installer again and choose **Repair**. Otherwise IIS doesn't know the ASP.NET Core module, and you get error 500.19.
+If IIS is not installed yet, do it in this order: run the install script with `-InstallMissingFeatures` (2.4), install the Hosting Bundle, run the script again.
 
-The script checks for the Hosting Bundle and stops with a clear message if it's missing.
+If the Hosting Bundle was installed before IIS, run its installer again and choose **Repair**. Otherwise you get error 500.19.
 
 ### 2.4 Run the install script
 
@@ -120,14 +109,7 @@ cd C:\Install\PipelineBuilder
 | `-AllowedGroups` | none | Only members of these AD groups may use the app |
 | `-InstallMissingFeatures` | off | Install IIS, WebSockets and Windows Authentication if they're missing |
 
-What the script does:
-1. Checks that it runs as Administrator, checks the IIS features and the Hosting Bundle.
-2. Creates or updates the app pool: *No Managed Code*, always running.
-3. Copies the app into `-PhysicalPath`, stopping the app pool while copying, and gives the app pool read access.
-4. With `-AllowedGroups`, writes `appsettings.Production.json` with the groups.
-5. Creates or updates the website and its binding (HTTP, or HTTPS with the certificate).
-6. Turns **Windows Authentication on** and **anonymous access off** for the site.
-7. Starts the site and prints its address.
+The script turns Windows login on and anonymous access off, starts the site and prints its address.
 
 ### 2.5 Open the firewall and check
 
@@ -141,12 +123,12 @@ Then open the address in a browser on a domain PC. You should see the wizard, wi
 
 ### 2.6 Automatic login in the browser (Kerberos)
 
-Users are only signed in automatically when the browser trusts the site as an intranet site. Otherwise they get a login prompt.
+Users are signed in automatically only when the browser treats the site as an intranet site. Otherwise they are asked to log in.
 
 - **Edge and Chrome** use the Windows *Local intranet* zone. Add `https://pipelines.contoso.local` there, ideally for everyone through Group Policy: *Site to Zone Assignment List*, value `1`.
 - **Firefox:** set `network.negotiate-auth.trusted-uris` to `pipelines.contoso.local`.
 
-With a DNS name other than the server's own name, register an **SPN** so Kerberos works and doesn't fall back to NTLM. Run this once as a domain admin. The app pool's identity on the network is the server's computer account:
+If the DNS name is not the server's own name, register an **SPN** for it, so Kerberos works. Run this once as a domain admin, with the server's computer account:
 
 ```powershell
 setspn -S HTTP/pipelines.contoso.local CONTOSO\WEBSERVER01$
@@ -154,7 +136,7 @@ setspn -S HTTP/pipelines.contoso.local CONTOSO\WEBSERVER01$
 
 ### 2.7 Update to a new version
 
-Build a new `publish` folder (step 2.2), copy it to the server, and run the same script again with the same parameters. It replaces the files and keeps `appsettings.Production.json`, so your group restriction and other settings stay.
+Build a new `publish` folder (2.2), copy it to the server and run the script again with the same parameters. Your settings in `appsettings.Production.json` are kept.
 
 ### 2.8 Configuration
 
@@ -174,7 +156,7 @@ Settings go in `appsettings.Production.json` in the install folder (`C:\inetpub\
 
 | Setting | Meaning |
 |---|---|
-| `Authentication:Mode` | Empty (default) means Windows login everywhere except Development. `Windows` means always. `None` turns login off, so only use it behind another access control. |
+| `Authentication:Mode` | Empty means Windows login, except when you run it locally. `Windows` means always. `None` turns login off; use it only when something else controls access. |
 | `Authentication:AllowedGroups` | AD groups (`DOMAIN\Group`) allowed to use the app. When empty, any signed-in domain user can. |
 | `PipelineBuilder:TemplatesFile` | Optional JSON file with your own templates, in the same format as `src/PipelineBuilder.Core/Templates/templates.json`. A template with the same `id` replaces the built-in one. |
 
@@ -201,9 +183,3 @@ Remove-Item C:\inetpub\PipelineBuilder -Recurse -Force
 | **403 Forbidden** after signing in | The user isn't in one of the `AllowedGroups` | Add the user to the group. The user must sign out of Windows and back in to get the new group membership. Group names must be written `DOMAIN\Group`. |
 | Script: *Missing IIS features* | IIS or one of its features isn't installed | Run it with `-InstallMissingFeatures` |
 | Script: *Run this script as Administrator* | PowerShell wasn't started as Administrator | Right-click PowerShell → *Run as administrator* |
-
----
-
-## 3. Before the first generated pipeline runs
-
-The YAML that PipelineBuilder generates expects some setup in Azure DevOps: environments with approvals, registered servers for on-premises deployments, service connections, and the pipeline variables your settings use. [AZURE-DEVOPS.md](AZURE-DEVOPS.md) lists them. The wizard's **Result** step shows what your particular pipeline needs.

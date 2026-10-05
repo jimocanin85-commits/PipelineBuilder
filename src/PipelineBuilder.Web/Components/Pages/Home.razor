@@ -32,6 +32,8 @@
         }
         @* Input* components need a cascading EditContext, so every step renders inside this form. *@
         <EditForm EditContext="CurrentEditContext">
+            @* Keyed by the step, so opening a step draws it anew and it slides in. *@
+            <div class="step-body" @key="Wizard.CurrentStep">
             @switch (Wizard.CurrentStep)
             {
                 case WizardStep.Start:
@@ -47,6 +49,7 @@
                     <ResultStep Pipeline="Wizard.Result" />
                     break;
             }
+            </div>
         </EditForm>
 
         <footer class="wizard-footer">

@@ -19,6 +19,7 @@
             <li>
                 <button type="button" class="template @(applied ? "applied" : "")" data-template="@t.Id"
                         aria-pressed="@(applied ? "true" : "false")" @onclick="() => Apply(t.Id)">
+                    <span class="icon"><KindIcon Kind="t.Settings.DeploymentKind" /></span>
                     <strong>@t.Name</strong>
                     <span>@t.Description</span>
                 </button>

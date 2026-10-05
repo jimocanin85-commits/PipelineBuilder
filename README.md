@@ -1,6 +1,6 @@
 # PipelineBuilder
 
-A wizard that builds an `azure-pipelines.yml` for Azure DevOps: build, deploy to each environment, roll back on failure.
+A wizard that writes your `azure-pipelines.yml` for Azure DevOps. The pipeline builds the app once, deploys the same package to test, preprod and prod, and rolls back if a deployment fails.
 
 ## Run it
 
@@ -17,11 +17,13 @@ Open <http://localhost:5150>.
 ## Use it
 
 1. **What**: pick what you deploy.
-2. **Where**: the servers or cluster. The flow is test → preprod → prod; tick a box if you have no preprod.
+2. **Where**: your servers or cluster, and where to wait for approval. Tick a box if you have no preprod.
 3. **Safety**: rollback, health checks, notifications.
-4. **Result**: see what the pipeline needs in Azure DevOps, and download `azure-pipelines.yml`.
+4. **Result**: download `azure-pipelines.yml`.
 
-On the Result step you can also save your settings, and open them later to change the pipeline.
+A panel beside every step shows the pipeline and what it needs in Azure DevOps.
+
+On the Result step you can save your settings. Open them later to change the pipeline.
 
 ## What it generates
 
@@ -30,8 +32,8 @@ On the Result step you can also save your settings, and open them later to chang
 | Build | .NET, Node.js |
 | Deploy to | Windows servers (IIS, Windows service, file share), Linux servers (systemd service), Docker on either, Kubernetes, your own Ansible playbook, or your own script |
 | Run by | An agent on each server, or one build agent over the network (WinRM to Windows, SSH to Linux) |
-| Strategy | Standard, rolling |
-| Safety | Approval between environments, backup and rollback, health checks, secret scan |
+| Update | All servers at once, or a few at a time |
+| Safety | Approval between environments, backup and rollback, health checks, a check for passwords in the file |
 | Extras | Key Vault, notifications by Teams, email or webhook |
 
 ## Install on a server

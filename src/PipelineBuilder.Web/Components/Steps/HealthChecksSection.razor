@@ -33,7 +33,7 @@
                         <InputNumber id="@($"{id}-retries")" @bind-Value="hc.RetryCount" class="form-control narrow" />
                     </Field>
                 </div>
-                <p class="hint">The check tries again, because an app can take a moment to start.</p>
+                <p class="hint">An app can take a moment to start, so the check tries more than once.</p>
                 break;
             case HealthCheckType.IisAppPool:
                 <Field For="@($"{id}-pool")" Label="App pool">

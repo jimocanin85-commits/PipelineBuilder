@@ -57,7 +57,7 @@
     @switch (Wizard.Definition.Deployment.Kind)
     {
         case DeploymentKind.Iis:
-            <Field For="website" Label="IIS website" Hint="The name in IIS Manager. Its files are replaced.">
+            <Field For="website" Label="Site name" Hint="As shown in IIS Manager. The site's files are replaced.">
                 <InputText id="website" @bind-Value="Wizard.Definition.Deployment.WebsiteName" class="form-control" placeholder="Default Web Site" />
             </Field>
             break;
@@ -76,23 +76,20 @@
             </Field>
             break;
         case DeploymentKind.DockerContainer:
-            <Field For="server-os" Label="Servers run">
-                <InputSelect id="server-os" @bind-Value="Wizard.Definition.Deployment.ServerOs" class="form-control">
-                    <option value="@ServerOs.Linux">Linux</option>
-                    <option value="@ServerOs.Windows">Windows</option>
-                </InputSelect>
-            </Field>
+            <div class="wide">
+                <Choice TValue="ServerOs" Name="server-os" Label="The servers run" Value="Wizard.Definition.Deployment.ServerOs" ValueChanged="SetServerOs" Options="DockerServers" />
+            </div>
             <Field For="container" Label="Container name" Hint="The container with this name is replaced.">
                 <InputText id="container" @bind-Value="Wizard.Definition.Deployment.ContainerName" class="form-control" placeholder="$(CONTAINER_NAME)" />
             </Field>
-            <Field For="container-ports" Label="Ports (host:container)" Hint="Without a port, the container cannot be reached from outside the server.">
+            <Field For="container-ports" Label="Ports (host:container)" Hint="Without a port, nothing outside the server can reach the container.">
                 <InputText id="container-ports" @bind-Value="Wizard.ContainerPorts" class="form-control" placeholder="8080:80" />
             </Field>
             <Field For="registry-connection" Label="Registry service connection" Hint="The connection's name, not the registry's address." More="@Help.ServiceConnection">
                 <InputText id="registry-connection" @bind-Value="Wizard.Definition.Artifact.ContainerRegistryConnection" class="form-control" placeholder="$(DOCKER_SERVICE_CONNECTION)" />
             </Field>
             <Field For="container-env" Label="Environment variables" Wide="true"
-                   Hint="One NAME=value per line. Never type a password here. Use a secret variable: API_KEY=$(API_KEY).">
+                   Hint="One NAME=value per line. For a password, use a secret variable: API_KEY=$(API_KEY).">
                 <InputTextArea id="container-env" @bind-Value="Wizard.ContainerEnvironment" class="form-control" rows="3" />
             </Field>
             break;
@@ -103,7 +100,7 @@
             <Field For="k8s-namespace" Label="Namespace" Hint="Where in the cluster the app runs.">
                 <InputText id="k8s-namespace" @bind-Value="Wizard.Definition.Deployment.KubernetesNamespace" class="form-control" placeholder="$(K8S_NAMESPACE)" />
             </Field>
-            <Field For="k8s-manifests" Label="Manifests in the repository" Hint="Your Kubernetes files. The pipeline puts in the new image.">
+            <Field For="k8s-manifests" Label="Manifests" Hint="Your Kubernetes files in the repository. The pipeline puts in the new image.">
                 <InputText id="k8s-manifests" @bind-Value="Wizard.Definition.Deployment.ManifestsPath" class="form-control" placeholder="manifests/*.yaml" />
             </Field>
             <Field For="k8s-deployment" Label="Deployment name" Hint="Used to roll back if the deployment fails.">
@@ -120,20 +117,17 @@
             <Field For="inventory" Label="Inventory" Hint="{environment} becomes test, preprod or prod, so each can have its own servers.">
                 <InputText id="inventory" @bind-Value="Wizard.Definition.Deployment.InventoryPath" class="form-control" placeholder="inventories/{environment}" />
             </Field>
-            <Field For="ansible-pool" Label="Linux agent pool" Hint="Only needed when you build on Windows. Empty means the same agent as the build.">
+            <Field For="ansible-pool" Label="Linux agent pool" Hint="Only needed if you build on Windows. Empty means the build agent.">
                 <InputText id="ansible-pool" @bind-Value="Wizard.Definition.Deployment.AgentPool" class="form-control" />
             </Field>
-            <Field For="ansible-key" Label="SSH key (secure file)" Hint="Empty means the agent already has access to the servers." More="@Help.SecureFile">
+            <Field For="ansible-key" Label="SSH key (secure file)" Hint="Empty means the agent can already log in to the servers." More="@Help.SecureFile">
                 <InputText id="ansible-key" @bind-Value="Wizard.Definition.Deployment.AnsibleSshKeyFile" class="form-control" />
             </Field>
             break;
         default:
-            <Field For="server-os" Label="Servers run">
-                <InputSelect id="server-os" @bind-Value="Wizard.Definition.Deployment.ServerOs" class="form-control">
-                    <option value="@ServerOs.Windows">Windows (PowerShell)</option>
-                    <option value="@ServerOs.Linux">Linux (bash)</option>
-                </InputSelect>
-            </Field>
+            <div class="wide">
+                <Choice TValue="ServerOs" Name="server-os" Label="The servers run" Value="Wizard.Definition.Deployment.ServerOs" ValueChanged="SetServerOs" Options="ScriptServers" />
+            </div>
             <Field For="custom-script" Label="Deploy script" Wide="true" Hint="@CustomScriptHint">
                 <InputTextArea id="custom-script" @bind-Value="Wizard.Definition.Deployment.CustomScript" class="form-control" rows="4" />
             </Field>
@@ -147,21 +141,17 @@
 
 @if (DeploymentKinds.For(Wizard.Definition.Deployment.Kind).RunsOnServers)
 {
-    <h3>Who runs the deployment?</h3>
-    <div class="fields">
-        <Field For="run-from" Label="Deployed by" Hint="@RunFromHint">
-            <InputSelect id="run-from" @bind-Value="Wizard.Definition.Deployment.RunFrom" class="form-control">
-                <option value="@DeployFrom.Server">An agent on each server</option>
-                <option value="@DeployFrom.Agent">Our build agent, over the network</option>
-            </InputSelect>
-        </Field>
-        @if (FromAgent && LinuxServers)
+    <Choice TValue="DeployFrom" Name="run-from" Label="Who runs the deployment?" Value="Wizard.Definition.Deployment.RunFrom" ValueChanged="SetRunFrom" Options="RunFromOptions" />
+    if (FromAgent)
+    {
+        <p class="hint">@FromAgentHint</p>
+        if (LinuxServers)
         {
             <Field For="ssh-user" Label="SSH user" Hint="The user the build agent logs in as on the servers.">
                 <InputText id="ssh-user" @bind-Value="Wizard.Definition.Deployment.SshUser" class="form-control" placeholder="$(SSH_USER)" />
             </Field>
         }
-    </div>
+    }
 }
 
 @if (DeploymentKinds.UsesServerResources(Wizard.Definition))
@@ -184,13 +174,13 @@
     <summary>More settings</summary>
 
     <h3>Environment names</h3>
-    <Field For="environments" Label="Environments, in order" Hint="Only change these if yours have other names. Use small letters, digits and hyphens.">
+    <Field For="environments" Label="Environments, in order" Hint="Change these only if yours have other names. Use small letters, digits and hyphens.">
         <InputText id="environments" @bind-Value="Wizard.EnvironmentsCsv" class="form-control" placeholder="test, preprod, prod" />
     </Field>
 
     <h3>Build agent</h3>
     <label class="check"><InputCheckbox id="self-hosted" @bind-Value="SelfHosted" /> Build on our own agent pool</label>
-    <p class="hint">Tick this if the build needs access to your network. Otherwise Microsoft's agents are used.</p>
+    <p class="hint">Tick this if the build must reach your network. Otherwise Microsoft's agents are used.</p>
     @if (SelfHosted)
     {
         <Field For="pool-name" Label="Agent pool" Hint="Its name under Project settings → Agent pools.">
@@ -230,7 +220,7 @@
     <button type="button" class="btn-secondary" id="add-variable-group" @onclick="AddGroup">Add variable group</button>
 
     <h3>Key Vault</h3>
-    <label class="check"><InputCheckbox id="keyvault-enabled" @bind-Value="Wizard.KeyVaultEnabled" /> Load secrets from Azure Key Vault before deploying</label>
+    <label class="check"><InputCheckbox id="keyvault-enabled" @bind-Value="Wizard.KeyVaultEnabled" /> Get secrets from Azure Key Vault before deploying</label>
     <p class="hint">Each secret becomes a variable with the same name.</p>
     @if (Wizard.KeyVaultEnabled)
     {
@@ -266,21 +256,40 @@
     private bool FromAgent => DeploymentKinds.DeploysFromAgentToServers(Wizard.Definition);
     private bool LinuxServers => DeploymentKinds.ShellFor(Wizard.Definition) == ScriptShell.Bash;
 
-    private string RunFromHint
+    private static readonly ChoiceOption<ServerOs>[] DockerServers =
     {
-        get
-        {
-            if (!FromAgent)
-                return "Each server has its own Azure DevOps agent and updates itself.";
+        new(ServerOs.Linux, "Linux"),
+        new(ServerOs.Windows, "Windows")
+    };
 
-            var how = LinuxServers
-                ? "The build agent connects to each server with SSH, one server at a time."
-                : "A Windows build agent connects to each server with PowerShell remoting (WinRM), one server at a time.";
-            var docker = Wizard.Definition.Deployment.Kind == DeploymentKind.DockerContainer
-                ? " Run docker login once on each server."
-                : string.Empty;
-            return how + " You name the servers in variables; the Result step lists them." + docker;
-        }
+    private static readonly ChoiceOption<ServerOs>[] ScriptServers =
+    {
+        new(ServerOs.Windows, "Windows", "Your script runs in Windows PowerShell."),
+        new(ServerOs.Linux, "Linux", "Your script runs in bash.")
+    };
+
+    private ChoiceOption<DeployFrom>[] RunFromOptions => new ChoiceOption<DeployFrom>[]
+    {
+        new(DeployFrom.Server, "An agent on each server", "Each server has its own Azure DevOps agent and updates itself."),
+        new(DeployFrom.Agent, "Our build agent", LinuxServers
+            ? "It connects to each server with SSH, one at a time."
+            : "A Windows agent connects to each server with PowerShell remoting (WinRM), one at a time.")
+    };
+
+    private string FromAgentHint =>
+        "You name the servers in variables. They are listed under 'Needs in Azure DevOps'."
+        + (Wizard.Definition.Deployment.Kind == DeploymentKind.DockerContainer ? " Run docker login once on each server." : string.Empty);
+
+    private void SetRunFrom(DeployFrom value)
+    {
+        Wizard.Definition.Deployment.RunFrom = value;
+        Wizard.NotifyChanged();
+    }
+
+    private void SetServerOs(ServerOs value)
+    {
+        Wizard.Definition.Deployment.ServerOs = value;
+        Wizard.NotifyChanged();
     }
 
     private string CustomScriptHint
