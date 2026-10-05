@@ -24,11 +24,31 @@ public class PipelineRequirementsTests
     {
         var needs = Needs(WizardState.CreateDefault());
 
-        Assert.Equal(new[] { "test", "prod" }, Names(needs, RequirementKind.Environment));
+        Assert.Equal(new[] { "test", "preprod", "prod" }, Names(needs, RequirementKind.Environment));
         Assert.All(needs, n => Assert.Equal(RequirementKind.Environment, n.Kind));
         Assert.Contains("servers registered", needs[0].Purpose);
         Assert.DoesNotContain("approval", needs[0].Purpose);
-        Assert.Contains("approval", needs[1].Purpose);
+        Assert.Contains("approval", needs[2].Purpose);
+    }
+
+    [Fact]
+    public void EveryNeedSaysWhereItIsCreated()
+    {
+        var definition = WizardState.CreateDefault();
+        definition.VariableGroups = new[] { new VariableGroupConfig { Name = "vg-orders" } };
+        definition.Artifact = new ArtifactConfig { ArtifactType = ArtifactType.DockerImage, ArtifactName = "orders", ContainerRegistryConnection = "our-registry" };
+        definition.Deployment = new DeploymentConfig { Kind = DeploymentKind.DockerContainer, ServerOs = ServerOs.Linux };
+
+        var needs = Needs(definition);
+
+        Assert.All(needs, n => Assert.False(string.IsNullOrWhiteSpace(n.Where)));
+        Assert.EndsWith("Virtual machines", needs.First(n => n.Kind == RequirementKind.Environment).Where);
+        Assert.Contains("Service connections", needs.Single(n => n.Kind == RequirementKind.ServiceConnection).Where);
+        Assert.Contains("Library", needs.Single(n => n.Kind == RequirementKind.VariableGroup).Where);
+        Assert.Contains("Variables", needs.First(n => n.Kind == RequirementKind.Variable).Where);
+
+        definition.Deployment = new DeploymentConfig { Kind = DeploymentKind.Kubernetes };
+        Assert.EndsWith("New environment", Needs(definition).First(n => n.Kind == RequirementKind.Environment).Where);
     }
 
     [Fact]

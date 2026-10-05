@@ -5,8 +5,9 @@ using PipelineBuilder.Core.Models;
 namespace PipelineBuilder.Core.Validation;
 
 /// <summary>
-/// Rules that judge the finished pipeline: what to set up in Azure DevOps, deployment advice, variable
-/// groups, plain-text secrets and Key Vault. Their findings are shown after generation and do not block it.
+/// Rules that judge the finished pipeline: deployment advice, variable groups, plain-text secrets and
+/// Key Vault. Their findings are shown after generation and do not block it. What to set up in
+/// Azure DevOps is not a finding: it is listed by <c>PipelineRequirements</c>.
 /// </summary>
 internal sealed class PolicyRules
 {
@@ -29,9 +30,7 @@ internal sealed class PolicyRules
         var rules = new PolicyRules(deploymentKinds, variableGroups, secrets, keyVault);
         return new[]
         {
-            Rule("environments.approvals", Approvals),
             Rule("deployment.kind", rules.KindSpecific),
-            Rule("deployment.server-resources", rules.ServerResources),
             Rule("deployment.rolling-without-servers", rules.RollingWithoutServers),
             Rule("healthchecks.windows-only", rules.WindowsOnlyHealthChecks),
             Rule("notifications.email-recipients", EmailRecipients),
@@ -52,29 +51,9 @@ internal sealed class PolicyRules
         SuggestedFix = fix
     };
 
-    // Approvals live on the Azure DevOps environment, so the YAML cannot prove they exist.
-    private static IEnumerable<ValidationResult> Approvals(ValidationContext context) =>
-        context.Definition.Environments
-            .Where(EnvironmentNames.IsProduction)
-            .Select(env => Finding(ValidationSeverity.Info,
-                $"Add an approval check to the '{env}' environment in Azure DevOps (Pipelines > Environments > {env} > Approvals and checks).",
-                nameof(PipelineDefinition.Environments),
-                "Approvals are configured on the environment, not in YAML."));
-
     /// <summary>Checks that belong to the selected deployment kind (see its handler).</summary>
     private IEnumerable<ValidationResult> KindSpecific(ValidationContext context) =>
         _deploymentKinds.For(context.Definition.Deployment.Kind).Validate(context.Definition);
-
-    private IEnumerable<ValidationResult> ServerResources(ValidationContext context)
-    {
-        if (_deploymentKinds.UsesServerResources(context.Definition))
-        {
-            yield return Finding(ValidationSeverity.Info,
-                "Deployments run on the servers registered in each Azure DevOps environment (Virtual machine resources).",
-                nameof(PipelineDefinition.Environments),
-                "Register the target servers under Pipelines > Environments > <environment> > Add resource > Virtual machines.");
-        }
-    }
 
     private IEnumerable<ValidationResult> RollingWithoutServers(ValidationContext context)
     {

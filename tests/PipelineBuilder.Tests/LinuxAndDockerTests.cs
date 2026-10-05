@@ -106,7 +106,6 @@ public class LinuxAndDockerTests
         Assert.Contains("docker run -d --name \"$name\" --restart unless-stopped -p '8080:80' -e 'ASPNETCORE_ENVIRONMENT=Production' -e 'GREETING=it'\\''s up' \"$image\"", yaml);
         Assert.Contains("docker inspect --format '{{.Config.Image}}'", yaml);
         Assert.DoesNotContain("- powershell: |", yaml.Split("- stage: Notify")[0]);
-        Assert.DoesNotContain(result.ValidationResults, v => v.Message.Contains("publishes no ports"));
     }
 
     [Fact]
@@ -123,7 +122,7 @@ public class LinuxAndDockerTests
     }
 
     [Fact]
-    public void DockerWithoutPortsOrImageIsFlagged()
+    public void DockerWithoutAnImageIsFlagged()
     {
         var definition = Minimal();
         definition.Deployment = new DeploymentConfig { Kind = DeploymentKind.DockerContainer };
@@ -131,7 +130,6 @@ public class LinuxAndDockerTests
         var findings = _generator.Generate(definition).ValidationResults;
 
         Assert.Contains(findings, v => v.Severity == ValidationSeverity.Warning && v.Message.Contains("need a container image"));
-        Assert.Contains(findings, v => v.Severity == ValidationSeverity.Info && v.Message.Contains("publishes no ports"));
     }
 
     [Theory]

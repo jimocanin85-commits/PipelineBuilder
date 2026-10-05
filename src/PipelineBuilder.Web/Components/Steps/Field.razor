@@ -1,0 +1,32 @@
+@* One labelled input: its name, the input itself, a one-line hint and, when a term needs it, a longer explanation to fold out. *@
+<div class="@(Wide ? "field wide" : "field")">
+    <label for="@For">@Label</label>
+    @ChildContent
+    @if (Hint != null)
+    {
+        <p class="hint">@Hint</p>
+    }
+    @if (More != null)
+    {
+        <details class="explain">
+            <summary>What is this?</summary>
+            <p>@More</p>
+        </details>
+    }
+</div>
+
+@code {
+    /// <summary>The id of the input inside, so a click on the label focuses it and screen readers read the name.</summary>
+    [Parameter, EditorRequired] public string For { get; set; } = string.Empty;
+    [Parameter, EditorRequired] public string Label { get; set; } = string.Empty;
+
+    /// <summary>One line: what to type, or what happens with the value.</summary>
+    [Parameter] public string? Hint { get; set; }
+
+    /// <summary>A longer explanation of an Azure DevOps term, hidden until asked for.</summary>
+    [Parameter] public string? More { get; set; }
+
+    /// <summary>Spans both columns of a <c>.fields</c> grid.</summary>
+    [Parameter] public bool Wide { get; set; }
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+}

@@ -17,7 +17,7 @@ Open <http://localhost:5150>.
 ## Use it
 
 1. **What**: pick what you deploy.
-2. **Where**: the environments, and the servers or cluster.
+2. **Where**: the servers or cluster. The flow is test → preprod → prod; tick a box if you have no preprod.
 3. **Safety**: rollback, health checks, notifications.
 4. **Result**: see what the pipeline needs in Azure DevOps, and download `azure-pipelines.yml`.
 

@@ -11,7 +11,7 @@
 }
 else if (Pipeline is { } result)
 {
-    var issues = result.ValidationResults.Where(v => v.Severity != ValidationSeverity.Info).OrderByDescending(v => v.Severity).ToList();
+    var issues = result.ValidationResults.OrderByDescending(v => v.Severity).ToList();
     if (issues.Count > 0)
     {
         <IssueList Issues="issues" ShowGoTo="true" />

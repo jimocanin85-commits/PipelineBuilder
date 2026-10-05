@@ -2,24 +2,53 @@
 @inject IDeploymentKinds DeploymentKinds
 
 <h3>Rollback</h3>
-<label class="check"><InputCheckbox id="rollback-enabled" @bind-Value="Wizard.Definition.Rollback.Enabled" /> Back up before deploying, and roll back if the deployment fails</label>
+@{
+    var kind = DeploymentKinds.For(Wizard.Definition.Deployment.Kind);
+    var onServers = kind.RunsOnServers;
+}
+<label class="check">
+    <InputCheckbox id="rollback-enabled" @bind-Value="Wizard.Definition.Rollback.Enabled" />
+    @(onServers ? "Back up before deploying, and roll back if the deployment fails" : "Roll back if the deployment fails")
+</label>
+<p class="hint">@(onServers
+    ? "The running version is saved first. If a step fails, it is put back, so the servers are left as they were."
+    : "If a step fails, the cluster goes back to the version that ran before.")</p>
 @if (Wizard.Definition.Rollback.Enabled)
 {
-    @* Kinds without their own rollback target (Custom) let the user choose one. *@
-    if (DeploymentKinds.For(Wizard.Definition.Deployment.Kind).RollbackTarget is null)
+    @* Your own script does not say what it deploys, so the user chooses what to back up. *@
+    if (kind.RollbackTarget is null)
     {
-        <label for="rollback-target">Rollback target</label>
-        <InputSelect id="rollback-target" @bind-Value="Wizard.Definition.Rollback.Target" class="form-control">
-            @foreach (var r in Enum.GetValues<RollbackTarget>())
-            {
-                <option value="@r">@r</option>
-            }
-        </InputSelect>
+        <Field For="rollback-target" Label="What your script deploys" Hint="Decides what is backed up and how it is put back.">
+            <InputSelect id="rollback-target" @bind-Value="Wizard.Definition.Rollback.Target" class="form-control">
+                @foreach (var target in Enum.GetValues<RollbackTarget>())
+                {
+                    <option value="@target">@Label(target)</option>
+                }
+            </InputSelect>
+        </Field>
     }
-    <label for="backup-path">Backup folder on the target server</label>
-    <InputText id="backup-path" @bind-Value="Wizard.Definition.Rollback.BackupPath" class="form-control" placeholder="D:\backups or /var/backups/pipelinebuilder" />
-    <label for="retention">Backups to keep per environment</label>
-    <InputNumber id="retention" @bind-Value="Wizard.Definition.Rollback.RetentionCount" class="form-control" />
-    <label for="rollback-script">Custom rollback script (optional, replaces the built-in rollback)</label>
-    <InputText id="rollback-script" @bind-Value="Wizard.Definition.Rollback.RollbackScript" class="form-control" placeholder="scripts/rollback.cmd" />
+    if (onServers)
+    {
+        <Field For="backup-path" Label="Backup folder on the server" Hint="Empty means D:\backups on Windows and /var/backups/pipelinebuilder on Linux.">
+            <InputText id="backup-path" @bind-Value="Wizard.Definition.Rollback.BackupPath" class="form-control" />
+        </Field>
+        <Field For="retention" Label="Backups to keep per environment" Hint="Older backups are deleted.">
+            <InputNumber id="retention" @bind-Value="Wizard.Definition.Rollback.RetentionCount" class="form-control narrow" />
+        </Field>
+    }
+    <Field For="rollback-script" Label="Your own rollback command (optional)" Hint="Runs instead of the built-in rollback.">
+        <InputText id="rollback-script" @bind-Value="Wizard.Definition.Rollback.RollbackScript" class="form-control" placeholder="scripts/rollback.cmd" />
+    </Field>
+}
+
+@code {
+    private static string Label(RollbackTarget target) => target switch
+    {
+        RollbackTarget.Iis => "An IIS website",
+        RollbackTarget.WindowsService => "A Windows service",
+        RollbackTarget.LinuxService => "A Linux service",
+        RollbackTarget.FileShare => "Files in a folder",
+        RollbackTarget.DockerContainer => "A Docker container",
+        _ => "A Kubernetes deployment"
+    };
 }

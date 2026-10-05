@@ -153,14 +153,6 @@ Write-Host "Rolled back container $name to $image"
                 nameof(PipelineDefinition.Artifact),
                 "Pick one of the Docker templates on the first step.");
         }
-
-        if (!definition.Deployment.ContainerPorts.Any(p => !string.IsNullOrWhiteSpace(p)))
-        {
-            yield return Finding(ValidationSeverity.Info,
-                "The container publishes no ports, so nothing outside the server can reach it.",
-                nameof(PipelineDefinition.Deployment),
-                "Add a port such as 8080:80 if the container serves requests.");
-        }
     }
 
     /// <summary>The <c>-p</c> and <c>-e</c> options, each value quoted for the shell; empty when there are none.</summary>

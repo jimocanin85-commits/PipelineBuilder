@@ -62,7 +62,7 @@ public class TemplateCatalogueTests
 
         Assert.Equal("keep-me", definition.Name);
         Assert.Equal(DeploymentKind.Iis, definition.Deployment.Kind);
-        Assert.Equal(new[] { "test", "prod" }, definition.Environments);
+        Assert.Equal(new[] { "test", "preprod", "prod" }, definition.Environments); // a template leaves the flow alone
     }
 
     [Fact]

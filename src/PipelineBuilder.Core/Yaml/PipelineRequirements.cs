@@ -6,7 +6,8 @@ namespace PipelineBuilder.Core.Yaml;
 
 /// <summary>
 /// Lists what a generated pipeline needs in Azure DevOps: its environments, service connections,
-/// variable groups and every pipeline variable the YAML refers to.
+/// variable groups and every pipeline variable the YAML refers to. Each entry says what it is for
+/// and where in Azure DevOps it is created.
 /// </summary>
 public static class PipelineRequirements
 {
@@ -50,7 +51,10 @@ public static class PipelineRequirements
                 Kind = RequirementKind.Environment,
                 Name = environment,
                 Purpose = (onServers ? "Environment with your servers registered" : "Environment")
-                          + (EnvironmentNames.IsProduction(environment) ? ", with an approval" : string.Empty)
+                          + (EnvironmentNames.IsProduction(environment) ? ", with an approval (Approvals and checks)" : string.Empty),
+                Where = onServers
+                    ? "Pipelines → Environments → New environment → Virtual machines"
+                    : "Pipelines → Environments → New environment"
             });
         }
 
@@ -68,6 +72,7 @@ public static class PipelineRequirements
                 Kind = RequirementKind.VariableGroup,
                 Name = group.Name,
                 Purpose = "Variable group",
+                Where = "Pipelines → Library → Variable group",
                 IsSecret = group.ContainsSecrets
             });
         }
@@ -83,6 +88,7 @@ public static class PipelineRequirements
                 Kind = RequirementKind.Variable,
                 Name = name,
                 Purpose = Purposes.GetValueOrDefault(name, "Variable used by your settings"),
+                Where = "Pipelines → your pipeline → Edit → Variables",
                 IsSecret = SecretName.IsMatch(name)
             });
         }
@@ -95,6 +101,12 @@ public static class PipelineRequirements
     {
         if (string.IsNullOrWhiteSpace(name) || name.Contains("$(", StringComparison.Ordinal))
             return;
-        needs.Add(new PipelineRequirement { Kind = RequirementKind.ServiceConnection, Name = name.Trim(), Purpose = purpose });
+        needs.Add(new PipelineRequirement
+        {
+            Kind = RequirementKind.ServiceConnection,
+            Name = name.Trim(),
+            Purpose = purpose,
+            Where = "Project settings → Service connections → New service connection"
+        });
     }
 }

@@ -5,10 +5,6 @@
     "description": ".NET web app on your Windows servers",
     "settings": {
       "projectType": "DotNet",
-      "environments": [
-        "test",
-        "prod"
-      ],
       "artifactType": "PipelineArtifact",
       "deploymentKind": "Iis",
       "rollbackEnabled": true
@@ -20,10 +16,6 @@
     "description": ".NET service on your Windows servers",
     "settings": {
       "projectType": "DotNet",
-      "environments": [
-        "test",
-        "prod"
-      ],
       "artifactType": "PipelineArtifact",
       "deploymentKind": "WindowsService",
       "rollbackEnabled": true
@@ -35,10 +27,6 @@
     "description": ".NET app copied to a folder or share from your Windows servers",
     "settings": {
       "projectType": "DotNet",
-      "environments": [
-        "test",
-        "prod"
-      ],
       "artifactType": "PipelineArtifact",
       "deploymentKind": "FileShare",
       "rollbackEnabled": true
@@ -50,10 +38,6 @@
     "description": ".NET app on your Linux servers (systemd)",
     "settings": {
       "projectType": "DotNet",
-      "environments": [
-        "test",
-        "prod"
-      ],
       "artifactType": "PipelineArtifact",
       "deploymentKind": "LinuxService",
       "rollbackEnabled": true
@@ -65,10 +49,6 @@
     "description": "Node.js app on your Linux servers (systemd)",
     "settings": {
       "projectType": "Node",
-      "environments": [
-        "test",
-        "prod"
-      ],
       "artifactType": "PipelineArtifact",
       "deploymentKind": "LinuxService",
       "rollbackEnabled": true
@@ -83,10 +63,6 @@
       "artifactType": "DockerImage",
       "deploymentKind": "DockerContainer",
       "serverOs": "Linux",
-      "environments": [
-        "test",
-        "prod"
-      ],
       "rollbackEnabled": true
     }
   },
@@ -96,11 +72,6 @@
     "description": ".NET app, built and run as a container",
     "settings": {
       "projectType": "DotNet",
-      "environments": [
-        "test",
-        "preprod",
-        "prod"
-      ],
       "artifactType": "DockerImage",
       "deploymentKind": "DockerContainer",
       "serverOs": "Linux",
@@ -113,10 +84,6 @@
     "description": "Your manifests, applied to a cluster",
     "settings": {
       "projectType": "Docker",
-      "environments": [
-        "test",
-        "prod"
-      ],
       "artifactType": "DockerImage",
       "deploymentKind": "Kubernetes",
       "strategy": "Standard",
@@ -129,10 +96,6 @@
     "description": ".NET app, deployed by commands you write",
     "settings": {
       "projectType": "DotNet",
-      "environments": [
-        "test",
-        "prod"
-      ],
       "artifactType": "PipelineArtifact",
       "deploymentKind": "Custom",
       "rollbackEnabled": false
