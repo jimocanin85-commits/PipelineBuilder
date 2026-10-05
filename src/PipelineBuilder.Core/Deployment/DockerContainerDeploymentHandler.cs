@@ -151,7 +151,7 @@ Write-Host "Rolled back container $name to $image"
             yield return Finding(ValidationSeverity.Warning,
                 "Docker deployments need a container image, but the artifact is not a Docker image.",
                 nameof(PipelineDefinition.Artifact),
-                "Set the artifact type to DockerImage.");
+                "Pick one of the Docker templates on the first step.");
         }
 
         if (!definition.Deployment.ContainerPorts.Any(p => !string.IsNullOrWhiteSpace(p)))

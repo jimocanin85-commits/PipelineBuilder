@@ -1,9 +1,9 @@
 @inject WizardState Wizard
-@inject ITemplateMarketplaceService Marketplace
+@inject ITemplateCatalogue Templates
 
 <h2>What are you deploying?</h2>
 <ul class="template-grid">
-    @foreach (var t in Marketplace.GetAllTemplates())
+    @foreach (var t in Templates.GetAllTemplates())
     {
         var applied = Wizard.Definition.TemplateId == t.Id;
         <li>
@@ -73,7 +73,7 @@
 
     private void Apply(string templateId)
     {
-        Wizard.ApplyTemplate(Marketplace, templateId);
+        Wizard.ApplyTemplate(Templates, templateId);
         Wizard.NotifyChanged();
     }
 

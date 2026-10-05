@@ -110,7 +110,7 @@ public interface ISecretsGovernanceService
     IReadOnlyList<ValidationResult> ToValidationResults(IReadOnlyList<SecretGovernanceResult> results);
 }
 
-public interface ITemplateMarketplaceService
+public interface ITemplateCatalogue
 {
     IReadOnlyList<PipelineTemplate> GetAllTemplates();
     PipelineTemplate? GetById(string id);

@@ -51,6 +51,9 @@ public sealed class DeploymentStageGenerator
         "  - " + ForEachEnvironment + "\n" +
         "    - " + StageName;
 
+    /// <summary>True when deployments run on the servers registered in each environment, not on the build agent.</summary>
+    public bool RunsOnServers(PipelineDefinition definition) => _deploymentKinds.UsesServerResources(definition);
+
     /// <summary>
     /// One deploy stage, repeated for each environment in the <c>environments</c> parameter. The
     /// stages run in that order, because a stage without <c>dependsOn</c> follows the one before it.
@@ -65,6 +68,7 @@ public sealed class DeploymentStageGenerator
         var production = definition.Environments.Where(EnvironmentNames.IsProduction).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
         if (production.Count > 0)
         {
+            stage.Append($"  # Only the {definition.ReleaseBranch} branch deploys to {string.Join(" and ", production)}.\n");
             stage.Append("  ${{ if in(environment, ").Append(string.Join(", ", production.Select(YamlBuilder.YamlString))).Append(") }}:\n");
             stage.Append($"    condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/{definition.ReleaseBranch}'))\n");
         }
@@ -84,7 +88,8 @@ public sealed class DeploymentStageGenerator
         stage.Append("  jobs:\n");
         stage.Append(DeploymentJob(definition)).Append('\n');
 
-        return "- " + ForEachEnvironment + "\n" + YamlBuilder.Indent(stage.ToString().TrimEnd(), 2);
+        return "# Deploy: this stage is repeated for each environment, one after the other.\n" +
+               "- " + ForEachEnvironment + "\n" + YamlBuilder.Indent(stage.ToString().TrimEnd(), 2);
     }
 
     private string DeploymentJob(PipelineDefinition definition)
@@ -117,13 +122,14 @@ public sealed class DeploymentStageGenerator
 
         if (serverResources)
         {
-            // Runs on the servers registered in the Azure DevOps environment.
+            sb.Append("    # Runs on each server registered in this environment.\n");
             sb.Append("    environment:\n");
             sb.Append($"      name: {env}\n");
             sb.Append("      resourceType: VirtualMachine\n");
         }
         else
         {
+            sb.Append("    # Approvals and checks are set on this environment in Azure DevOps.\n");
             sb.Append($"    environment: {env}\n");
         }
 
@@ -144,6 +150,7 @@ public sealed class DeploymentStageGenerator
 
         if (rollbackSteps.Count > 0)
         {
+            sb.Append("        # If a step above fails, the previous version is put back.\n");
             sb.Append("        on:\n");
             sb.Append("          failure:\n");
             sb.Append("            steps:\n");

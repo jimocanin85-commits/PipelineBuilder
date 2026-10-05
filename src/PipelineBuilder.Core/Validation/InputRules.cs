@@ -67,7 +67,7 @@ internal static class InputRules
     private static IEnumerable<ValidationResult> PoolName(ValidationContext context)
     {
         if (context.Definition.BuildAgent == BuildAgentType.SelfHosted && string.IsNullOrWhiteSpace(context.Definition.PoolName))
-            yield return Error(nameof(PipelineDefinition.PoolName), "Pool name is required when using self-hosted build agents.");
+            yield return Error(nameof(PipelineDefinition.PoolName), "Enter the agent pool to build on.", "Type its name under 'Build agent', or untick 'Build on our own agent pool'.");
     }
 
     private static IEnumerable<ValidationResult> Artifact(ValidationContext context)
@@ -76,14 +76,15 @@ internal static class InputRules
         if (artifact == null)
             yield return Error(nameof(PipelineDefinition.Artifact), "Artifact configuration is required.");
         else if (string.IsNullOrWhiteSpace(artifact.ArtifactName))
-            yield return Error(nameof(PipelineDefinition.Artifact), "Artifact name is required.");
+            yield return Error(nameof(PipelineDefinition.Artifact),
+                artifact.ArtifactType == ArtifactType.DockerImage ? "The image needs a name." : "The artifact needs a name.");
     }
 
     private static IEnumerable<ValidationResult> DockerArtifact(ValidationContext context)
     {
         var definition = context.Definition;
         if (definition.ProjectType == ProjectType.Docker && definition.Artifact?.ArtifactType != ArtifactType.DockerImage)
-            yield return Error(nameof(PipelineDefinition.Artifact), "A Docker project is packaged as a Docker image.", "Set the artifact type to DockerImage.");
+            yield return Error(nameof(PipelineDefinition.Artifact), "A Docker project is packaged as a Docker image.", "Pick one of the Docker templates on the first step.");
     }
 
     private static IEnumerable<ValidationResult> HealthCheckUrl(ValidationContext context)
@@ -92,7 +93,7 @@ internal static class InputRules
         {
             var url = hc.Url?.Replace("{environment}", "env", StringComparison.OrdinalIgnoreCase);
             if (hc.Enabled && hc.HealthCheckType == HealthCheckType.HttpEndpoint && !Uri.TryCreate(url, UriKind.Absolute, out _))
-                yield return Error(nameof(PipelineDefinition.HealthChecks), "HTTP health check requires a valid endpoint URL.", "e.g. https://myapp-{environment}.contoso.com/health");
+                yield return Error(nameof(PipelineDefinition.HealthChecks), "The HTTP health check needs a full address.", "e.g. https://myapp-{environment}.contoso.com/health");
         }
     }
 }

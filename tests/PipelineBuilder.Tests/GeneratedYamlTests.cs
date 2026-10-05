@@ -334,7 +334,7 @@ public class GeneratedYamlTests
 
     private static PipelineDefinition FullDefinition() => new()
     {
-        Name = "enterprise-pipeline",
+        Name = "orders",
         ProjectType = ProjectType.DotNet,
         BuildAgent = BuildAgentType.MicrosoftHosted,
         Environments = new[] { "test", "pre-prod", "prod" },

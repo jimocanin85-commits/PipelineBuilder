@@ -7,10 +7,7 @@ public sealed class PipelineTemplate
 {
     public string Id { get; set; } = string.Empty;
     public string Name { get; set; } = string.Empty;
-    public TemplateCategory Category { get; set; }
     public string Description { get; set; } = string.Empty;
-    public TemplateRiskLevel RiskLevel { get; set; }
-    public IReadOnlyList<string> Tags { get; set; } = Array.Empty<string>();
 
     /// <summary>Settings applied to the wizard when the template is chosen. Missing values are left unchanged.</summary>
     public TemplateSettings Settings { get; set; } = new();

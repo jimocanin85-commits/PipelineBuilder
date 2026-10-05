@@ -2,13 +2,7 @@
   {
     "id": "iis-onprem",
     "name": "IIS website",
-    "category": "Iis",
     "description": ".NET web app on your Windows servers",
-    "riskLevel": "Medium",
-    "tags": [
-      "windows",
-      "iis"
-    ],
     "settings": {
       "projectType": "DotNet",
       "environments": [
@@ -23,13 +17,7 @@
   {
     "id": "windows-service-onprem",
     "name": "Windows service",
-    "category": "WindowsService",
     "description": ".NET service on your Windows servers",
-    "riskLevel": "Medium",
-    "tags": [
-      "windows",
-      "service"
-    ],
     "settings": {
       "projectType": "DotNet",
       "environments": [
@@ -42,15 +30,24 @@
     }
   },
   {
+    "id": "windows-files",
+    "name": "Files to a folder",
+    "description": ".NET app copied to a folder or share from your Windows servers",
+    "settings": {
+      "projectType": "DotNet",
+      "environments": [
+        "test",
+        "prod"
+      ],
+      "artifactType": "PipelineArtifact",
+      "deploymentKind": "FileShare",
+      "rollbackEnabled": true
+    }
+  },
+  {
     "id": "linux-service",
     "name": "Linux service",
-    "category": "DotNet",
     "description": ".NET app on your Linux servers (systemd)",
-    "riskLevel": "Medium",
-    "tags": [
-      "linux",
-      "dotnet"
-    ],
     "settings": {
       "projectType": "DotNet",
       "environments": [
@@ -65,13 +62,7 @@
   {
     "id": "node-linux-service",
     "name": "Node.js on Linux",
-    "category": "Node",
     "description": "Node.js app on your Linux servers (systemd)",
-    "riskLevel": "Medium",
-    "tags": [
-      "linux",
-      "node"
-    ],
     "settings": {
       "projectType": "Node",
       "environments": [
@@ -86,29 +77,23 @@
   {
     "id": "docker-build-push",
     "name": "Docker container",
-    "category": "Docker",
     "description": "Your Dockerfile, run on your servers",
-    "riskLevel": "Low",
-    "tags": [
-      "docker"
-    ],
     "settings": {
       "projectType": "Docker",
       "artifactType": "DockerImage",
       "deploymentKind": "DockerContainer",
-      "serverOs": "Linux"
+      "serverOs": "Linux",
+      "environments": [
+        "test",
+        "prod"
+      ],
+      "rollbackEnabled": true
     }
   },
   {
     "id": "hybrid-dotnet-docker",
     "name": ".NET app in Docker",
-    "category": "Docker",
     "description": ".NET app, built and run as a container",
-    "riskLevel": "Medium",
-    "tags": [
-      "dotnet",
-      "docker"
-    ],
     "settings": {
       "projectType": "DotNet",
       "environments": [
@@ -118,19 +103,14 @@
       ],
       "artifactType": "DockerImage",
       "deploymentKind": "DockerContainer",
-      "serverOs": "Linux"
+      "serverOs": "Linux",
+      "rollbackEnabled": true
     }
   },
   {
     "id": "aks-deploy",
     "name": "Kubernetes",
-    "category": "Kubernetes",
     "description": "Your manifests, applied to a cluster",
-    "riskLevel": "High",
-    "tags": [
-      "kubernetes",
-      "docker"
-    ],
     "settings": {
       "projectType": "Docker",
       "environments": [
@@ -138,7 +118,24 @@
         "prod"
       ],
       "artifactType": "DockerImage",
-      "deploymentKind": "Kubernetes"
+      "deploymentKind": "Kubernetes",
+      "strategy": "Standard",
+      "rollbackEnabled": true
+    }
+  },
+  {
+    "id": "own-script",
+    "name": "Your own script",
+    "description": ".NET app, deployed by commands you write",
+    "settings": {
+      "projectType": "DotNet",
+      "environments": [
+        "test",
+        "prod"
+      ],
+      "artifactType": "PipelineArtifact",
+      "deploymentKind": "Custom",
+      "rollbackEnabled": false
     }
   }
 ]

@@ -4,7 +4,7 @@ namespace PipelineBuilder.Core.Models;
 
 public sealed class PipelineDefinition
 {
-    public string Name { get; set; } = "enterprise-pipeline";
+    public string Name { get; set; } = "my-app";
     public ProjectType ProjectType { get; set; }
     public BuildAgentType BuildAgent { get; set; } = BuildAgentType.MicrosoftHosted;
     public string? PoolName { get; set; }
@@ -18,10 +18,10 @@ public sealed class PipelineDefinition
     public ArtifactConfig Artifact { get; set; } = new();
     public DeploymentConfig Deployment { get; set; } = new();
 
-    /// <summary>Azure Resource Manager service connection used for App Service deployments and slot swaps.</summary>
+    /// <summary>Azure Resource Manager service connection, used to read Key Vault secrets.</summary>
     public string AzureServiceConnection { get; set; } = "$(AZURE_SERVICE_CONNECTION)";
 
-    /// <summary>Id of the marketplace template last applied, if any.</summary>
+    /// <summary>Id of the template last applied, if any.</summary>
     public string? TemplateId { get; set; }
     public RollbackConfig Rollback { get; set; } = new();
     public IReadOnlyList<HealthCheckConfig> HealthChecks { get; set; } = Array.Empty<HealthCheckConfig>();
@@ -34,7 +34,7 @@ public sealed class PipelineDefinition
     /// <summary>Folder the Node build writes the deployable output to.</summary>
     public string NodeOutputFolder { get; set; } = "dist";
 
-    /// <summary>Test projects to run in the Test stage (glob).</summary>
+    /// <summary>Test projects to run in the Build stage (glob).</summary>
     public string? TestProjectPath { get; set; }
 }
 

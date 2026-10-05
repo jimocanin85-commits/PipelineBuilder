@@ -60,7 +60,7 @@ public sealed class DeploymentConfig
     /// <summary>Environment variables for the container, each as <c>NAME=value</c> (DockerContainer).</summary>
     public IReadOnlyList<string> ContainerEnvironment { get; set; } = Array.Empty<string>();
 
-    /// <summary>Script run by the Custom deploy step. Defaults to a placeholder.</summary>
+    /// <summary>Script run by the Custom deploy step. Empty means a reminder to write one.</summary>
     public string? CustomScript { get; set; }
 
     /// <summary>Kubernetes service connection (Kubernetes).</summary>

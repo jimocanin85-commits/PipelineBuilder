@@ -133,7 +133,7 @@ public class DeploymentKindTests
 
         Assert.Equal(warns, handler.Validate(definition).Any(v => v.Severity == ValidationSeverity.Warning));
         var deploy = string.Join("\n", handler.GenerateDeploySteps(definition, "test", "$(Pipeline.Workspace)/drop"));
-        Assert.Equal(warns, deploy.Contains("No deployment kind selected", StringComparison.Ordinal));
+        Assert.Equal(warns, deploy.Contains("No deploy script yet", StringComparison.Ordinal));
     }
 
     [Theory]

@@ -112,7 +112,6 @@ stages:
                 displayName: 'Back up deployment folder before deploy'
               - powershell: |
                   $ErrorActionPreference = 'Stop'
-                  $service = '$(SERVICE_NAME)'
                   $target = '$(DEPLOY_PATH)'
                   $package = '$(Pipeline.Workspace)/drop'
                   function Sync-Folder([string]$Source, [string]$Destination, [switch]$Mirror) {
@@ -129,15 +128,9 @@ stages:
                   } else {
                     $source = $package
                   }
-                  $svc = Get-Service -Name $service -ErrorAction SilentlyContinue
-                  if ($svc -and $svc.Status -ne 'Stopped') {
-                    Stop-Service -Name $service -Force
-                    $svc.WaitForStatus('Stopped', [TimeSpan]::FromSeconds(60))
-                  }
                   Sync-Folder -Source $source -Destination $target -Mirror
-                  if ($svc) { Start-Service -Name $service } else { Write-Warning "Service $service does not exist yet; create it before the first deployment." }
                   Write-Host "Deployed to $target"
-                displayName: 'Deploy Windows service (${{ environment }})'
+                displayName: 'Deploy to file share (${{ environment }})'
           # If a step above fails, the previous version is put back.
           on:
             failure:
@@ -150,7 +143,6 @@ stages:
                       Write-Warning "No backup found at $backup (first deployment?). Nothing to roll back."
                       exit 0
                     }
-                    $service = '$(SERVICE_NAME)'
                     $target = '$(DEPLOY_PATH)'
                     function Sync-Folder([string]$Source, [string]$Destination, [switch]$Mirror) {
                       New-Item -ItemType Directory -Force -Path $Destination | Out-Null
@@ -159,8 +151,6 @@ stages:
                       if ($LASTEXITCODE -ge 8) { throw "robocopy failed with exit code $LASTEXITCODE" }
                       $global:LASTEXITCODE = 0
                     }
-                    Stop-Service -Name $service -Force -ErrorAction SilentlyContinue
                     Sync-Folder -Source $backup -Destination $target -Mirror
-                    Start-Service -Name $service
-                    Write-Host "Restored $target from $backup and restarted $service"
-                  displayName: 'Roll back Windows service'
+                    Write-Host "Restored $target from $backup"
+                  displayName: 'Roll back file share'

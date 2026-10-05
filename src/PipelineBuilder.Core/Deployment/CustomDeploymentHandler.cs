@@ -5,7 +5,7 @@ using PipelineBuilder.Core.Yaml;
 namespace PipelineBuilder.Core.Deployment;
 
 /// <summary>
-/// Runs the user's own deploy script (or a placeholder) on the registered servers. The user chooses
+/// Runs the user's own deploy script (or a reminder to write one) on the registered servers. The user chooses
 /// the rollback target, and backup and rollback come from that target's handler.
 /// </summary>
 public sealed class CustomDeploymentHandler : DeploymentKindHandler
@@ -20,8 +20,8 @@ public sealed class CustomDeploymentHandler : DeploymentKindHandler
     {
         var shell = Shell(definition.Deployment);
         var placeholder = shell == ScriptShell.Bash
-            ? $"echo '##vso[task.logissue type=warning]No deployment kind selected: add your deploy commands here. The package is at {packagePath}'"
-            : $"Write-Warning 'No deployment kind selected: add your deploy commands here. The package is at {packagePath}'";
+            ? $"echo '##vso[task.logissue type=warning]No deploy script yet: add your deploy commands here. The package is at {packagePath}'"
+            : $"Write-Warning 'No deploy script yet: add your deploy commands here. The package is at {packagePath}'";
 
         return new[] { YamlBuilder.ShellStep(shell, definition.Deployment.CustomScript ?? placeholder, $"Deploy to {environment}") };
     }
@@ -31,9 +31,9 @@ public sealed class CustomDeploymentHandler : DeploymentKindHandler
         if (string.IsNullOrWhiteSpace(definition.Deployment.CustomScript))
         {
             yield return Finding(ValidationSeverity.Warning,
-                "No deployment kind is selected, so the deploy step is only a placeholder.",
+                "The deploy script is empty, so the deploy step only prints a reminder.",
                 nameof(PipelineDefinition.Deployment),
-                "Choose a deployment kind, or provide a custom deploy script.");
+                "Write your deploy commands in 'Deploy script'.");
         }
     }
 }

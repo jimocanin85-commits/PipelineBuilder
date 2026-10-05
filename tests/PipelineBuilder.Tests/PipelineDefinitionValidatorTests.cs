@@ -83,7 +83,7 @@ public class PipelineDefinitionValidatorTests
             PoolName = ""
         };
         var errors = Validate(definition);
-        Assert.Contains(errors, e => e.Contains("Pool name is required"));
+        Assert.Contains(errors, e => e.Contains("Enter the agent pool"));
     }
 
     [Fact]
@@ -111,7 +111,7 @@ public class PipelineDefinitionValidatorTests
             }
         };
         var errors = Validate(definition);
-        Assert.Contains(errors, e => e.Contains("HTTP health check requires"));
+        Assert.Contains(errors, e => e.Contains("HTTP health check needs a full address"));
     }
 
     [Fact]
