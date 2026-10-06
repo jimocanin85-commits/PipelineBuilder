@@ -21,7 +21,7 @@ Open <http://localhost:5150>.
 3. **Safety**: rollback, health checks, notifications.
 4. **Result**: download `azure-pipelines.yml`.
 
-A panel beside every step shows the pipeline and what it needs in Azure DevOps.
+A pane beside every step shows the pipeline and what it needs in Azure DevOps. Switch it to **File** to see `azure-pipelines.yml` change as you fill in the form.
 
 On the Result step you can save your settings. Open them later to change the pipeline.
 
