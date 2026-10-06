@@ -2,6 +2,8 @@
 @rendermode InteractiveServer
 @inject WizardState Wizard
 @inject IPipelineGeneratorService Generator
+@inject ITemplateCatalogue Templates
+@inject IDeploymentKinds DeploymentKinds
 @implements IDisposable
 
 <PageTitle>PipelineBuilder</PageTitle>
@@ -14,7 +16,10 @@
                     data-step="@step" aria-current="@(Wizard.CurrentStep == step ? "step" : null)"
                     @onclick="() => GoTo(step)">
                 <span class="step-no">@((int)step)</span>
-                @StepTitles.For(step)
+                <span class="step-text">
+                    <span class="step-title">@StepTitles.For(step)</span>
+                    <span class="step-sum">@Chosen(step)</span>
+                </span>
                 @if (step != WizardStep.Result && Wizard.HasErrors(step))
                 {
                     <span class="badge" title="This step has errors">!</span>
@@ -115,6 +120,28 @@
     {
         GoTo(step);
         StateHasChanged();
+    }
+
+    /// <summary>One line under a step's name: what was chosen there, so the whole pipeline can be read off the steps.</summary>
+    private string Chosen(WizardStep step) => step switch
+    {
+        WizardStep.Start => Templates.GetAllTemplates().FirstOrDefault(t => t.Id == Wizard.Definition.TemplateId)?.Name
+                            ?? KindTitles.For(Wizard.Definition.Deployment.Kind),
+        WizardStep.Target => string.Join(", ", Wizard.Definition.Environments),
+        WizardStep.Safety => SafetyChosen(),
+        _ => Wizard.Result != null ? "Ready" : "Not ready"
+    };
+
+    private string SafetyChosen()
+    {
+        var parts = new List<string>();
+        if (Wizard.Definition.Rollback.Enabled && DeploymentKinds.For(Wizard.Definition.Deployment.Kind).SupportsRollback)
+            parts.Add("Rollback");
+        if (Wizard.HealthChecks.Count > 0)
+            parts.Add(Wizard.HealthChecks.Count == 1 ? "1 health check" : $"{Wizard.HealthChecks.Count} health checks");
+        if (Wizard.Notifications.Count > 0)
+            parts.Add(Wizard.Notifications.Count == 1 ? "1 notification" : $"{Wizard.Notifications.Count} notifications");
+        return parts.Count > 0 ? string.Join(", ", parts) : "Nothing yet";
     }
 
     /// <summary>The Next button says where it leads.</summary>

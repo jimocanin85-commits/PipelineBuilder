@@ -3,35 +3,46 @@
 
 @* The pipeline at a glance, beside every step: its stages from top to bottom, then what it needs in Azure DevOps. *@
 <div class="result">
-    <div class="result-head">
-        <h3>Your pipeline</h3>
-        @if (Pipeline != null)
+    <div class="side-head">
+        <div class="result-head">
+            <h3>Your pipeline</h3>
+            @if (Pipeline != null)
+            {
+                <span class="chip ok">Ready</span>
+            }
+            else
+            {
+                <span class="chip stop">Not ready</span>
+            }
+        </div>
+        @* The Result step shows the file itself, so there the pane only has the overview. *@
+        @if (Pipeline != null && Wizard.CurrentStep != WizardStep.Result)
         {
-            <span class="chip ok">Ready</span>
-        }
-        else
-        {
-            <span class="chip stop">Not ready</span>
+            <div class="side-tabs" role="tablist" aria-label="Show">
+                <button type="button" class="side-tab" role="tab" data-tab="overview" aria-selected="@(ShowsFile ? "false" : "true")" @onclick="() => _file = false">Overview</button>
+                <button type="button" class="side-tab" role="tab" data-tab="file" aria-selected="@(ShowsFile ? "true" : "false")" @onclick="() => _file = true">File</button>
+            </div>
         }
     </div>
-    @if (Pipeline is { } result)
+    @if (Pipeline is { } live && ShowsFile)
+    {
+        <p class="live-note">@ResultStep.PipelineFileName as it is now. A line lights up when a setting changes it.</p>
+        <YamlView Yaml="@live.Yaml" Live="true" />
+    }
+    else if (Pipeline is { } result)
     {
         <ol class="flow">
             <li><strong>Build</strong><span>@BuildText</span></li>
             @foreach (var env in Wizard.Definition.Environments)
             {
-                if (EnvironmentNames.IsProduction(env))
+                var production = EnvironmentNames.IsProduction(env);
+                var inFile = Wizard.WaitsForApproval(env);
+                // An approval is a gate on the line, before the stage it guards.
+                if (production || inFile)
                 {
-                    <li><strong>@env</strong><span class="pill">Approval</span><span>Only from @Wizard.Definition.ReleaseBranch. @DeployText</span></li>
+                    <li class="gate"><span class="pill">Approval</span><span>@GateText(production, inFile)</span></li>
                 }
-                else if (Wizard.WaitsForApproval(env))
-                {
-                    <li><strong>@env</strong><span class="pill">Approval</span><span>@DeployText</span></li>
-                }
-                else
-                {
-                    <li><strong>@env</strong><span>@DeployText</span></li>
-                }
+                <li><strong>@env</strong><span>@(production ? $"Only from {Wizard.Definition.ReleaseBranch}. " : string.Empty)@DeployText</span></li>
             }
             @if (Wizard.Definition.Notifications.Count > 0)
             {
@@ -71,6 +82,19 @@
 @code {
     /// <summary>The generated pipeline. A parameter, so the summary is redrawn whenever the settings change.</summary>
     [Parameter] public GeneratedPipeline? Pipeline { get; set; }
+
+    /// <summary>The pane shows the file instead of the overview.</summary>
+    private bool _file;
+
+    private bool ShowsFile => _file && Wizard.CurrentStep != WizardStep.Result;
+
+    /// <summary>Where an approval is set: in the file, on the environment in Azure DevOps, or both.</summary>
+    private static string GateText(bool onEnvironment, bool inFile) => (onEnvironment, inFile) switch
+    {
+        (true, true) => "In the file, and on the environment in Azure DevOps",
+        (true, false) => "Set on the environment in Azure DevOps",
+        _ => "In the pipeline file"
+    };
 
     private string BuildText =>
         Wizard.Definition.Artifact.ArtifactType == ArtifactType.DockerImage
