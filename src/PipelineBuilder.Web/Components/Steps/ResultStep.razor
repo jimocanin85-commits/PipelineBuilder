@@ -22,10 +22,10 @@ else if (Pipeline is { } result)
             <span>@PipelineFileName</span>
             <span class="actions">
                 <button type="button" class="btn-primary" id="download-yaml" @onclick="() => Download(PipelineFileName, result.Yaml, YamlMime)">Download</button>
-                <button type="button" class="btn-secondary" id="copy-yaml" @onclick="() => Copy(result.Yaml)">Copy</button>
+                <button type="button" class="btn-secondary" id="copy-yaml" @onclick="() => Copy(result.Yaml)">@(_copied ? "Copied" : "Copy")</button>
             </span>
         </div>
-        <pre class="yaml-preview">@Lines(result.Yaml)</pre>
+        <YamlView Yaml="@result.Yaml" />
     </div>
 
     <ol class="next">
@@ -54,12 +54,10 @@ else if (Pipeline is { } result)
 
     private string? _status;
 
-    /// <summary>
-    /// The YAML with each line in its own element, so the stylesheet can number the lines and set the
-    /// comments apart. The text itself is unchanged.
-    /// </summary>
-    private static MarkupString Lines(string yaml) => new(string.Join("\n", yaml.ReplaceLineEndings("\n").Split('\n').Select(line =>
-        $"<span class=\"{(line.TrimStart().StartsWith('#') ? "line comment" : "line")}\">{System.Net.WebUtility.HtmlEncode(line)}</span>")));
+    /// <summary>The Copy button says "Copied" once it has, until the file changes.</summary>
+    private bool _copied;
+
+    protected override void OnParametersSet() => _copied = false;
 
     private async Task Download(string fileName, string content, string mimeType)
     {
@@ -82,6 +80,7 @@ else if (Pipeline is { } result)
         try
         {
             var copied = await JS.InvokeAsync<bool>("pipelineBuilder.copyText", content);
+            _copied = copied;
             _status = copied ? "Copied." : "The browser blocked the copy. Select the text instead.";
         }
         catch (JSException ex)

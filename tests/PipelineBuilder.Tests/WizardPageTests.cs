@@ -688,4 +688,113 @@ public class WizardPageTests : BunitContext
 
     private static void GoTo(IRenderedComponent<Home> cut, WizardStep step) =>
         cut.Find($"button[data-step='{step}']").Click();
+
+    // The steps on the left say what was chosen on each, so the whole pipeline can be read off them.
+    [Fact]
+    public void EachStepSaysWhatWasChosenThere()
+    {
+        var cut = Render<Home>();
+        string Chosen(WizardStep step) => cut.Find($"button[data-step='{step}'] .step-sum").TextContent;
+
+        Assert.Equal("IIS website", Chosen(WizardStep.Start));
+        Assert.Equal("test, preprod, prod", Chosen(WizardStep.Target));
+        Assert.Equal("Rollback", Chosen(WizardStep.Safety));
+        Assert.Equal("Ready", Chosen(WizardStep.Result));
+        Assert.Equal("What", cut.Find($"button[data-step='{WizardStep.Start}'] .step-title").TextContent);
+
+        cut.Find("button[data-template='linux-service']").Click();
+        GoTo(cut, WizardStep.Target);
+        cut.Find("#skip-preprod").Change(true);
+        GoTo(cut, WizardStep.Safety);
+        cut.Find("#rollback-enabled").Change(false);
+        Assert.Equal("Nothing yet", Chosen(WizardStep.Safety));
+        cut.Find("#add-health-check").Click();
+        cut.Find("#add-health-check").Click();
+        cut.Find("#add-notification").Click();
+
+        Assert.Equal("Linux service", Chosen(WizardStep.Start));
+        Assert.Equal("test, prod", Chosen(WizardStep.Target));
+        Assert.Equal("2 health checks, 1 notification", Chosen(WizardStep.Safety));
+
+        GoTo(cut, WizardStep.Start);
+        cut.Find("#pipeline-name").Change(string.Empty);
+        Assert.Equal("Not ready", Chosen(WizardStep.Result));
+    }
+
+    // The pane beside the form can show the file itself, and marks what a setting just changed in it.
+    [Fact]
+    public void TheFileCanBeShownBesideTheFormAndMarksWhatASettingChanged()
+    {
+        var cut = Render<Home>();
+        GoTo(cut, WizardStep.Target);
+        Assert.Empty(cut.FindAll(".yaml-live"));
+        Assert.Equal("true", cut.Find(".side-tab[data-tab='overview']").GetAttribute("aria-selected"));
+
+        cut.Find(".side-tab[data-tab='file']").Click();
+
+        Assert.Equal("true", cut.Find(".side-tab[data-tab='file']").GetAttribute("aria-selected"));
+        Assert.Empty(cut.FindAll(".wizard-side .flow"));
+        Assert.Contains("stages:", cut.Find(".yaml-live").TextContent);
+        Assert.Empty(cut.FindAll(".yaml-live .line.changed")); // opening the file is not a change
+
+        cut.Find("#approve-preprod").Change(true);
+
+        var changed = cut.FindAll(".yaml-live .line.changed").Select(line => line.TextContent.Trim()).ToList();
+        Assert.Contains("- job: Approve", changed);
+        Assert.Contains("dependsOn: Approve", changed);
+        Assert.DoesNotContain("stages:", changed);
+
+        // The Result step shows the file itself, so there the pane goes back to the overview.
+        GoTo(cut, WizardStep.Result);
+        Assert.Empty(cut.FindAll(".side-tab"));
+        Assert.Empty(cut.FindAll(".yaml-live"));
+        Assert.NotEmpty(cut.FindAll(".wizard-side .flow"));
+
+        GoTo(cut, WizardStep.Target);
+        cut.Find(".side-tab[data-tab='overview']").Click();
+        Assert.NotEmpty(cut.FindAll(".wizard-side .flow"));
+    }
+
+    [Fact]
+    public void AnApprovalIsShownAsAGateBeforeItsStageAndSaysWhereItIsSet()
+    {
+        var cut = Render<Home>();
+        GoTo(cut, WizardStep.Target);
+        cut.Find("#approve-preprod").Change(true);
+
+        var rows = cut.FindAll(".wizard-side .flow li").Select(row => (Gate: row.ClassList.Contains("gate"), Text: row.TextContent)).ToList();
+
+        Assert.Equal(new[] { false, false, true, false, true, false }, rows.Select(row => row.Gate)); // Build, test, gate, preprod, gate, prod
+        Assert.Contains("In the pipeline file", rows[2].Text);
+        Assert.Contains("Set on the environment in Azure DevOps", rows[4].Text);
+
+        cut.Find("#approve-prod").Change(true);
+        Assert.Contains("In the file, and on the environment in Azure DevOps", cut.FindAll(".wizard-side .flow li.gate")[1].TextContent);
+    }
+
+    [Fact]
+    public void TheCopyButtonSaysCopiedUntilTheFileChanges()
+    {
+        var cut = Render<Home>();
+        GoTo(cut, WizardStep.Result);
+        Assert.Equal("Copy", cut.Find("#copy-yaml").TextContent);
+
+        cut.Find("#copy-yaml").Click();
+        Assert.Equal("Copied", cut.Find("#copy-yaml").TextContent);
+
+        GoTo(cut, WizardStep.Start);
+        GoTo(cut, WizardStep.Result);
+        Assert.Equal("Copy", cut.Find("#copy-yaml").TextContent);
+    }
+
+    [Fact]
+    public void TheFileOnTheResultStepHasItsKeysAndVariablesSetApart()
+    {
+        var cut = Render<Home>();
+        GoTo(cut, WizardStep.Result);
+
+        Assert.Contains(cut.FindAll(".yaml-preview .k"), key => key.TextContent == "trigger");
+        Assert.Contains(cut.FindAll(".yaml-preview .x"), expression => expression.TextContent == "${{ environment }}");
+        Assert.Empty(cut.FindAll(".yaml-preview .changed"));
+    }
 }

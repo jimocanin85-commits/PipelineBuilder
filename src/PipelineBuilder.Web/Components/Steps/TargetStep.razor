@@ -241,17 +241,7 @@
 @code {
     private bool _moreOpen;
 
-    private string KindTitle => Wizard.Definition.Deployment.Kind switch
-    {
-        DeploymentKind.Iis => "IIS website",
-        DeploymentKind.WindowsService => "Windows service",
-        DeploymentKind.LinuxService => "Linux service",
-        DeploymentKind.FileShare => "Files",
-        DeploymentKind.DockerContainer => "Docker container",
-        DeploymentKind.Kubernetes => "Kubernetes",
-        DeploymentKind.Ansible => "Ansible playbook",
-        _ => "Your own script"
-    };
+    private string KindTitle => KindTitles.For(Wizard.Definition.Deployment.Kind);
 
     /// <summary>Kinds with fields that fall back to a pipeline variable when left empty.</summary>
     private bool HasVariableFields => Wizard.Definition.Deployment.Kind is not (DeploymentKind.Iis or DeploymentKind.Custom or DeploymentKind.Ansible);
