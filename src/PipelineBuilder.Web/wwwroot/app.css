@@ -253,7 +253,10 @@ details.more > summary + h3 { margin-top: 0.5rem; padding-top: 0; border-top: 0;
 
 /* The YAML file, shown the way an editor shows it. */
 .file { border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; background: var(--code-bg); }
-.file-head { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: 0.6rem 0.7rem 0.6rem 1.1rem; font-family: var(--mono); font-size: 0.875rem; font-weight: 600; background: var(--surface); border-bottom: 1px solid var(--line); }
+.file-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.5rem 1rem; padding: 0.6rem 0.7rem 0.6rem 1.1rem; font-family: var(--mono); font-size: 0.875rem; font-weight: 600; background: var(--surface); border-bottom: 1px solid var(--line); }
+/* On a narrow screen the file's name keeps its line, and the buttons move below it. */
+.file-head > span:first-child { white-space: nowrap; }
+.file-head .actions { flex-wrap: nowrap; }
 .file-head .btn-primary, .file-head .btn-secondary { min-height: 2.1rem; padding: 0 0.9rem; font-family: var(--font); }
 .yaml-preview, .yaml-live { margin: 0; padding: 0.9rem 0; overflow: auto; color: var(--code-ink); background: var(--code-bg); font-size: 0.8rem; line-height: 1.65; counter-reset: line; tab-size: 2; }
 .yaml-preview { max-height: max(18rem, calc(100dvh - 25rem)); }
