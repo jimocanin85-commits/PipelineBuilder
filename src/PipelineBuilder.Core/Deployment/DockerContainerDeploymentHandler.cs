@@ -21,7 +21,7 @@ public sealed class DockerContainerDeploymentHandler : DeploymentKindHandler
     public override IReadOnlyList<string> GenerateDeploySteps(PipelineDefinition definition, string environment, string packagePath)
     {
         var deployment = definition.Deployment;
-        var image = $"$(DOCKER_REGISTRY)/{definition.Artifact.ArtifactName}:$(Build.BuildId)";
+        var image = definition.Artifact.ImageReference;
         var display = $"Run Docker container ({environment})";
 
         // The registry service connection logs the server in, so no password is handled in a script.

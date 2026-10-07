@@ -69,9 +69,9 @@ public static class PipelineDefinitionSerializer
             definition.Approval.Environments, definition.Deployment.ContainerPorts, definition.Deployment.ContainerEnvironment,
             definition.Trigger.IncludeBranches, definition.Trigger.ExcludeBranches, definition.Trigger.PathFilters
         };
-        if (lists.Any(list => list.Contains(null)))
-            throw new FormatException("The file has an empty item (null) in a list.");
-        if (definition.Notifications.Any(notification => notification.EmailRecipients.Contains(null!)))
+        // A notification may itself be the empty item, so its recipients are only looked at when it is there.
+        var recipients = definition.Notifications.Where(notification => notification != null).Select(notification => notification.EmailRecipients);
+        if (lists.Concat(recipients).Any(list => list.Contains(null)))
             throw new FormatException("The file has an empty item (null) in a list.");
     }
 }

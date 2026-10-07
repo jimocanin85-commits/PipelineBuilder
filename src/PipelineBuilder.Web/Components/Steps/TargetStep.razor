@@ -4,13 +4,7 @@
 <h2>Where does it run?</h2>
 
 <h3>Environments</h3>
-<ol class="order" id="environment-order">
-    @foreach (var environment in Wizard.Definition.Environments)
-    {
-        <li><span>@environment</span></li>
-    }
-</ol>
-<p class="hint">Deployed in this order. If one fails, the rest are skipped.</p>
+<p class="hint">Deployed in the order shown above. If one fails, the rest are skipped.</p>
 <details class="explain">
     <summary>What is an environment?</summary>
     <p>@Help.Environment</p>
@@ -85,9 +79,7 @@
             <Field For="container-ports" Label="Ports (host:container)" Hint="Without a port, nothing outside the server can reach the container.">
                 <InputText id="container-ports" @bind-Value="Wizard.ContainerPorts" class="form-control" placeholder="8080:80" />
             </Field>
-            <Field For="registry-connection" Label="Registry service connection" Hint="The connection's name, not the registry's address." More="@Help.ServiceConnection">
-                <InputText id="registry-connection" @bind-Value="Wizard.Definition.Artifact.ContainerRegistryConnection" class="form-control" placeholder="$(DOCKER_SERVICE_CONNECTION)" />
-            </Field>
+            <RegistryField />
             <Field For="container-env" Label="Environment variables" Wide="true"
                    Hint="One NAME=value per line. For a password, use a secret variable: API_KEY=$(API_KEY).">
                 <InputTextArea id="container-env" @bind-Value="Wizard.ContainerEnvironment" class="form-control" rows="3" />
@@ -106,9 +98,7 @@
             <Field For="k8s-deployment" Label="Deployment name" Hint="Used to roll back if the deployment fails.">
                 <InputText id="k8s-deployment" @bind-Value="Wizard.Definition.Deployment.KubernetesDeploymentName" class="form-control" placeholder="$(K8S_DEPLOYMENT)" />
             </Field>
-            <Field For="registry-connection" Label="Registry service connection" Hint="The connection's name, not the registry's address." More="@Help.ServiceConnection">
-                <InputText id="registry-connection" @bind-Value="Wizard.Definition.Artifact.ContainerRegistryConnection" class="form-control" placeholder="$(DOCKER_SERVICE_CONNECTION)" />
-            </Field>
+            <RegistryField />
             break;
         case DeploymentKind.Ansible:
             <Field For="playbook" Label="Playbook" Hint="Where the playbook is in your repository." More="@Help.AnsibleValues">

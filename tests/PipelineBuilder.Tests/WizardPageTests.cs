@@ -56,10 +56,10 @@ public class WizardPageTests : BunitContext
     {
         var cut = Render<Home>();
         GoTo(cut, WizardStep.Target);
-        Assert.Equal(new[] { "test", "preprod", "prod" }, cut.FindAll("#environment-order li").Select(e => e.TextContent));
+        Assert.Equal(new[] { "Build", "test", "preprod", "prod" }, cut.FindAll(".stages .flow li strong").Select(e => e.TextContent));
 
         cut.Find("#skip-preprod").Change(true);
-        Assert.Equal(new[] { "test", "prod" }, cut.FindAll("#environment-order li").Select(e => e.TextContent));
+        Assert.Equal(new[] { "Build", "test", "prod" }, cut.FindAll(".stages .flow li strong").Select(e => e.TextContent));
         Assert.Equal("test, prod", cut.Find("#environments").GetAttribute("value"));
         GoTo(cut, WizardStep.Result);
         Assert.DoesNotContain("preprod", cut.Find(".yaml-preview").TextContent);
@@ -758,8 +758,11 @@ public class WizardPageTests : BunitContext
         Assert.Contains("dependsOn: Approve", changed);
         Assert.DoesNotContain("stages:", changed);
 
+        Assert.Empty(cut.FindAll(".wizard-side h3")); // the tab already names the list
+
         // The Result step shows the file itself, so there the pane goes back to the list.
         GoTo(cut, WizardStep.Result);
+        Assert.Equal("Needs in Azure DevOps", cut.Find(".wizard-side h3").TextContent);
         Assert.Empty(cut.FindAll(".side-tab"));
         Assert.Empty(cut.FindAll(".yaml-live"));
         Assert.NotEmpty(cut.FindAll(".wizard-side .needs-list"));

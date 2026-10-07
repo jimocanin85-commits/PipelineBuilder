@@ -43,6 +43,10 @@ public sealed class ArtifactConfig
     public string? PublishPath { get; set; }
     public string? DownloadPath { get; set; }
 
+    /// <summary>The image this run builds, with its registry and tag: what every environment pulls.</summary>
+    [JsonIgnore]
+    public string ImageReference => $"$(DOCKER_REGISTRY)/{ArtifactName}:$(Build.BuildId)";
+
     /// <summary>Docker registry service connection used to push images.</summary>
     public string ContainerRegistryConnection { get; set; } = "$(DOCKER_SERVICE_CONNECTION)";
 }
@@ -170,7 +174,6 @@ public sealed class RollbackConfig
     public bool Enabled { get; set; }
     public string? BackupPath { get; set; }
     public string? RollbackScript { get; set; }
-    public bool RestorePreviousArtifact { get; set; }
     public int RetentionCount { get; set; } = 3;
 
     /// <summary>

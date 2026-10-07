@@ -29,7 +29,7 @@ public sealed class AnsibleDeploymentHandler : DeploymentKindHandler
         var hasKey = !string.IsNullOrWhiteSpace(deployment.AnsibleSshKeyFile);
         var inventory = deployment.InventoryPathOrDefault.Replace("{environment}", environment, StringComparison.OrdinalIgnoreCase);
         var build = definition.Artifact.ArtifactType == ArtifactType.DockerImage
-            ? $"image=$(DOCKER_REGISTRY)/{definition.Artifact.ArtifactName}:$(Build.BuildId)"
+            ? $"image={definition.Artifact.ImageReference}"
             : $"package_path={packagePath}";
 
         var arguments = new List<string> { $"--inventory {YamlBuilder.BashLiteral(inventory)}" };

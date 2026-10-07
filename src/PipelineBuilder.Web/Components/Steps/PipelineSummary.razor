@@ -14,6 +14,10 @@
                 </div>
             </div>
         }
+        else
+        {
+            <h3>Needs in Azure DevOps</h3>
+        }
         if (ShowsFile)
         {
             <p class="live-note">@ResultStep.PipelineFileName as it is now. A line lights up when a setting changes it.</p>
@@ -22,7 +26,6 @@
         else
         {
             <ul class="needs-list">
-                <li>Needs in Azure DevOps</li>
                 @* Grouped by where in Azure DevOps each thing is created. *@
                 @foreach (var place in pipeline.Requirements.GroupBy(need => need.Where))
                 {

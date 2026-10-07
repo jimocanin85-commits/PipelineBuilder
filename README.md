@@ -36,20 +36,9 @@ On the Result step you can save your settings. Open them later to change the pip
 | Safety | Approval between environments, backup and rollback, health checks, a check for passwords in the file |
 | Extras | Key Vault, notifications by Teams, email or webhook |
 
-## Install on a server
-
-On a Windows server with IIS, as Administrator:
-
-```powershell
-dotnet publish src/PipelineBuilder.Web -c Release -o .\publish
-.\deploy\Install-PipelineBuilder.ps1 -PublishFolder .\publish -InstallMissingFeatures
-```
-
-Users sign in with their Windows account. Details: [docs/INSTALL.md](docs/INSTALL.md).
-
 ## More
 
-- [What to set up in Azure DevOps](docs/AZURE-DEVOPS.md), including the variables
-- [Install guide](docs/INSTALL.md)
+- [Install it on a server for the team](docs/INSTALL.md): IIS, with Windows login
+- [What to set up in Azure DevOps](docs/AZURE-DEVOPS.md)
 - [How the code is organized](docs/ARCHITECTURE.md)
 - Run the tests: `dotnet test`

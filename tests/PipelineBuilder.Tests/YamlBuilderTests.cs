@@ -66,14 +66,6 @@ public class YamlBuilderTests
         Assert.Equal("'D:\\backups'", YamlBuilder.YamlString("D:\\backups"));
     }
 
-    [Theory]
-    [InlineData("prod", "prod")]
-    [InlineData("pre-prod", "pre_prod")]
-    public void ToIdentifier_ProducesValidStageNames(string input, string expected)
-    {
-        Assert.Equal(expected, YamlBuilder.ToIdentifier(input));
-    }
-
     [Fact]
     public void Task_SafelyHandlesPathsWithSpecialChars()
     {

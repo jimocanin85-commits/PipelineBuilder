@@ -20,8 +20,6 @@ namespace PipelineBuilder.Core.Yaml;
 /// </remarks>
 public static class YamlBuilder
 {
-    private static readonly Regex NonIdentifierChars = new("[^A-Za-z0-9_]", RegexOptions.Compiled);
-
     public static string Indent(string content, int spaces = 2)
     {
         var pad = new string(' ', spaces);
@@ -146,13 +144,6 @@ public static class YamlBuilder
         var singleLine = NormalizeNewLines(value ?? string.Empty).Replace("\n", " ");
         return "'" + singleLine.Replace("'", "'\\''") + "'";
     }
-
-    /// <summary>
-    /// Converts a name (for example an environment such as <c>pre-prod</c>) into a valid
-    /// Azure DevOps stage or job identifier, which may contain only letters, digits and underscores.
-    /// </summary>
-    public static string ToIdentifier(string name) =>
-        NonIdentifierChars.Replace(name ?? string.Empty, "_");
 
     private static string NormalizeNewLines(string value) =>
         value.Replace("\r\n", "\n").Replace('\r', '\n');
