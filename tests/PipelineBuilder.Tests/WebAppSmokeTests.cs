@@ -24,6 +24,7 @@ public class WebAppSmokeTests : IClassFixture<WebApplicationFactory<Program>>
     [InlineData(@"_framework/blazor\.web(\.[a-z0-9]+)?\.js", "Blazor")]
     [InlineData(@"js/download(\.[a-z0-9]+)?\.js", "downloadText")]
     [InlineData(@"js/theme(\.[a-z0-9]+)?\.js", ".theme-toggle")]
+    [InlineData(@"js/live(\.[a-z0-9]+)?\.js", "MutationObserver")]
     [InlineData(@"app(\.[a-z0-9]+)?\.css", ".wizard-nav")]
     public async Task AssetsReferencedByThePageAreServed(string pattern, string expected)
     {
@@ -42,6 +43,7 @@ public class WebAppSmokeTests : IClassFixture<WebApplicationFactory<Program>>
     [Theory]
     [InlineData("/js/download.js", "downloadText")]
     [InlineData("/js/theme.js", "pipelinebuilder-theme")]
+    [InlineData("/js/live.js", ".yaml-live")]
     [InlineData("/app.css", ".wizard-nav")]
     [InlineData("/app.css", "[data-theme=\"dark\"]")]
     public async Task StaticAssetsAreServed(string path, string expected)

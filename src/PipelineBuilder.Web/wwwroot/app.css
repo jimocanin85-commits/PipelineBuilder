@@ -1,240 +1,340 @@
 /*
-  Layout: the step on the left, the pipeline it builds on the right, always in view.
-  Theme: follows the system; the button in the header overrides it (data-theme on <html>).
-  Fonts: system fonts only, so the app also works on servers without internet access.
+  The look is Microsoft's Fluent 2, laid out the way Azure does it, so the people who use it
+  already know their way around:
+    - a blue bar on top and tabs with an underline, as in the Azure portal;
+    - the pipeline drawn as stage boxes joined by a line, as on a run in Azure DevOps;
+    - Previous and Next in a bar at the bottom, as in the portal's "Create" pages;
+    - the YAML shown the way the pipeline editor in Azure DevOps shows it.
+  Colours, sizes and shadows are Fluent 2's own values. Text is 14px Segoe UI.
+  Theme: follows the system; the button in the bar overrides it (data-theme on <html>).
+  Fonts: only fonts that come with the system, so the app also works on servers without internet access.
 */
 :root {
   color-scheme: light;
-  --canvas: #f3f5f9; --surface: #ffffff; --sunken: #f7f9fc; --ink: #0e1a2b; --muted: #556277;
-  --line: #dfe5ee; --line-strong: #c3cddb;
-  --accent: #2457e6; --accent-strong: #1b45c2; --accent-soft: #e9effe; --on-accent: #ffffff;
-  --ok: #0f7a55; --ok-soft: #e2f5ed; --approval: #8a4b00; --approval-soft: #fdf0d9;
-  --warning: #9a6200; --error: #b3261e; --error-soft: #fbeceb; --info: #2457e6;
-  --bar: #0e1a2b; --on-bar: #f1f5fb; --bar-muted: #a3b3c9; --bar-line: #223149;
-  --code-bg: #0f1a28; --code-ink: #d9e2ee; --code-comment: #8fb6ff; --code-muted: #5f6f85;
-  --shadow: 0 1px 2px rgb(14 26 43 / 0.06), 0 8px 24px -12px rgb(14 26 43 / 0.18);
-  --ring: 0 0 0 3px rgb(36 87 230 / 0.2);
-  --radius: 14px; --radius-control: 9px;
-  --font: "Segoe UI Variable Text", "Segoe UI", system-ui, -apple-system, sans-serif;
-  --display: "Segoe UI Variable Display", "Segoe UI", system-ui, -apple-system, sans-serif;
-  --mono: "Cascadia Mono", "Cascadia Code", Consolas, ui-monospace, monospace;
+  --canvas: #f5f5f5; --surface: #ffffff; --subtle: #fafafa; --hover: #f5f5f5; --pressed: #e0e0e0;
+  --ink: #242424; --ink-2: #424242; --muted: #616161; --line: #e0e0e0; --line-strong: #d1d1d1; --line-accessible: #616161;
+  --brand: #0f6cbd; --brand-hover: #115ea3; --brand-pressed: #0c3b5e; --brand-soft: #ebf3fc; --brand-line: #b4d6fa; --on-brand: #ffffff; --link: #115ea3;
+  --bar: #0f6cbd; --on-bar: #ffffff; --bar-muted: rgb(255 255 255 / 0.86); --bar-line: rgb(255 255 255 / 0.32); --bar-hover: rgb(255 255 255 / 0.16);
+  --ok: #0e700e; --ok-icon: #107c10; --ok-soft: #f1faf1; --ok-line: #9fd89f;
+  --warning: #bc4b09; --warning-soft: #fff9f5; --warning-line: #fdcfb4;
+  --error: #b10e1c; --error-soft: #fdf3f4; --error-line: #eeacb2;
+  --code-bg: #ffffff; --code-ink: #1f1f1f; --code-comment: #008000; --code-key: #0451a5; --code-expr: #795e26; --code-no: #237893; --flash: #fff4ce;
+  --focus: #000000;
+  --shadow-2: 0 0 2px rgb(0 0 0 / 0.12), 0 1px 2px rgb(0 0 0 / 0.14);
+  --shadow-4: 0 0 2px rgb(0 0 0 / 0.12), 0 2px 4px rgb(0 0 0 / 0.14);
+  --shadow-8: 0 0 2px rgb(0 0 0 / 0.12), 0 4px 8px rgb(0 0 0 / 0.14);
+  --radius: 4px; --radius-card: 8px;
+  --bar-h: 48px; --tabs-h: 44px; --page: 1320px; --gutter: 24px;
+  --font: "Segoe UI Variable Text", "Segoe UI Variable", "Segoe UI", system-ui, -apple-system, "Helvetica Neue", sans-serif;
+  --display: "Segoe UI Variable Display", "Segoe UI Variable", "Segoe UI", system-ui, -apple-system, "Helvetica Neue", sans-serif;
+  --mono: "Cascadia Mono", "Cascadia Code", Consolas, ui-monospace, "SF Mono", Menlo, monospace;
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     color-scheme: dark;
-    --canvas: #0b1118; --surface: #131b26; --sunken: #18222f; --ink: #e8eef6; --muted: #98a6b9;
-    --line: #243041; --line-strong: #364660;
-    --accent: #86b0ff; --accent-strong: #a6c5ff; --accent-soft: #18294a; --on-accent: #0b1320;
-    --ok: #5fd0a5; --ok-soft: #12332a; --approval: #f2bd6b; --approval-soft: #3a2b12;
-    --warning: #f0b95a; --error: #ff8a80; --error-soft: #3a1f1e; --info: #86b0ff;
-    --bar: #080d13; --on-bar: #e8eef6; --bar-muted: #8fa0b6; --bar-line: #1b2636;
-    --code-bg: #080d13; --code-ink: #d9e2ee; --code-comment: #8fb6ff; --code-muted: #5f6f85;
-    --shadow: 0 1px 2px rgb(0 0 0 / 0.4), 0 8px 24px -12px rgb(0 0 0 / 0.6);
-    --ring: 0 0 0 3px rgb(134 176 255 / 0.3);
+    --canvas: #1f1f1f; --surface: #292929; --subtle: #242424; --hover: #3d3d3d; --pressed: #1f1f1f;
+    --ink: #ffffff; --ink-2: #d6d6d6; --muted: #adadad; --line: #424242; --line-strong: #666666; --line-accessible: #adadad;
+    --brand: #479ef5; --brand-hover: #62abf5; --brand-pressed: #2886de; --brand-soft: #082338; --brand-line: #0e4775; --on-brand: #0a0a0a; --link: #62abf5;
+    --bar: #141414; --on-bar: #ffffff; --bar-muted: rgb(255 255 255 / 0.78); --bar-line: rgb(255 255 255 / 0.24); --bar-hover: rgb(255 255 255 / 0.12);
+    --ok: #54b054; --ok-icon: #54b054; --ok-soft: #052505; --ok-line: #107c10;
+    --warning: #faa06b; --warning-soft: #4a1e04; --warning-line: #8a3707;
+    --error: #dc626d; --error-soft: #3b0509; --error-line: #b10e1c;
+    --code-bg: #1e1e1e; --code-ink: #d4d4d4; --code-comment: #6a9955; --code-key: #9cdcfe; --code-expr: #dcdcaa; --code-no: #858585; --flash: #4b3a00;
+    --focus: #ffffff;
+    --shadow-2: 0 0 2px rgb(0 0 0 / 0.24), 0 1px 2px rgb(0 0 0 / 0.28);
+    --shadow-4: 0 0 2px rgb(0 0 0 / 0.24), 0 2px 4px rgb(0 0 0 / 0.28);
+    --shadow-8: 0 0 2px rgb(0 0 0 / 0.24), 0 4px 8px rgb(0 0 0 / 0.28);
   }
 }
 :root[data-theme="dark"] {
   color-scheme: dark;
-  --canvas: #0b1118; --surface: #131b26; --sunken: #18222f; --ink: #e8eef6; --muted: #98a6b9;
-  --line: #243041; --line-strong: #364660;
-  --accent: #86b0ff; --accent-strong: #a6c5ff; --accent-soft: #18294a; --on-accent: #0b1320;
-  --ok: #5fd0a5; --ok-soft: #12332a; --approval: #f2bd6b; --approval-soft: #3a2b12;
-  --warning: #f0b95a; --error: #ff8a80; --error-soft: #3a1f1e; --info: #86b0ff;
-  --bar: #080d13; --on-bar: #e8eef6; --bar-muted: #8fa0b6; --bar-line: #1b2636;
-  --code-bg: #080d13; --code-ink: #d9e2ee; --code-comment: #8fb6ff; --code-muted: #5f6f85;
-  --shadow: 0 1px 2px rgb(0 0 0 / 0.4), 0 8px 24px -12px rgb(0 0 0 / 0.6);
-  --ring: 0 0 0 3px rgb(134 176 255 / 0.3);
+  --canvas: #1f1f1f; --surface: #292929; --subtle: #242424; --hover: #3d3d3d; --pressed: #1f1f1f;
+  --ink: #ffffff; --ink-2: #d6d6d6; --muted: #adadad; --line: #424242; --line-strong: #666666; --line-accessible: #adadad;
+  --brand: #479ef5; --brand-hover: #62abf5; --brand-pressed: #2886de; --brand-soft: #082338; --brand-line: #0e4775; --on-brand: #0a0a0a; --link: #62abf5;
+  --bar: #141414; --on-bar: #ffffff; --bar-muted: rgb(255 255 255 / 0.78); --bar-line: rgb(255 255 255 / 0.24); --bar-hover: rgb(255 255 255 / 0.12);
+  --ok: #54b054; --ok-icon: #54b054; --ok-soft: #052505; --ok-line: #107c10;
+  --warning: #faa06b; --warning-soft: #4a1e04; --warning-line: #8a3707;
+  --error: #dc626d; --error-soft: #3b0509; --error-line: #b10e1c;
+  --code-bg: #1e1e1e; --code-ink: #d4d4d4; --code-comment: #6a9955; --code-key: #9cdcfe; --code-expr: #dcdcaa; --code-no: #858585; --flash: #4b3a00;
+  --focus: #ffffff;
+  --shadow-2: 0 0 2px rgb(0 0 0 / 0.24), 0 1px 2px rgb(0 0 0 / 0.28);
+  --shadow-4: 0 0 2px rgb(0 0 0 / 0.24), 0 2px 4px rgb(0 0 0 / 0.28);
+  --shadow-8: 0 0 2px rgb(0 0 0 / 0.24), 0 4px 8px rgb(0 0 0 / 0.28);
 }
 
 * { box-sizing: border-box; }
-body { margin: 0; font: 15px/1.5 var(--font); background: var(--canvas); color: var(--ink); }
-h1, h2, h3 { line-height: 1.2; margin: 0; }
-h2 { font: 600 1.9rem/1.15 var(--display); letter-spacing: -0.02em; margin-bottom: 1.25rem; text-wrap: balance; }
-h3 { font-size: 1.05rem; font-weight: 600; margin-top: 2.25rem; }
-h2 + h3 { margin-top: 0; }
-code, pre { font-family: var(--mono); font-size: 0.875em; }
-button, input, select, textarea { font: inherit; }
-:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+body { margin: 0; font: 14px/20px var(--font); background: var(--canvas); color: var(--ink); -webkit-font-smoothing: antialiased; }
+h1, h2, h3 { margin: 0; font-weight: 600; }
+h2 { font: 600 28px/36px var(--display); letter-spacing: -0.01em; margin-bottom: 4px; text-wrap: balance; }
+h3 { font: 600 16px/22px var(--font); margin-top: 28px; padding-top: 24px; border-top: 1px solid var(--line); }
+h2 + h3 { margin-top: 20px; padding-top: 0; border-top: 0; }
+code, pre { font-family: var(--mono); font-size: 13px; }
+button, input, select, textarea { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--focus); outline-offset: 1px; border-radius: var(--radius); }
 
-/* Header: a dark bar in both themes, so the app has a fixed top. */
-.app-header { display: flex; flex-wrap: wrap; align-items: center; gap: 0.25rem 0.9rem; padding: 0.7rem 1.5rem; background: var(--bar); color: var(--on-bar); border-bottom: 1px solid var(--bar-line); }
-.app-header h1 { display: flex; align-items: center; gap: 0.6rem; font: 600 1.05rem/1.2 var(--display); }
-.app-header .mark { width: 30px; height: 12px; color: #86b0ff; }
-.app-header p { margin: 0; color: var(--bar-muted); font-size: 0.85rem; }
+/* The bar on top, as in the Azure portal. */
+.app-shell { min-height: 100dvh; display: flex; flex-direction: column; }
+.app-header { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 30; display: flex; align-items: center; gap: 12px; height: var(--bar-h); padding: 0 12px 0 20px; background: var(--bar); color: var(--on-bar); }
+.app-header h1 { display: flex; align-items: center; gap: 10px; font: 600 16px/22px var(--font); white-space: nowrap; }
+.app-header .mark { width: 30px; height: 12px; }
+.app-header p { margin: 0; color: var(--bar-muted); font-size: 13px; }
+.app-header .tagline { padding-left: 12px; border-left: 1px solid var(--bar-line); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
 .app-header strong { color: var(--on-bar); font-weight: 600; }
-.header-end { display: flex; align-items: center; gap: 0.9rem; margin-left: auto; }
-.theme-toggle { display: grid; place-items: center; width: 2.1rem; height: 2.1rem; padding: 0; color: var(--on-bar); background: transparent; border: 1px solid var(--bar-line); border-radius: 50%; cursor: pointer; }
-.theme-toggle:hover { border-color: var(--bar-muted); }
-.theme-toggle svg { width: 1.05rem; height: 1.05rem; }
-.app-main { max-width: 1200px; margin: 0 auto; padding: 1.5rem; }
+.header-end { display: flex; align-items: center; gap: 8px; margin-left: auto; white-space: nowrap; }
+.theme-toggle { display: grid; place-items: center; width: 32px; height: 32px; padding: 0; color: var(--on-bar); background: transparent; border: 0; border-radius: var(--radius); cursor: pointer; }
+.theme-toggle:hover { background: var(--bar-hover); }
+.theme-toggle:focus-visible { outline-color: var(--on-bar); }
+.theme-toggle svg { width: 18px; height: 18px; }
+.app-main { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+.wizard { flex: 1; display: flex; flex-direction: column; min-width: 0; }
 
-/* Steps, drawn as a pipeline: numbered stages joined by a line. */
-.wizard-nav { display: flex; margin-bottom: 1.25rem; padding: 0.4rem 0.75rem; background: var(--surface); border: 1px solid var(--line); border-radius: 999px; box-shadow: var(--shadow); }
-.step-btn { position: relative; flex: 1 1 0; display: flex; align-items: center; gap: 0.6rem; padding: 0.3rem 0.25rem; color: var(--muted); background: none; border: 0; border-radius: 999px; cursor: pointer; text-align: left; }
-.step-btn:last-child { flex: 0 0 auto; padding-right: 0.6rem; }
-.step-btn:not(:last-child)::after { content: ""; flex: 1; height: 2px; margin: 0 0.75rem 0 0.25rem; border-radius: 2px; background: var(--line); }
-.step-btn.done:not(:last-child)::after { background: var(--accent); }
-.step-no { display: grid; place-items: center; width: 1.9rem; height: 1.9rem; flex: none; border-radius: 50%; border: 2px solid var(--line-strong); background: var(--surface); font-size: 0.85rem; font-weight: 600; }
+/* The steps as tabs. The current one is underlined; a finished one gets a green tick. */
+.wizard-nav { position: sticky; top: var(--bar-h); z-index: 20; display: flex; gap: 4px; height: var(--tabs-h); padding: 0 max(calc(var(--gutter) - 12px), calc((100% - var(--page)) / 2 - 12px)); background: var(--surface); border-bottom: 1px solid var(--line); overflow-x: auto; }
+.step-btn { position: relative; flex: none; display: inline-flex; align-items: center; gap: 6px; height: 100%; padding: 0 12px; color: var(--ink-2); background: none; border: 0; cursor: pointer; white-space: nowrap; }
+.step-btn::after { content: ""; position: absolute; left: 12px; right: 12px; bottom: 0; height: 3px; border-radius: 3px 3px 0 0; background: transparent; transition: background-color 0.1s; }
 .step-btn:hover { color: var(--ink); }
-.step-btn.done .step-no { border-color: var(--accent); background: var(--accent); color: var(--on-accent); font-size: 0; }
-.step-btn.done .step-no::after { content: "✓"; font-size: 0.85rem; }
+.step-btn:hover::after { background: var(--line-strong); }
 .step-btn.active { color: var(--ink); font-weight: 600; }
-.step-btn.active .step-no { border-color: var(--accent); background: var(--surface); color: var(--accent); box-shadow: var(--ring); }
-.badge { padding: 0 0.4rem; border-radius: 999px; background: var(--error); color: var(--surface); font-size: 0.75rem; font-weight: 700; }
+.step-btn.active::after { background: var(--brand); }
+.step-no { display: none; }
+.step-btn.done .step-no { display: block; position: relative; width: 16px; height: 16px; border-radius: 50%; background: var(--ok-icon); font-size: 0; }
+.step-btn.done .step-no::after { content: ""; position: absolute; left: 4px; top: 4.5px; width: 8px; height: 4px; border: solid var(--surface); border-width: 0 0 2px 2px; transform: rotate(-45deg); }
+.badge { display: grid; place-items: center; width: 16px; height: 16px; border-radius: 50%; background: var(--error); color: var(--surface); font-size: 11px; font-weight: 700; line-height: 1; }
 
-/* Two panes: the step being filled in, and the pipeline it produces. */
-.wizard-body { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 1.25rem; align-items: start; }
-.wizard-content { min-width: 0; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 2.25rem; box-shadow: var(--shadow); }
-.wizard-side { position: sticky; top: 1rem; min-width: 0; max-height: calc(100vh - 2rem); overflow-y: auto; border-radius: var(--radius); }
-.wizard-footer { display: flex; justify-content: space-between; margin-top: 2rem; padding-top: 1.25rem; border-top: 1px solid var(--line); }
-/* A step slides in when it is opened. */
-.step-body { animation: step-in 0.18s ease-out; }
-@keyframes step-in { from { opacity: 0; transform: translateY(6px); } }
+/* The pipeline, drawn as on a run in Azure DevOps: a box per stage, joined by a line. */
+.stages, .wizard-body { width: min(100% - 2 * var(--gutter), var(--page)); margin-inline: auto; }
+.stages { margin-top: 20px; padding: 16px 20px 16px; background: var(--surface); border-radius: var(--radius-card); box-shadow: var(--shadow-2); }
+.stages-head { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; }
+.stages h3 { margin: 0; padding: 0; border: 0; }
+.stages .hint { margin-top: 10px; }
+.rail-note { margin: 0 0 0 auto; color: var(--muted); font-size: 12px; line-height: 16px; }
+.chip { display: inline-flex; align-items: center; gap: 4px; height: 20px; padding: 0 8px 0 6px; border: 1px solid; border-radius: 999px; font-size: 12px; font-weight: 600; line-height: 16px; }
+.chip::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: currentColor; }
+.chip.ok { background: var(--ok-soft); color: var(--ok); border-color: var(--ok-line); }
+.chip.stop { background: var(--error-soft); color: var(--error); border-color: var(--error-line); }
+.flow { display: flex; align-items: stretch; margin: 12px 0 0; padding: 2px 2px 4px; list-style: none; overflow-x: auto; }
+.flow li { position: relative; flex: 0 1 200px; min-width: 128px; padding: 9px 12px 10px 40px; background: var(--surface); border: 1px solid var(--line-strong); border-radius: var(--radius); box-shadow: var(--shadow-2); }
+.flow li:first-child { flex: 0 1 300px; min-width: 190px; }
+.flow li + li { margin-left: 28px; }
+/* The line from the stage before. */
+.flow li + li::after { content: ""; position: absolute; right: calc(100% + 1px); top: 19px; width: 28px; height: 2px; background: var(--line-strong); }
+/* Each stage has a small drawing: the package for Build, the kind of deployment for the environments. */
+.flow .icon { position: absolute; left: 11px; top: 9px; display: block; width: 20px; height: 20px; color: var(--brand); }
+.flow .icon svg { display: block; width: 20px; height: 20px; }
+.flow strong { display: block; font-weight: 600; overflow-wrap: anywhere; }
+.flow span { display: block; color: var(--muted); font-size: 12px; line-height: 16px; }
+/* An approval sits on the line, before the stage it guards. */
+.flow li.gate { flex: 0 0 auto; display: flex; flex-direction: column; align-items: center; gap: 4px; min-width: 0; max-width: 136px; padding: 8px 0 0; text-align: center; background: none; border: 0; box-shadow: none; }
+.flow .pill { display: inline-flex; align-items: center; gap: 5px; height: 24px; padding: 0 10px 0 7px; border: 1px solid var(--brand-line); border-radius: 999px; background: var(--brand-soft); color: var(--link); font-size: 12px; font-weight: 600; white-space: nowrap; }
+.flow .pill::before { content: ""; width: 9px; height: 5px; margin: 0 1px 2px 2px; border: solid currentColor; border-width: 0 0 2px 2px; transform: rotate(-45deg); }
+
+/* The step being filled in, and beside it what the pipeline needs, or the file itself. */
+.wizard-body { flex: 1; display: grid; grid-template-columns: minmax(0, 1fr) 380px; gap: 20px; align-items: start; margin-top: 20px; margin-bottom: 24px; }
+/* With the file open beside the form, the two share the width. */
+.wizard-body:has(.side-tab[data-tab="file"][aria-selected="true"]) { grid-template-columns: minmax(0, 1fr) minmax(380px, 46%); }
+.wizard-content { min-width: 0; padding: 28px 32px 32px; background: var(--surface); border-radius: var(--radius-card); box-shadow: var(--shadow-2); }
+.step-body { animation: step-in 0.15s ease-out; }
+@keyframes step-in { from { opacity: 0; } }
+.wizard-side { position: sticky; top: calc(var(--bar-h) + var(--tabs-h) + 20px); min-width: 0; max-height: calc(100dvh - var(--bar-h) - var(--tabs-h) - 20px - 57px - 20px); overflow-y: auto; background: var(--surface); border-radius: var(--radius-card); box-shadow: var(--shadow-2); }
+.result { padding: 0 20px 20px; }
+.result > .hint { padding-top: 20px; margin: 0; }
+.side-head { position: sticky; top: 0; z-index: 3; margin: 0 -20px; padding: 0 20px; background: var(--surface); border-bottom: 1px solid var(--line); }
+.side-tabs { display: flex; gap: 4px; margin: 0 -12px; height: 44px; }
+.side-tab { position: relative; padding: 0 12px; border: 0; background: none; color: var(--ink-2); cursor: pointer; }
+.side-tab::after { content: ""; position: absolute; left: 12px; right: 12px; bottom: -1px; height: 3px; border-radius: 3px 3px 0 0; background: transparent; }
+.side-tab:hover { color: var(--ink); }
+.side-tab:hover::after { background: var(--line-strong); }
+.side-tab[aria-selected="true"] { color: var(--ink); font-weight: 600; }
+.side-tab[aria-selected="true"]::after { background: var(--brand); }
+
+/* Previous and Next, in a bar at the bottom as in the Azure portal. */
+.wizard-footer { position: sticky; bottom: 0; z-index: 20; display: flex; align-items: center; gap: 8px; padding: 12px max(var(--gutter), calc((100% - var(--page)) / 2)) calc(12px + env(safe-area-inset-bottom, 0px)); background: var(--surface); border-top: 1px solid var(--line); }
 
 /* Buttons */
-.btn-primary, .btn-secondary { padding: 0.6rem 1.2rem; border-radius: var(--radius-control); border: 1px solid transparent; font-weight: 600; cursor: pointer; transition: background-color 0.12s, border-color 0.12s; }
-.btn-primary { background: var(--accent); color: var(--on-accent); }
-.btn-primary:hover { background: var(--accent-strong); }
+.btn-primary, .btn-secondary { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 32px; padding: 0 12px; border-radius: var(--radius); border: 1px solid transparent; font-weight: 600; cursor: pointer; white-space: nowrap; transition: background-color 0.1s, border-color 0.1s; }
+.btn-primary { background: var(--brand); color: var(--on-brand); }
+.btn-primary:hover { background: var(--brand-hover); }
+.btn-primary:active { background: var(--brand-pressed); }
 .btn-secondary { background: var(--surface); color: var(--ink); border-color: var(--line-strong); }
-.btn-secondary:hover { border-color: var(--muted); }
+.btn-secondary:hover { background: var(--hover); }
+.btn-secondary:active { background: var(--pressed); }
 button:disabled { visibility: hidden; }
-.btn-link { padding: 0; background: none; border: 0; color: var(--accent); text-decoration: underline; cursor: pointer; }
-.actions { display: flex; flex-wrap: wrap; align-items: center; gap: 0.6rem; }
+.wizard-footer button:disabled { display: none; }
+.btn-link { padding: 0; background: none; border: 0; color: var(--link); cursor: pointer; }
+.btn-link:hover { text-decoration: underline; }
+.btn-secondary[id^="add-"]::before { content: "+"; font-size: 18px; line-height: 1; font-weight: 400; margin-top: -2px; }
+.actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
 
 /* Forms */
-label { display: block; margin-top: 1.1rem; font-weight: 600; font-size: 0.9rem; }
-.form-control { display: block; width: 100%; max-width: 460px; margin-top: 0.35rem; padding: 0.55rem 0.7rem; color: var(--ink); background: var(--surface); border: 1px solid var(--line-strong); border-radius: var(--radius-control); transition: border-color 0.12s, box-shadow 0.12s; }
+label { display: block; margin-top: 16px; font-weight: 600; }
+.form-control { display: block; width: 100%; max-width: 420px; min-height: 32px; margin-top: 4px; padding: 5px 10px; color: var(--ink); background: var(--surface); border: 1px solid var(--line-strong); border-bottom-color: var(--line-accessible); border-radius: var(--radius); }
 .form-control:hover { border-color: var(--muted); }
-.form-control:focus { outline: 0; border-color: var(--accent); box-shadow: var(--ring); }
-.form-control::placeholder { color: var(--muted); opacity: 0.7; }
-.form-control.narrow { max-width: 7rem; }
-textarea.form-control { max-width: none; font-family: var(--mono); font-size: 0.875em; }
-.fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 1.5rem; }
-.fields.three { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+/* Fluent marks the field being typed in with a blue line under it. */
+.form-control:focus { outline: 0; border-bottom-color: var(--brand); box-shadow: inset 0 -1px 0 var(--brand); }
+.form-control::placeholder { color: var(--muted); opacity: 0.8; }
+.form-control.narrow { max-width: 96px; }
+/* A list to choose from, with its own arrow so it looks the same in every browser. */
+select.form-control, .card.row select { appearance: none; padding-right: 30px; cursor: pointer;
+  background-image: linear-gradient(45deg, transparent 50%, var(--muted) 50%), linear-gradient(135deg, var(--muted) 50%, transparent 50%);
+  background-position: calc(100% - 15px) 55%, calc(100% - 10px) 55%; background-size: 5px 5px; background-repeat: no-repeat; }
+textarea.form-control { max-width: none; font-family: var(--mono); font-size: 13px; line-height: 20px; }
+.fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 24px; }
+.fields.three { grid-template-columns: repeat(3, minmax(0, 1fr)); align-items: end; }
 .fields .wide { grid-column: 1 / -1; }
 .fields .form-control { max-width: none; }
-.fields.three .form-control.narrow { max-width: 7rem; }
-.hint { margin: 0.35rem 0 0; color: var(--muted); font-size: 0.85rem; max-width: 70ch; }
-.lead { margin: -0.75rem 0 1.75rem; color: var(--muted); font-size: 1.05rem; }
+.fields .form-control.narrow { max-width: 96px; }
+.hint { margin: 4px 0 0; color: var(--muted); font-size: 12px; line-height: 16px; max-width: 72ch; }
+.lead { margin: 0 0 20px; color: var(--muted); font-size: 14px; line-height: 20px; }
 
-/* A yes/no setting, drawn as a switch. It is still a checkbox to keyboards and screen readers. */
-label.check, .card label { display: flex; align-items: center; gap: 0.6rem; font-weight: 400; font-size: 0.95rem; }
-.check input[type=checkbox], .card input[type=checkbox] { appearance: none; flex: none; position: relative; width: 2.3rem; height: 1.3rem; margin: 0; border-radius: 999px; background: var(--line-strong); cursor: pointer; transition: background-color 0.15s; }
-.check input[type=checkbox]::before, .card input[type=checkbox]::before { content: ""; position: absolute; top: 0.15rem; left: 0.15rem; width: 1rem; height: 1rem; border-radius: 50%; background: var(--surface); box-shadow: 0 1px 2px rgb(0 0 0 / 0.3); transition: transform 0.15s; }
-.check input[type=checkbox]:checked, .card input[type=checkbox]:checked { background: var(--accent); }
-.check input[type=checkbox]:checked::before, .card input[type=checkbox]:checked::before { transform: translateX(1rem); }
+/* A yes/no setting, drawn as Fluent's switch. It is still a checkbox to keyboards and screen readers. */
+label.check, .card label { display: flex; align-items: center; gap: 10px; font-weight: 400; cursor: pointer; }
+.check input[type=checkbox], .card input[type=checkbox] { appearance: none; flex: none; position: relative; width: 40px; height: 20px; margin: 0; border: 1px solid var(--line-accessible); border-radius: 999px; background: transparent; cursor: pointer; transition: background-color 0.1s, border-color 0.1s; }
+.check input[type=checkbox]::before, .card input[type=checkbox]::before { content: ""; position: absolute; top: 2px; left: 2px; width: 14px; height: 14px; border-radius: 50%; background: var(--line-accessible); transition: transform 0.1s, background-color 0.1s; }
+.check input[type=checkbox]:checked, .card input[type=checkbox]:checked { background: var(--brand); border-color: var(--brand); }
+.check input[type=checkbox]:checked::before, .card input[type=checkbox]:checked::before { background: var(--on-brand); transform: translateX(20px); }
+.check input[type=checkbox]:focus-visible, .card input[type=checkbox]:focus-visible { border-radius: 999px; }
 
 /* A choice between a few options, all in view, each with a line that says what it means. */
-.choice { margin: 1.1rem 0 0; padding: 0; border: 0; min-width: 0; }
-.choice legend { padding: 0; font-weight: 600; font-size: 0.9rem; }
-.choice .options { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 0.6rem; margin-top: 0.4rem; }
-.choice label { position: relative; display: block; margin: 0; padding: 0.75rem 0.9rem 0.75rem 2.4rem; font-weight: 400; background: var(--surface); border: 1px solid var(--line-strong); border-radius: var(--radius-control); cursor: pointer; transition: border-color 0.12s, background-color 0.12s; }
-.choice label:hover { border-color: var(--muted); }
-.choice input { position: absolute; left: 0.85rem; top: 0.95rem; margin: 0; accent-color: var(--accent); }
-.choice label:has(input:checked) { border-color: var(--accent); background: var(--accent-soft); box-shadow: inset 0 0 0 1px var(--accent); }
+.choice { margin: 16px 0 0; padding: 0; border: 0; min-width: 0; }
+.choice legend { padding: 0; font-weight: 600; }
+.choice .options { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 8px; margin-top: 6px; }
+.choice label { position: relative; display: block; margin: 0; padding: 10px 12px 10px 38px; font-weight: 400; background: var(--surface); border: 1px solid var(--line-strong); border-radius: var(--radius); cursor: pointer; transition: background-color 0.1s, border-color 0.1s; }
+.choice label:hover { background: var(--hover); }
+.choice input { appearance: none; position: absolute; left: 12px; top: 12px; width: 16px; height: 16px; margin: 0; border: 1px solid var(--line-accessible); border-radius: 50%; background: var(--surface); cursor: pointer; }
+.choice input:checked { border-color: var(--brand); background: radial-gradient(circle, var(--brand) 0 4px, var(--surface) 5px); }
+.choice input:focus-visible { border-radius: 50%; }
+.choice label:has(input:checked) { border-color: var(--brand); background: var(--brand-soft); box-shadow: inset 0 0 0 1px var(--brand); }
 .choice strong { display: block; font-weight: 600; }
-.choice span { display: block; color: var(--muted); font-size: 0.85rem; }
+.choice span { display: block; color: var(--muted); font-size: 12px; line-height: 16px; }
 
 /* A longer explanation of a term, folded away until asked for. */
-details.explain { margin-top: 0.35rem; font-size: 0.85rem; }
-details.explain summary { cursor: pointer; color: var(--accent); }
-details.explain p { margin: 0.35rem 0 0; padding: 0.6rem 0.8rem; color: var(--ink); background: var(--sunken); border-radius: var(--radius-control); max-width: 70ch; }
-.card { margin-top: 0.75rem; padding: 0.25rem 1rem 1rem; border: 1px solid var(--line); border-radius: var(--radius); background: var(--sunken); }
-.card.row { display: flex; flex-wrap: wrap; align-items: center; gap: 0.75rem; padding: 0.6rem 0.75rem; }
+details.explain { margin-top: 4px; font-size: 12px; line-height: 16px; }
+details.explain summary { display: inline-flex; align-items: center; gap: 5px; list-style: none; cursor: pointer; color: var(--link); }
+details.explain summary:hover { text-decoration: underline; }
+details.explain summary::-webkit-details-marker { display: none; }
+details.explain summary::before { content: "i"; display: grid; place-items: center; width: 14px; height: 14px; border-radius: 50%; border: 1px solid currentColor; font: 600 10px/1 var(--font); }
+details.explain p { margin: 6px 0 0; padding: 8px 12px; color: var(--ink); background: var(--subtle); border: 1px solid var(--line); border-radius: var(--radius); max-width: 72ch; font-size: 13px; line-height: 18px; }
+.card { margin-top: 12px; padding: 0 16px 16px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--subtle); }
+.card.row { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; padding: 10px 12px; }
 .card.row label { margin: 0; }
-.card.row input[type=text], .card.row select { padding: 0.4rem 0.55rem; color: var(--ink); background: var(--surface); border: 1px solid var(--line-strong); border-radius: var(--radius-control); }
-.card .btn-link { display: inline-block; margin-top: 0.75rem; }
+.card.row input[type=text], .card.row select { min-height: 32px; padding: 5px 10px; color: var(--ink); background-color: var(--surface); border: 1px solid var(--line-strong); border-bottom-color: var(--line-accessible); border-radius: var(--radius); }
+.card.row select { padding-right: 30px; }
+.card .field > label { display: block; font-weight: 600; cursor: auto; }
+.card .btn-link { display: inline-block; margin-top: 12px; }
 .card.row .btn-link { margin: 0 0 0 auto; }
-.wizard-content .btn-secondary { margin-top: 0.75rem; }
-.wizard-footer .btn-secondary, .file-head .btn-secondary { margin-top: 0; }
-details.more { margin-top: 2.25rem; padding-top: 1rem; border-top: 1px solid var(--line); }
-details.more > summary { cursor: pointer; font-weight: 600; color: var(--accent); }
-.load-settings { margin-top: 2.25rem; padding-top: 0.5rem; border-top: 1px solid var(--line); }
-.load-settings input[type=file] { display: block; margin-top: 0.35rem; }
+.step-body .btn-secondary { margin-top: 12px; }
+.file-head .btn-secondary, .step-body .actions .btn-secondary { margin-top: 0; }
+/* More settings: folded away, as an accordion. */
+details.more { margin-top: 28px; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+details.more[open] { padding-bottom: 24px; }
+details.more > summary { display: flex; align-items: center; gap: 10px; min-height: 44px; list-style: none; cursor: pointer; font: 600 16px/22px var(--font); }
+details.more > summary:hover { color: var(--link); }
+details.more > summary::-webkit-details-marker { display: none; }
+details.more > summary::before { content: ""; width: 7px; height: 7px; margin: 0 3px 0 4px; border: solid currentColor; border-width: 0 1.5px 1.5px 0; transform: rotate(-45deg); transition: transform 0.1s; }
+details.more[open] > summary::before { transform: translateY(-2px) rotate(45deg); }
+details.more > summary + h3 { margin-top: 8px; padding-top: 0; border-top: 0; }
+.load-settings { margin-top: 28px; padding: 0 16px 14px; background: var(--subtle); border: 1px dashed var(--line-strong); border-radius: var(--radius); }
+.load-settings input[type=file] { display: block; width: 100%; margin-top: 6px; color: var(--muted); font-size: 13px; }
+.load-settings input[type=file]::file-selector-button { margin-right: 10px; min-height: 32px; padding: 0 12px; font: inherit; font-weight: 600; color: var(--ink); background: var(--surface); border: 1px solid var(--line-strong); border-radius: var(--radius); cursor: pointer; }
 
 /* Environments: the order they are deployed in. */
-.order { display: flex; flex-wrap: wrap; gap: 0.4rem; margin: 0.7rem 0 0; padding: 0; list-style: none; }
-.order li { display: flex; align-items: center; gap: 0.4rem; }
-.order li:not(:last-child)::after { content: ""; width: 1.25rem; height: 2px; border-radius: 2px; background: var(--accent); }
-.order span { padding: 0.25rem 0.8rem; border: 1px solid var(--line-strong); border-radius: 999px; background: var(--sunken); font-family: var(--mono); font-size: 0.85rem; }
+.order { display: flex; flex-wrap: wrap; gap: 6px 0; margin: 10px 0 0; padding: 0; list-style: none; }
+.order li { display: flex; align-items: center; }
+.order li:not(:last-child)::after { content: ""; width: 20px; height: 2px; background: var(--line-strong); }
+.order span { padding: 3px 12px; border: 1px solid var(--line-strong); border-radius: var(--radius); background: var(--subtle); font-family: var(--mono); font-size: 13px; }
 
-/* Templates, grouped by where the app runs. */
-.group { margin: 1.4rem 0 0.5rem; color: var(--muted); font-size: 0.85rem; font-weight: 600; }
+/* Templates: a list to pick from, as when Azure DevOps asks how to configure a pipeline. */
+.group { margin: 20px 0 8px; padding: 0; border: 0; color: var(--muted); font: 600 12px/16px var(--font); }
 .lead + .group { margin-top: 0; }
-.template-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(215px, 1fr)); gap: 0.6rem; padding: 0; margin: 0; list-style: none; }
-.template { position: relative; display: grid; grid-template-columns: auto 1fr; gap: 0.1rem 0.75rem; align-content: start; width: 100%; height: 100%; padding: 0.8rem 0.9rem; text-align: left; color: var(--ink); background: var(--surface); border: 1px solid var(--line-strong); border-radius: var(--radius-control); cursor: pointer; transition: border-color 0.12s, background-color 0.12s, box-shadow 0.12s; }
-.template:hover { border-color: var(--muted); box-shadow: var(--shadow); }
-.template .icon { grid-row: 1 / span 2; display: grid; place-items: center; width: 2.25rem; height: 2.25rem; border-radius: 9px; background: var(--sunken); color: var(--muted); }
-.template .icon svg { width: 1.25rem; height: 1.25rem; }
+.template-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(270px, 1fr)); gap: 8px; padding: 0; margin: 0; list-style: none; }
+.template { position: relative; display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 0 12px; align-content: center; width: 100%; height: 100%; min-height: 60px; padding: 10px 40px 10px 12px; text-align: left; color: var(--ink); background: var(--surface); border: 1px solid var(--line-strong); border-radius: var(--radius); cursor: pointer; transition: background-color 0.1s, border-color 0.1s, box-shadow 0.1s; }
+.template:hover { background: var(--hover); box-shadow: var(--shadow-4); }
+.template .icon { grid-row: 1 / span 2; align-self: center; display: grid; place-items: center; width: 36px; height: 36px; border-radius: var(--radius); background: var(--brand-soft); color: var(--brand); }
+.template .icon svg { width: 20px; height: 20px; }
 .template strong { font-weight: 600; align-self: end; }
-.template span { color: var(--muted); font-size: 0.85rem; }
-.template.applied { border-color: var(--accent); background: var(--accent-soft); box-shadow: inset 0 0 0 1px var(--accent); }
-.template.applied .icon { background: var(--accent); color: var(--on-accent); }
-.template-grid + .fields { margin-top: 1.5rem; padding-top: 0.4rem; border-top: 1px solid var(--line); }
-.tag { display: inline-block; padding: 0.05rem 0.5rem; border-radius: 999px; background: var(--accent-soft); color: var(--accent); font-size: 0.75rem; font-weight: 600; }
-.tag.secret { background: var(--error-soft); color: var(--error); }
+.template span { color: var(--muted); font-size: 12px; line-height: 16px; }
+.template.applied { border-color: var(--brand); background: var(--brand-soft); box-shadow: inset 0 0 0 1px var(--brand); }
+.template.applied .icon { background: var(--brand); color: var(--on-brand); }
+/* The chosen one has its round mark filled in. */
+.template::before { content: ""; position: absolute; top: 50%; right: 14px; width: 16px; height: 16px; margin-top: -8px; border: 1px solid var(--line-accessible); border-radius: 50%; }
+.template.applied::before { border-color: var(--brand); background: var(--brand); }
+.template.applied::after { content: ""; position: absolute; top: 50%; right: 18px; width: 8px; height: 4px; margin-top: -4px; border: solid var(--on-brand); border-width: 0 0 1.5px 1.5px; transform: rotate(-45deg); }
+.template-grid + .fields { margin-top: 28px; padding-top: 8px; border-top: 1px solid var(--line); }
+.tag { display: inline-block; padding: 0 6px; border-radius: var(--radius); background: var(--brand-soft); color: var(--link); font-size: 11px; font-weight: 600; line-height: 16px; }
+.tag.secret { background: var(--warning-soft); color: var(--warning); box-shadow: inset 0 0 0 1px var(--warning-line); }
 
-/* The pipeline: its stages as a line from top to bottom, then what it needs. */
-.result { padding: 1.4rem; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); box-shadow: var(--shadow); }
-.result-head { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; }
-.result h3 { margin: 0; }
-.chip { padding: 0.1rem 0.6rem; border-radius: 999px; font-size: 0.75rem; font-weight: 600; }
-.chip.ok { background: var(--ok-soft); color: var(--ok); }
-.chip.stop { background: var(--error-soft); color: var(--error); }
-.flow { margin: 1.1rem 0 0; padding: 0; list-style: none; }
-.flow li { position: relative; padding: 0 0 1.15rem 1.85rem; }
-.flow li::before { content: ""; position: absolute; left: 0; top: 0.3rem; width: 0.85rem; height: 0.85rem; border: 2px solid var(--accent); border-radius: 50%; background: var(--surface); }
-.flow li:first-child::before { background: var(--accent); }
-.flow li:not(:last-child)::after { content: ""; position: absolute; left: calc(0.425rem - 1px); top: 1.25rem; bottom: -0.25rem; width: 2px; background: var(--accent); }
-.flow li:last-child { padding-bottom: 0; }
-.flow strong { margin-right: 0.4rem; font-weight: 600; }
-.flow span { display: block; color: var(--muted); font-size: 0.85rem; }
-.flow .pill { display: inline-block; padding: 0 0.5rem; border-radius: 999px; background: var(--approval-soft); color: var(--approval); font-size: 0.75rem; font-weight: 600; }
-.rail-note { margin: 1rem 0 0; padding-top: 0.8rem; border-top: 1px solid var(--line); color: var(--muted); font-size: 0.85rem; }
-.needs-list { margin: 1.25rem 0 0; padding: 0; list-style: none; }
-.needs-list li { padding: 0.45rem 0; border-top: 1px solid var(--line); }
-.needs-list li:first-child { padding-top: 1.1rem; font-weight: 600; }
-.needs-list li.where { padding: 0.8rem 0 0.2rem; border-top: 0; color: var(--muted); font-size: 0.8rem; }
+/* What the pipeline needs in Azure DevOps, grouped by where each thing is created. */
+.needs-list { margin: 0; padding: 0; list-style: none; }
+.needs-list li { padding: 8px 0; border-top: 1px solid var(--line); }
+.needs-list li:first-child { padding: 16px 0 0; border: 0; font: 600 16px/22px var(--font); }
+/* Under the tabs the list needs no heading of its own: the tab already says it. */
+.side-head + .needs-list li:first-child { display: none; }
+.needs-list li.where { margin-top: 12px; padding: 6px 10px; border: 0; border-radius: var(--radius); background: var(--subtle); color: var(--ink-2); font-size: 12px; line-height: 16px; }
 .needs-list li.where + li { border-top: 0; }
-.needs-list code { display: block; overflow-wrap: anywhere; }
-.needs-list .what { display: block; color: var(--muted); font-size: 0.85rem; }
+.needs-list code { display: block; overflow-wrap: anywhere; font-weight: 600; }
+.needs-list .what { display: block; color: var(--muted); font-size: 12px; line-height: 16px; }
+.needs-list .tag { margin-top: 4px; }
 
-/* The YAML file, shown the way an editor shows it. */
-.file { border-radius: var(--radius); overflow: hidden; background: var(--code-bg); box-shadow: var(--shadow); }
-.file-head { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: 0.6rem 0.75rem 0.6rem 1rem; color: var(--code-ink); font-family: var(--mono); font-size: 0.9rem; border-bottom: 1px solid var(--code-muted); }
-.file-head .btn-primary, .file-head .btn-secondary { padding: 0.3rem 0.8rem; font-family: var(--font); }
-.file-head .btn-primary { background: var(--code-ink); border-color: var(--code-ink); color: var(--code-bg); }
-.file-head .btn-secondary { background: transparent; border-color: var(--code-muted); color: var(--code-ink); }
-.file-head .btn-secondary:hover { border-color: var(--code-ink); }
-.yaml-preview { margin: 0; padding: 0.9rem 1rem 0.9rem 0; max-height: 560px; overflow: auto; color: var(--code-ink); line-height: 1.5; counter-reset: line; tab-size: 2; }
-.yaml-preview .line::before { counter-increment: line; content: counter(line); display: inline-block; width: 3.25rem; padding-right: 1rem; color: var(--code-muted); text-align: right; user-select: none; }
-.yaml-preview .comment { color: var(--code-comment); }
-.next { margin: 1.5rem 0; padding-left: 1.25rem; }
-.next li { margin: 0.25rem 0; }
+/* The YAML file, shown the way the pipeline editor in Azure DevOps shows it. */
+.file { margin-top: 16px; border: 1px solid var(--line-strong); border-radius: var(--radius); overflow: hidden; background: var(--code-bg); }
+.file-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 16px; padding: 8px 8px 8px 16px; font-weight: 600; background: var(--subtle); border-bottom: 1px solid var(--line); }
+.file-head > span:first-child { white-space: nowrap; }
+.file-head .actions { flex-wrap: nowrap; }
+.yaml-preview, .yaml-live { margin: 0; padding: 10px 0; overflow: auto; color: var(--code-ink); background: var(--code-bg); font-size: 13px; line-height: 19px; counter-reset: line; tab-size: 2; }
+.yaml-preview { max-height: max(300px, calc(100dvh - 430px)); }
+.yaml-preview .line, .yaml-live .line { display: inline-block; min-width: 100%; padding-right: 16px; }
+.yaml-preview .line::before, .yaml-live .line::before { counter-increment: line; content: counter(line); display: inline-block; width: 46px; padding-right: 16px; color: var(--code-no); text-align: right; user-select: none; }
+.yaml-preview .comment, .yaml-live .comment { color: var(--code-comment); }
+.yaml-preview .k, .yaml-live .k { color: var(--code-key); }
+.yaml-preview .x, .yaml-live .x { color: var(--code-expr); }
+/* The file beside the form: a line that just changed lights up for a moment. */
+.yaml-live { margin: 0 -20px -20px; overflow-x: auto; overflow-y: visible; }
+.yaml-live .line::before { width: 40px; padding-right: 12px; }
+.yaml-live .line.changed { animation: line-flash 2.2s ease-out; }
+@keyframes line-flash { from, 35% { background: var(--flash); } }
+.live-note { margin: 0 -20px; padding: 10px 20px; color: var(--muted); font-size: 12px; line-height: 16px; border-bottom: 1px solid var(--line); }
+/* What to do with the file: three steps, in order. */
+.next { display: grid; gap: 10px; margin: 24px 0; padding: 0; list-style: none; counter-reset: next; }
+.next li { position: relative; min-height: 24px; padding: 2px 0 2px 36px; counter-increment: next; }
+.next li::before { content: counter(next); position: absolute; left: 0; top: 0; display: grid; place-items: center; width: 24px; height: 24px; border-radius: 50%; background: var(--brand-soft); color: var(--link); font-size: 12px; font-weight: 600; }
+.next code { padding: 1px 5px; border-radius: var(--radius); background: var(--hover); }
 
-/* Issues */
+/* Messages, as Fluent's message bars: a mark, what is wrong, and what to do about it. */
 .severity-error { color: var(--error); }
 .severity-warning { color: var(--warning); }
-.severity-info { color: var(--info); }
-.status { color: var(--ok); font-weight: 600; }
-.issue-list { list-style: none; margin: 0 0 1.5rem; padding: 0.6rem 1rem; border-radius: var(--radius-control); background: var(--sunken); border-left: 4px solid var(--warning); }
-.issue-list li { margin: 0.4rem 0; }
-.issue-list .hint { color: var(--ink); opacity: 0.8; }
-.go-to-step { display: block; margin-top: 0.15rem; }
+.severity-info { color: var(--link); }
+.status { display: flex; align-items: center; gap: 8px; width: fit-content; margin: 16px 0 0; padding: 8px 12px; border: 1px solid var(--ok-line); border-radius: var(--radius); background: var(--ok-soft); color: var(--ink); }
+.status::before { content: ""; flex: none; width: 16px; height: 16px; border-radius: 50%; background: var(--ok-icon); }
+.load-settings .status, .load-settings .severity-error { margin-bottom: 0; }
+.issue-list { display: grid; gap: 8px; list-style: none; margin: 0 0 20px; padding: 0; }
+.issue-list li { position: relative; padding: 8px 12px 8px 40px; border: 1px solid var(--warning-line); border-radius: var(--radius); background: var(--warning-soft); color: var(--ink); }
+.issue-list li::before { content: "!"; position: absolute; left: 12px; top: 10px; display: grid; place-items: center; width: 16px; height: 16px; border-radius: 50%; background: var(--warning); color: var(--surface); font-size: 11px; font-weight: 700; line-height: 1; }
+.issue-list li.severity-error { background: var(--error-soft); border-color: var(--error-line); }
+.issue-list li.severity-error::before { background: var(--error); }
+.issue-list li.severity-info { background: var(--subtle); border-color: var(--line-strong); }
+.issue-list li.severity-info::before { content: "i"; background: var(--brand); color: var(--on-brand); }
+.issue-list li > strong { font-weight: 600; }
+.issue-list .hint { color: var(--ink-2); font-size: 13px; line-height: 18px; }
+.go-to-step { display: block; margin-top: 4px; }
+.generation-error { margin-top: 16px; }
+.generation-error > p { margin: 0 0 8px; font-weight: 600; }
 
 @media (prefers-reduced-motion: reduce) {
   * { animation: none !important; transition: none !important; }
 }
-@media (max-width: 960px) {
-  .wizard-body { grid-template-columns: minmax(0, 1fr); }
+/* Narrow: what the pipeline needs moves below the step. */
+@media (max-width: 1000px) {
+  .wizard-body, .wizard-body:has(.side-tab[data-tab="file"][aria-selected="true"]) { grid-template-columns: minmax(0, 1fr); }
   .wizard-side { position: static; max-height: none; }
+  .side-head { position: static; }
+  .app-header .tagline { display: none; }
 }
 @media (max-width: 640px) {
-  .app-main { padding: 1rem; }
-  .wizard-content { padding: 1.2rem; }
-  .wizard-nav { padding: 0.5rem 0.9rem; border-radius: var(--radius); }
-  .fields, .fields.three { grid-template-columns: 1fr; }
-  .step-btn { flex-direction: column; align-items: flex-start; gap: 0.2rem; font-size: 0.85rem; }
-  .step-btn:not(:last-child)::after { display: none; }
-  .yaml-preview .line::before { width: 2.5rem; padding-right: 0.6rem; }
+  :root { --gutter: 16px; }
+  h2 { font-size: 24px; line-height: 32px; }
+  .stages { padding: 12px 16px; }
+  .wizard-content { padding: 20px 16px 24px; }
+  .fields, .fields.three { grid-template-columns: minmax(0, 1fr); }
+  .rail-note { margin-left: 0; }
+  .yaml-preview .line::before { width: 38px; padding-right: 10px; }
 }

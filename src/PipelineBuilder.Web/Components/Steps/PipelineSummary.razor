@@ -1,92 +1,59 @@
 @inject WizardState Wizard
-@inject IDeploymentKinds DeploymentKinds
 
-@* The pipeline at a glance, beside every step: its stages from top to bottom, then what it needs in Azure DevOps. *@
+@* Beside every step: what the pipeline needs in Azure DevOps, or the file itself as it is now. *@
 <div class="result">
-    <div class="result-head">
-        <h3>Your pipeline</h3>
-        @if (Pipeline != null)
+    @if (Pipeline is { } pipeline)
+    {
+        // The Result step shows the file itself, so there the pane only lists what is needed.
+        if (Wizard.CurrentStep != WizardStep.Result)
         {
-            <span class="chip ok">Ready</span>
+            <div class="side-head">
+                <div class="side-tabs" role="tablist" aria-label="Show">
+                    <button type="button" class="side-tab" role="tab" data-tab="overview" aria-selected="@(ShowsFile ? "false" : "true")" @onclick="() => _file = false">Needs in Azure DevOps</button>
+                    <button type="button" class="side-tab" role="tab" data-tab="file" aria-selected="@(ShowsFile ? "true" : "false")" @onclick="() => _file = true">YAML file</button>
+                </div>
+            </div>
+        }
+        if (ShowsFile)
+        {
+            <p class="live-note">@ResultStep.PipelineFileName as it is now. A line lights up when a setting changes it.</p>
+            <YamlView Yaml="@pipeline.Yaml" Live="true" />
         }
         else
         {
-            <span class="chip stop">Not ready</span>
+            <ul class="needs-list">
+                <li>Needs in Azure DevOps</li>
+                @* Grouped by where in Azure DevOps each thing is created. *@
+                @foreach (var place in pipeline.Requirements.GroupBy(need => need.Where))
+                {
+                    <li class="where">@place.Key</li>
+                    foreach (var need in place)
+                    {
+                        <li data-need="@need.Kind">
+                            <code>@need.Name</code>
+                            <span class="what">@need.Purpose</span>
+                            @if (need.IsSecret)
+                            {
+                                <span class="tag secret">secret</span>
+                            }
+                        </li>
+                    }
+                }
+            </ul>
         }
-    </div>
-    @if (Pipeline is { } result)
-    {
-        <ol class="flow">
-            <li><strong>Build</strong><span>@BuildText</span></li>
-            @foreach (var env in Wizard.Definition.Environments)
-            {
-                if (EnvironmentNames.IsProduction(env))
-                {
-                    <li><strong>@env</strong><span class="pill">Approval</span><span>Only from @Wizard.Definition.ReleaseBranch. @DeployText</span></li>
-                }
-                else if (Wizard.WaitsForApproval(env))
-                {
-                    <li><strong>@env</strong><span class="pill">Approval</span><span>@DeployText</span></li>
-                }
-                else
-                {
-                    <li><strong>@env</strong><span>@DeployText</span></li>
-                }
-            }
-            @if (Wizard.Definition.Notifications.Count > 0)
-            {
-                <li><strong>Notify</strong><span>@string.Join(", ", Wizard.Definition.Notifications.Select(n => NotificationName(n.NotificationType)).Distinct())</span></li>
-            }
-        </ol>
-        @if (RollsBack)
-        {
-            <p class="rail-note">A failed deployment is rolled back.</p>
-        }
-        <ul class="needs-list">
-            <li>Needs in Azure DevOps</li>
-            @* Grouped by where in Azure DevOps each thing is created. *@
-            @foreach (var place in result.Requirements.GroupBy(need => need.Where))
-            {
-                <li class="where">@place.Key</li>
-                foreach (var need in place)
-                {
-                    <li data-need="@need.Kind">
-                        <code>@need.Name</code>
-                        <span class="what">@need.Purpose</span>
-                        @if (need.IsSecret)
-                        {
-                            <span class="tag secret">secret</span>
-                        }
-                    </li>
-                }
-            }
-        </ul>
     }
     else
     {
-        <p class="hint">Fix the settings marked with ! to see the pipeline.</p>
+        <p class="hint">What the pipeline needs is listed here once the settings marked with ! are fixed.</p>
     }
 </div>
 
 @code {
-    /// <summary>The generated pipeline. A parameter, so the summary is redrawn whenever the settings change.</summary>
+    /// <summary>The generated pipeline. A parameter, so the pane is redrawn whenever the settings change.</summary>
     [Parameter] public GeneratedPipeline? Pipeline { get; set; }
 
-    private string BuildText =>
-        Wizard.Definition.Artifact.ArtifactType == ArtifactType.DockerImage
-            ? "Built once. Every environment gets the same image."
-            : "Built once. Every environment gets the same package.";
+    /// <summary>The pane shows the file instead of the list.</summary>
+    private bool _file;
 
-    private string DeployText =>
-        Wizard.Definition.HealthChecks.Any(check => check.Enabled) ? "Deploy, then health check" : "Deploy";
-
-    private bool RollsBack =>
-        Wizard.Definition.Rollback.Enabled && DeploymentKinds.For(Wizard.Definition.Deployment.Kind).SupportsRollback;
-
-    private static string NotificationName(NotificationType type) => type switch
-    {
-        NotificationType.TeamsWebhook => "Teams",
-        NotificationType.Email => "Email",
-        _ => "Webhook"
-    };
+    private bool ShowsFile => _file && Wizard.CurrentStep != WizardStep.Result;
 }

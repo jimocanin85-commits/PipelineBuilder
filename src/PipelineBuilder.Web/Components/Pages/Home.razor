@@ -14,7 +14,7 @@
                     data-step="@step" aria-current="@(Wizard.CurrentStep == step ? "step" : null)"
                     @onclick="() => GoTo(step)">
                 <span class="step-no">@((int)step)</span>
-                @StepTitles.For(step)
+                <span class="step-title">@StepTitles.For(step)</span>
                 @if (step != WizardStep.Result && Wizard.HasErrors(step))
                 {
                     <span class="badge" title="This step has errors">!</span>
@@ -23,7 +23,10 @@
         }
     </nav>
 
-    @* The step being filled in, and beside it the pipeline it produces. *@
+    @* The pipeline as it is now, drawn as Azure DevOps draws a run. *@
+    <PipelineStages Pipeline="Wizard.Result" />
+
+    @* The step being filled in, and beside it what the pipeline needs, or the file itself. *@
     <div class="wizard-body">
     <section class="wizard-content">
         @if (Wizard.CurrentStep != WizardStep.Result)
@@ -51,17 +54,18 @@
             }
             </div>
         </EditForm>
-
-        <footer class="wizard-footer">
-            <button type="button" class="btn-secondary" id="back" disabled="@(Wizard.CurrentStep == WizardStep.Start)" @onclick="Prev">Back</button>
-            <button type="button" class="btn-primary" id="next" disabled="@(Wizard.CurrentStep == WizardStep.Result)" @onclick="Next">@NextLabel</button>
-        </footer>
     </section>
 
-    <aside class="wizard-side" aria-label="Your pipeline">
+    <aside class="wizard-side" aria-label="What the pipeline needs">
         <PipelineSummary Pipeline="Wizard.Result" />
     </aside>
     </div>
+
+    @* Previous and Next stay in view, in a bar at the bottom as in the Azure portal. *@
+    <footer class="wizard-footer">
+        <button type="button" class="btn-secondary" id="back" disabled="@(Wizard.CurrentStep == WizardStep.Start)" @onclick="Prev">Previous</button>
+        <button type="button" class="btn-primary" id="next" disabled="@(Wizard.CurrentStep == WizardStep.Result)" @onclick="Next">@NextLabel</button>
+    </footer>
 </div>
 
 @code {

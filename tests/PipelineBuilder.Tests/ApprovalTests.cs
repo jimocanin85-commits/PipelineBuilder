@@ -187,7 +187,7 @@ public class ApprovalTests : BunitContext
         cut.Find("#approve-preprod").Change(true);
 
         Assert.NotNull(cut.Find("#approvers"));
-        Assert.Equal(new[] { "Approval", "Approval" }, cut.FindAll(".wizard-side .flow .pill").Select(e => e.TextContent)); // preprod, and prod as before
+        Assert.Equal(new[] { "Approval", "Approval" }, cut.FindAll(".stages .flow .pill").Select(e => e.TextContent)); // preprod, and prod as before
         cut.Find("#approval-notify").Change("lead@contoso.com");
         cut.Find($"button[data-step='{WizardStep.Result}']").Click();
         var yaml = cut.Find(".yaml-preview").TextContent;

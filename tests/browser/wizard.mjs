@@ -32,6 +32,15 @@ for (let attempt = 0; attempt < 30 && !connected; attempt++) {
 check(connected, 'Clicking a template did nothing: the page is not interactive.');
 
 if (connected) {
+  // The file beside the form: it shows the pipeline, and marks the lines a setting just changed.
+  await page.click('button[data-step="Target"]');
+  await page.click('.side-tab[data-tab="file"]');
+  const live = await page.locator('.yaml-live').textContent({ timeout: 10000 });
+  check(live.includes('systemctl start'), 'The File view beside the form does not show the pipeline.');
+  await page.locator('#approve-preprod').check();
+  const marked = await page.locator('.yaml-live .line.changed').first().waitFor({ timeout: 10000 }).then(() => true, () => false);
+  check(marked, 'The File view did not mark the lines that the approval added.');
+
   await page.click('button[data-step="Result"]');
   const yaml = await page.locator('.yaml-preview').textContent({ timeout: 10000 });
   check(yaml.includes('systemctl start'), 'The pipeline for a Linux service is not shown on the Result step.');
@@ -54,4 +63,4 @@ if (problems.length > 0) {
   for (const problem of problems) console.log(`::error title=Browser test::${problem}`);
   process.exit(1);
 }
-console.log('The wizard works in a browser: templates, the Result step, download and the theme button.');
+console.log('The wizard works in a browser: templates, the file beside the form, the Result step, download and the theme button.');

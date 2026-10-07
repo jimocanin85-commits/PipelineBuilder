@@ -221,7 +221,7 @@
 
     <h3>Key Vault</h3>
     <label class="check"><InputCheckbox id="keyvault-enabled" @bind-Value="Wizard.KeyVaultEnabled" /> Get secrets from Azure Key Vault before deploying</label>
-    <p class="hint">Each secret becomes a variable with the same name.</p>
+    <p class="hint">Each secret becomes a variable with the same name, e.g. $(DbPassword).</p>
     @if (Wizard.KeyVaultEnabled)
     {
         <div class="fields">
@@ -231,6 +231,9 @@
             <Field For="azure-connection" Label="Azure service connection" Hint="The connection's name." More="@Help.ServiceConnection">
                 <InputText id="azure-connection" @bind-Value="Wizard.AzureServiceConnection" class="form-control" placeholder="$(AZURE_SERVICE_CONNECTION)" />
             </Field>
+            <Field For="kv-secrets" Label="Secrets to get" Wide="true" Hint="Their names in the vault, separated by commas. The pipeline gets only these.">
+                <InputText id="kv-secrets" @bind-Value="Wizard.KeyVaultSecrets" class="form-control" placeholder="DbPassword, ApiKey" />
+            </Field>
         </div>
     }
 </details>
@@ -238,17 +241,7 @@
 @code {
     private bool _moreOpen;
 
-    private string KindTitle => Wizard.Definition.Deployment.Kind switch
-    {
-        DeploymentKind.Iis => "IIS website",
-        DeploymentKind.WindowsService => "Windows service",
-        DeploymentKind.LinuxService => "Linux service",
-        DeploymentKind.FileShare => "Files",
-        DeploymentKind.DockerContainer => "Docker container",
-        DeploymentKind.Kubernetes => "Kubernetes",
-        DeploymentKind.Ansible => "Ansible playbook",
-        _ => "Your own script"
-    };
+    private string KindTitle => KindTitles.For(Wizard.Definition.Deployment.Kind);
 
     /// <summary>Kinds with fields that fall back to a pipeline variable when left empty.</summary>
     private bool HasVariableFields => Wizard.Definition.Deployment.Kind is not (DeploymentKind.Iis or DeploymentKind.Custom or DeploymentKind.Ansible);

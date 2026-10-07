@@ -132,4 +132,74 @@ public class SecurityTests
         var guards = System.Text.RegularExpressions.Regex.Matches(yaml, "The folder to copy to is not set").Count;
         Assert.Equal(functions, guards);
     }
+
+    // Key Vault: a deployment is only handed the secrets it uses.
+    [Fact]
+    public void OnlyTheNamedKeyVaultSecretsAreFetched()
+    {
+        var definition = WizardState.CreateDefault();
+        definition.KeyVault = new KeyVaultConfig { KeyVaultName = "kv-orders", SecretsFilter = " DbPassword, ApiKey ,DbPassword" };
+
+        var result = _generator.Generate(definition);
+
+        Assert.Contains("SecretsFilter: 'DbPassword,ApiKey'", result.Yaml);
+        Assert.DoesNotContain("SecretsFilter: '*'", result.Yaml);
+        Assert.DoesNotContain(result.ValidationResults, finding => finding.AffectedField == nameof(PipelineDefinition.KeyVault));
+    }
+
+    [Fact]
+    public void FetchingEverySecretInTheVaultGivesAWarning()
+    {
+        var definition = WizardState.CreateDefault();
+        definition.KeyVault = new KeyVaultConfig { KeyVaultName = "kv-orders" };
+
+        var result = _generator.Generate(definition);
+
+        Assert.Contains("SecretsFilter: '*'", result.Yaml);
+        var warning = Assert.Single(result.ValidationResults, finding => finding.AffectedField == nameof(PipelineDefinition.KeyVault));
+        Assert.Equal(ValidationSeverity.Warning, warning.Severity);
+        Assert.Contains("every secret", warning.Message);
+    }
+
+    [Theory]
+    [InlineData("Db Password")]
+    [InlineData("db_password")]
+    [InlineData("a'b")]
+    public void ANameThatIsNotAKeyVaultSecretNameIsReported(string name)
+    {
+        var definition = WizardState.CreateDefault();
+        definition.KeyVault = new KeyVaultConfig { KeyVaultName = "kv-orders", SecretsFilter = "ApiKey, " + name };
+
+        var findings = _generator.Generate(definition).ValidationResults;
+
+        var error = Assert.Single(findings, finding => finding.Severity == ValidationSeverity.Error);
+        Assert.Contains($"'{name}' is not a Key Vault secret name", error.Message);
+    }
+
+    [Fact]
+    public void ANamedSecretIsCreatedInTheVaultNotAsAPipelineVariable()
+    {
+        var definition = Template("docker-build-push");
+        definition.Deployment.ContainerEnvironment = new[] { "DB_PASSWORD=$(DbPassword)" };
+        definition.KeyVault = new KeyVaultConfig { KeyVaultName = "kv-orders", SecretsFilter = "DbPassword" };
+
+        var needs = _generator.Generate(definition).Requirements;
+
+        var secret = Assert.Single(needs, need => need.Name == "DbPassword");
+        Assert.Equal("Azure portal → Key vault kv-orders → Secrets", secret.Where);
+        Assert.True(secret.IsSecret);
+    }
+
+    [Fact]
+    public void TheSettingsFileKeepsTheSecretNamesOnce()
+    {
+        var definition = WizardState.CreateDefault();
+        definition.KeyVault = new KeyVaultConfig { KeyVaultName = "kv-orders", SecretsFilter = "DbPassword, ApiKey" };
+
+        var json = PipelineDefinitionSerializer.ToJson(definition);
+
+        Assert.Contains("\"secretsFilter\": \"DbPassword, ApiKey\"", json);
+        Assert.DoesNotContain("secretNames", json);
+        Assert.Equal(new[] { "DbPassword", "ApiKey" }, PipelineDefinitionSerializer.FromJson(json).KeyVault!.SecretNames);
+    }
 }

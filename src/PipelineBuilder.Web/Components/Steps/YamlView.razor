@@ -1,0 +1,20 @@
+@* The pipeline file, line by line. Beside the form (Live) it also marks the lines a setting just changed. *@
+<pre class="@(Live ? "yaml-live" : "yaml-preview")">@_markup</pre>
+
+@code {
+    [Parameter, EditorRequired] public string Yaml { get; set; } = string.Empty;
+
+    /// <summary>Shown beside the form while it is filled in: lines that differ from last time are marked.</summary>
+    [Parameter] public bool Live { get; set; }
+
+    private string? _shown;
+    private MarkupString _markup;
+
+    protected override void OnParametersSet()
+    {
+        if (Yaml == _shown)
+            return; // nothing new: leave the marks of the last change in place
+        _markup = YamlHighlighter.ToHtml(Yaml, Live ? _shown : null);
+        _shown = Yaml;
+    }
+}
