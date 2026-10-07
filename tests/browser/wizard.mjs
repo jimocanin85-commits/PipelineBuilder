@@ -32,6 +32,10 @@ for (let attempt = 0; attempt < 30 && !connected; attempt++) {
 check(connected, 'Clicking a template did nothing: the page is not interactive.');
 
 if (connected) {
+  // The stylesheet is applied: a stage's second line is the small grey one.
+  const small = await page.locator('.stages .flow li span:not(.icon)').first().evaluate(element => getComputedStyle(element).fontSize);
+  check(small === '12px', `The stage boxes are not styled (their second line is ${small}, not 12px).`);
+
   // The file beside the form: it shows the pipeline, and marks the lines a setting just changed.
   await page.click('button[data-step="Target"]');
   await page.click('.side-tab[data-tab="file"]');
@@ -50,9 +54,12 @@ if (connected) {
 
   // Light and dark: the button switches, and the choice is still there after a reload.
   const theme = () => page.evaluate(() => document.documentElement.dataset.theme ?? '');
+  const ground = () => page.evaluate(() => getComputedStyle(document.body).backgroundColor);
   const before = await theme();
+  const groundBefore = await ground();
   await page.click('.theme-toggle');
   const chosen = await theme();
+  check(await ground() !== groundBefore, 'The theme button changed nothing on the page: the colours do not follow the theme.');
   check(['light', 'dark'].includes(chosen) && chosen !== before, `The theme button did not switch (was "${before}", is "${chosen}").`);
   await page.reload();
   check(await theme() === chosen, 'The chosen theme was forgotten after a reload.');

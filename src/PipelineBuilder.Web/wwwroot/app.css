@@ -130,7 +130,8 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .flow .icon svg { display: block; width: 20px; height: 20px; }
 .flow strong { display: block; font-weight: 600; overflow-wrap: anywhere; }
 /* The second line of a stage, a choice or a need: smaller and greyer. */
-.flow span, .choice span, /* An approval sits on the line, before the stage it guards. */
+.flow span, .choice span, .needs-list .what { display: block; color: var(--muted); font-size: 12px; line-height: 16px; }
+/* An approval sits on the line, before the stage it guards. */
 .flow li.gate { flex: 0 0 auto; display: flex; flex-direction: column; align-items: center; gap: 4px; min-width: 0; max-width: 136px; padding: 8px 0 0; text-align: center; background: none; border: 0; box-shadow: none; }
 .flow .pill { display: inline-flex; align-items: center; gap: 5px; height: 24px; padding: 0 10px 0 7px; border: 1px solid var(--brand-line); border-radius: 999px; background: var(--brand-soft); color: var(--link); font-size: 12px; font-weight: 600; white-space: nowrap; }
 .flow .pill::before { content: ""; width: 9px; height: 5px; margin: 0 1px 2px 2px; border: solid currentColor; border-width: 0 0 2px 2px; transform: rotate(-45deg); }
