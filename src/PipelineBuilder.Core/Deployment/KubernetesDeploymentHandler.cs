@@ -24,7 +24,7 @@ public sealed class KubernetesDeploymentHandler : DeploymentKindHandler
             ["kubernetesServiceConnection"] = definition.Deployment.KubernetesServiceConnectionOrDefault,
             ["namespace"] = definition.Deployment.KubernetesNamespaceOrDefault,
             ["manifests"] = definition.Deployment.ManifestsPathOrDefault,
-            ["containers"] = $"$(DOCKER_REGISTRY)/{definition.Artifact.ArtifactName}:$(Build.BuildId)"
+            ["containers"] = definition.Artifact.ImageReference
         }, $"Deploy to Kubernetes ({environment})")
     };
 

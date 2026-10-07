@@ -54,32 +54,22 @@ Write-Host "Deployed to $target and started app pool $pool"
         };
     }
 
-    public override IReadOnlyList<string> GenerateBackupSteps(RollbackConfig config, DeploymentConfig deployment, string environment) => new[]
-    {
-        ServerScript.Step(deployment, ScriptShell.PowerShell, $$"""
-{{RollbackScripts.Header(config, environment)}}
+    public override IReadOnlyList<string> GenerateBackupSteps(RollbackConfig config, DeploymentConfig deployment, string environment) =>
+        RollbackScripts.BackUpFolder(config, deployment, environment, SetTarget(deployment), "Back up IIS site before deploy");
+
+    /// <summary>The site's folder: the one that is configured, or else the one IIS has for the site.</summary>
+    private static string SetTarget(DeploymentConfig deployment) => $$"""
 $site = {{YamlBuilder.PsLiteral(deployment.WebsiteNameOrDefault)}}
 $target = {{RollbackScripts.TargetOrNull(deployment)}}
 {{PowerShellSnippets.ResolveIisSitePath}}
-{{PowerShellSnippets.SyncFolderFunction}}
-if (Test-Path $target) {
-  Sync-Folder -Source $target -Destination $backup
-  Write-Host "Backed up $target to $backup"
-} else {
-  Write-Host "Nothing to back up: $target does not exist yet"
-}
-{{RollbackScripts.Prune(config)}}
-""", "Back up IIS site before deploy")
-    };
+""";
 
     public override IReadOnlyList<string> GenerateRollbackSteps(RollbackConfig config, DeploymentConfig deployment, string environment) => new[]
     {
         ServerScript.Step(deployment, ScriptShell.PowerShell, $$"""
 {{RollbackScripts.Header(config, environment)}}
 {{RollbackScripts.RequireBackup}}
-$site = {{YamlBuilder.PsLiteral(deployment.WebsiteNameOrDefault)}}
-$target = {{RollbackScripts.TargetOrNull(deployment)}}
-{{PowerShellSnippets.ResolveIisSitePath}}
+{{SetTarget(deployment)}}
 {{PowerShellSnippets.SyncFolderFunction}}
 Sync-Folder -Source $backup -Destination $target -Mirror
 Write-Host "Restored $target from $backup"

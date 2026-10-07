@@ -9,25 +9,12 @@ What the generated pipelines need in Azure DevOps is in [AZURE-DEVOPS.md](AZURE-
 
 ## 1. Run locally
 
-### You need
+The three commands to start it are in the [README](../README.md#run-it). There is no login when you run it this way.
 
-- The **.NET 10 SDK, 10.0.401 or later** from <https://dotnet.microsoft.com/download/dotnet/10.0>. Older SDKs are rejected. Check with `dotnet --version`.
-- Git.
-- Internet access to nuget.org the first time you build.
-
-### Steps
-
-```bash
-git clone https://github.com/jimocanin85-commits/PipelineBuilder.git
-cd PipelineBuilder
-dotnet run --project src/PipelineBuilder.Web
-```
-
-Open <http://localhost:5150>. There is no login when you run it this way.
-
+- Older SDKs than 10.0.401 are rejected. Check yours with `dotnet --version`.
+- The first build needs internet access to nuget.org.
 - For <https://localhost:7150>, first run `dotnet dev-certs https --trust` once.
 - To reload on code changes: `dotnet watch --project src/PipelineBuilder.Web`.
-- To run all tests: `dotnet test`.
 - If a port is taken, change it in `src/PipelineBuilder.Web/Properties/launchSettings.json`.
 
 ---
@@ -74,8 +61,6 @@ net start w3svc
 ```
 
 If IIS is not installed yet, do it in this order: run the install script with `-InstallMissingFeatures` (2.4), install the Hosting Bundle, run the script again.
-
-If the Hosting Bundle was installed before IIS, run its installer again and choose **Repair**. Otherwise you get error 500.19.
 
 ### 2.4 Run the install script
 

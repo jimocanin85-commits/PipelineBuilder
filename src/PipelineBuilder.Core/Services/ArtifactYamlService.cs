@@ -77,12 +77,12 @@ public sealed class ArtifactYamlService : IArtifactYamlService
                     ["rootFolderOrFile"] = config.PackagePath ?? PublishOutput,
                     ["includeRootFolder"] = "false",
                     ["archiveType"] = "zip",
-                    ["archiveFile"] = $"$(Build.ArtifactStagingDirectory)/{config.ArtifactName}.zip",
+                    ["archiveFile"] = ZipFile(config),
                     ["replaceExistingArchive"] = "true"
                 }, "Archive deployment package"),
                 YamlBuilder.Task("PublishPipelineArtifact@1", new Dictionary<string, string>
                 {
-                    ["targetPath"] = $"$(Build.ArtifactStagingDirectory)/{config.ArtifactName}.zip",
+                    ["targetPath"] = ZipFile(config),
                     ["artifactName"] = config.ArtifactName,
                     ["publishLocation"] = "pipeline"
                 }, "Publish zip artifact")
@@ -130,6 +130,8 @@ public sealed class ArtifactYamlService : IArtifactYamlService
             }
         };
     }
+
+    private static string ZipFile(ArtifactConfig config) => $"$(Build.ArtifactStagingDirectory)/{config.ArtifactName}.zip";
 
     public string GetDeployPackagePath(ArtifactConfig config) =>
         config.ArtifactType == ArtifactType.ZipPackage

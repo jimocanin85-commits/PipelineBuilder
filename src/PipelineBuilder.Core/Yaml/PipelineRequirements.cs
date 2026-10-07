@@ -46,8 +46,9 @@ public static class PipelineRequirements
         ArgumentNullException.ThrowIfNull(definition);
         var onServers = yaml.Contains("resourceType: VirtualMachine", StringComparison.Ordinal);
         var needs = new List<PipelineRequirement>();
+        var environments = definition.Environments.Where(e => !string.IsNullOrWhiteSpace(e)).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
 
-        foreach (var environment in definition.Environments.Where(e => !string.IsNullOrWhiteSpace(e)).Distinct(StringComparer.OrdinalIgnoreCase))
+        foreach (var environment in environments)
         {
             needs.Add(new PipelineRequirement
             {
@@ -95,7 +96,7 @@ public static class PipelineRequirements
         // A build agent that deploys over the network reads each environment's servers from a variable.
         if (yaml.Contains($"$({ServerScript.ServersVariable})", StringComparison.Ordinal))
         {
-            foreach (var environment in definition.Environments.Where(e => !string.IsNullOrWhiteSpace(e)).Distinct(StringComparer.OrdinalIgnoreCase))
+            foreach (var environment in environments)
             {
                 needs.Add(new PipelineRequirement
                 {

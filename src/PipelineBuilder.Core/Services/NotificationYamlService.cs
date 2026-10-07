@@ -30,7 +30,7 @@ if ([string]::IsNullOrWhiteSpace($webhook) -or $webhook.StartsWith('$(')) {
   Write-Warning 'Teams webhook variable is not set; skipping notification.'
   exit 0
 }
-$body = @{ text = "Pipeline $env:BUILD_DEFINITIONNAME #$env:BUILD_BUILDNUMBER {{outcome}}" } | ConvertTo-Json
+$body = @{ text = {{Headline(outcome)}} } | ConvertTo-Json
 Invoke-RestMethod -Uri $webhook -Method Post -Body $body -ContentType 'application/json'
 """, succeeded ? "Notify Teams on success" : "Notify Teams on failure", env: WebhookEnv(config.TeamsWebhookVariable, "TEAMS_WEBHOOK_URL"))
             },
@@ -81,7 +81,7 @@ $user = '$(SMTP_USERNAME)'
 $message = New-Object System.Net.Mail.MailMessage
 $message.From = $from
 foreach ($recipient in $recipients) { $message.To.Add($recipient) }
-$message.Subject = "Pipeline $env:BUILD_DEFINITIONNAME #$env:BUILD_BUILDNUMBER {{outcome}}"
+$message.Subject = {{Headline(outcome)}}
 $message.Body = 'Run: {0}{1}/_build/results?buildId={2}' -f $env:SYSTEM_COLLECTIONURI, $env:SYSTEM_TEAMPROJECT, $env:BUILD_BUILDID
 $client = New-Object System.Net.Mail.SmtpClient($smtpHost, [int]$port)
 $client.EnableSsl = $true
@@ -105,6 +105,9 @@ Write-Host "Email sent to $($recipients -join ', ')"
             : variableName.Trim();
         return new Dictionary<string, string> { ["WEBHOOK_URL"] = $"$({name})" };
     }
+
+    /// <summary>What every notification says, as a PowerShell string: which pipeline, which run, and how it went.</summary>
+    private static string Headline(string outcome) => $"\"Pipeline $env:BUILD_DEFINITIONNAME #$env:BUILD_BUILDNUMBER {outcome}\"";
 
     private static bool IsValidVariableName(string name) =>
         name.Trim().All(c => char.IsAsciiLetterOrDigit(c) || c is '_' or '.' or '-');

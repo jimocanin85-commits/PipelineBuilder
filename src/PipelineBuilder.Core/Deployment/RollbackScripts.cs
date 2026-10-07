@@ -68,12 +68,14 @@ fi
     public static string TargetOrNull(DeploymentConfig deployment) =>
         string.IsNullOrWhiteSpace(deployment.TargetPath) ? "$null" : YamlBuilder.PsLiteral(deployment.TargetPath);
 
-    /// <summary>Copies the deployment folder (Windows service, file share) into the backup.</summary>
-    public static IReadOnlyList<string> BackUpFolder(RollbackConfig config, DeploymentConfig deployment, string environment) => new[]
+    /// <summary>Copies the deployment folder (IIS site, Windows service, file share) into the backup.</summary>
+    /// <param name="setTarget">The lines that set <c>$target</c>, when it is not simply the configured folder.</param>
+    public static IReadOnlyList<string> BackUpFolder(RollbackConfig config, DeploymentConfig deployment, string environment,
+        string? setTarget = null, string displayName = "Back up deployment folder before deploy") => new[]
     {
         ServerScript.Step(deployment, ScriptShell.PowerShell, $$"""
 {{Header(config, environment)}}
-$target = {{YamlBuilder.PsLiteral(deployment.TargetPathOrDefault)}}
+{{setTarget ?? "$target = " + YamlBuilder.PsLiteral(deployment.TargetPathOrDefault)}}
 {{PowerShellSnippets.SyncFolderFunction}}
 if (Test-Path $target) {
   Sync-Folder -Source $target -Destination $backup
@@ -82,6 +84,6 @@ if (Test-Path $target) {
   Write-Host "Nothing to back up: $target does not exist yet"
 }
 {{Prune(config)}}
-""", "Back up deployment folder before deploy")
+""", displayName)
     };
 }

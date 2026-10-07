@@ -29,4 +29,20 @@ public class VariableGroupServiceTests
         var results = _sut.Validate(new[] { new VariableGroupConfig { Name = " " } });
         Assert.Contains(results, r => r.Severity == ValidationSeverity.Error);
     }
+
+    [Fact]
+    public void AGroupWithSecretsSharedWithTheWholePipelineIsFlagged()
+    {
+        var groups = new[]
+        {
+            new VariableGroupConfig { Name = "vg-shared-secrets", Scope = VariableGroupScope.Pipeline, ContainsSecrets = true },
+            new VariableGroupConfig { Name = "vg-prod-secrets", Scope = VariableGroupScope.Environment, EnvironmentName = "prod", ContainsSecrets = true },
+            new VariableGroupConfig { Name = "vg-common", Scope = VariableGroupScope.Pipeline }
+        };
+
+        var warning = Assert.Single(_sut.Validate(groups));
+
+        Assert.Equal(ValidationSeverity.Warning, warning.Severity);
+        Assert.Contains("vg-shared-secrets", warning.Message);
+    }
 }

@@ -11,7 +11,7 @@
             <InputSelect id="@($"{id}-type")" @bind-Value="n.NotificationType" class="form-control" aria-label="Notification type">
                 @foreach (var t in Enum.GetValues<NotificationType>())
                 {
-                    <option value="@t">@Label(t)</option>
+                    <option value="@t">@NotificationTitles.For(t)</option>
                 }
             </InputSelect>
         </Field>
@@ -42,13 +42,6 @@
 <button type="button" class="btn-secondary" id="add-notification" @onclick="Add">Add notification</button>
 
 @code {
-    private static string Label(NotificationType type) => type switch
-    {
-        NotificationType.TeamsWebhook => "Teams",
-        NotificationType.Email => "Email",
-        _ => "Webhook"
-    };
-
     private void Add()
     {
         Wizard.Notifications.Add(new NotificationConfig { NotificationType = NotificationType.TeamsWebhook, NotifyOnFailure = true });

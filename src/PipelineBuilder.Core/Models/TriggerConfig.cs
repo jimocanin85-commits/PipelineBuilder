@@ -31,15 +31,4 @@ public sealed class TriggerConfig
     /// Creates a default trigger configuration.
     /// </summary>
     public static TriggerConfig Default => new();
-
-    /// <summary>
-    /// Creates a trigger that only runs on main branch.
-    /// Useful for production deployments.
-    /// </summary>
-    public static TriggerConfig MainOnly => new() { IncludeBranches = new[] { "main" } };
-
-    /// <summary>
-    /// Creates a trigger that runs on all branches.
-    /// </summary>
-    public static TriggerConfig AllBranches => new() { TriggerAll = true };
 }

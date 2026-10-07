@@ -117,11 +117,7 @@ public class WindowsRealScriptTests
         var host = new ScriptHost();
         host.NewBuild("341", "drop", Package("1"));
 
-        var deploy = host.Deploy(definition)[^1];
-
-        Assert.NotEqual(0, deploy.ExitCode);
-        Assert.Contains("The folder to copy to is not set", deploy.Output);
-        Assert.False(Directory.Exists(Path.Combine(host.Workspace, "$(DEPLOY_PATH)")), "Nothing is copied to a folder named after the missing variable.");
+        host.AssertStoppedBecauseTheFolderIsNotSet(host.Deploy(definition));
     }
 
     [SkippableFact]

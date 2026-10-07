@@ -238,10 +238,6 @@ public class LinuxRealScriptTests
         var host = new ScriptHost();
         host.NewBuild("141", "drop", Package("1", "/opt/pbunset", 8761));
 
-        var deploy = host.Deploy(definition)[^1];
-
-        Assert.NotEqual(0, deploy.ExitCode);
-        Assert.Contains("The folder to copy to is not set", deploy.Output);
-        Assert.False(Directory.Exists(Path.Combine(host.Workspace, "$(DEPLOY_PATH)")), "Nothing is copied to a folder named after the missing variable.");
+        host.AssertStoppedBecauseTheFolderIsNotSet(host.Deploy(definition));
     }
 }

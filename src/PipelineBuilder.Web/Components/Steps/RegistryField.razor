@@ -1,0 +1,6 @@
+@inject WizardState Wizard
+
+@* The registry the image is pulled from. Docker and Kubernetes both ask for it. *@
+<Field For="registry-connection" Label="Registry service connection" Hint="The connection's name, not the registry's address." More="@Help.ServiceConnection">
+    <InputText id="registry-connection" @bind-Value="Wizard.Definition.Artifact.ContainerRegistryConnection" class="form-control" placeholder="$(DOCKER_SERVICE_CONNECTION)" />
+</Field>

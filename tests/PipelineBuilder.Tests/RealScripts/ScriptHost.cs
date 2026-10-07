@@ -74,6 +74,18 @@ internal sealed class ScriptHost
     /// <summary>Runs the steps of the <c>on: failure</c> hook: the rollback.</summary>
     public IReadOnlyList<StepResult> RollBack(PipelineDefinition definition) => Run(Steps(definition, onFailure: true));
 
+    /// <summary>
+    /// The last step stopped because its folder variable is not set, and nothing was copied to a
+    /// folder named after the missing variable.
+    /// </summary>
+    public void AssertStoppedBecauseTheFolderIsNotSet(IReadOnlyList<StepResult> results)
+    {
+        var deploy = results[^1];
+        Assert.NotEqual(0, deploy.ExitCode);
+        Assert.Contains("The folder to copy to is not set", deploy.Output);
+        Assert.False(Directory.Exists(Path.Combine(Workspace, "$(DEPLOY_PATH)")), "Nothing is copied to a folder named after the missing variable.");
+    }
+
     public static void AssertSucceeded(IReadOnlyList<StepResult> results)
     {
         Assert.NotEmpty(results);

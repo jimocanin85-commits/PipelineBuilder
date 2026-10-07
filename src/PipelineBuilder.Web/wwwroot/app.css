@@ -10,57 +10,64 @@
   Fonts: only fonts that come with the system, so the app also works on servers without internet access.
 */
 :root {
-  color-scheme: light;
-  --canvas: #f5f5f5; --surface: #ffffff; --subtle: #fafafa; --hover: #f5f5f5; --pressed: #e0e0e0;
-  --ink: #242424; --ink-2: #424242; --muted: #616161; --line: #e0e0e0; --line-strong: #d1d1d1; --line-accessible: #616161;
-  --brand: #0f6cbd; --brand-hover: #115ea3; --brand-pressed: #0c3b5e; --brand-soft: #ebf3fc; --brand-line: #b4d6fa; --on-brand: #ffffff; --link: #115ea3;
-  --bar: #0f6cbd; --on-bar: #ffffff; --bar-muted: rgb(255 255 255 / 0.86); --bar-line: rgb(255 255 255 / 0.32); --bar-hover: rgb(255 255 255 / 0.16);
-  --ok: #0e700e; --ok-icon: #107c10; --ok-soft: #f1faf1; --ok-line: #9fd89f;
-  --warning: #bc4b09; --warning-soft: #fff9f5; --warning-line: #fdcfb4;
-  --error: #b10e1c; --error-soft: #fdf3f4; --error-line: #eeacb2;
-  --code-bg: #ffffff; --code-ink: #1f1f1f; --code-comment: #008000; --code-key: #0451a5; --code-expr: #795e26; --code-no: #237893; --flash: #fff4ce;
-  --focus: #000000;
-  --shadow-2: 0 0 2px rgb(0 0 0 / 0.12), 0 1px 2px rgb(0 0 0 / 0.14);
-  --shadow-4: 0 0 2px rgb(0 0 0 / 0.12), 0 2px 4px rgb(0 0 0 / 0.14);
-  --shadow-8: 0 0 2px rgb(0 0 0 / 0.12), 0 4px 8px rgb(0 0 0 / 0.14);
-  --radius: 4px; --radius-card: 8px;
-  --bar-h: 48px; --tabs-h: 44px; --page: 1320px; --gutter: 24px;
+  /* Every colour is written once, as light-dark(light, dark). The browser picks by color-scheme,
+     which follows the system unless the button in the bar has set data-theme. */
+  color-scheme: light dark;
+  --canvas: light-dark(#f5f5f5, #1f1f1f);
+  --surface: light-dark(#ffffff, #292929);
+  --subtle: light-dark(#fafafa, #242424);
+  --hover: light-dark(#f5f5f5, #3d3d3d);
+  --pressed: light-dark(#e0e0e0, #1f1f1f);
+  --ink: light-dark(#242424, #ffffff);
+  --ink-2: light-dark(#424242, #d6d6d6);
+  --muted: light-dark(#616161, #adadad);
+  --line: light-dark(#e0e0e0, #424242);
+  --line-strong: light-dark(#d1d1d1, #666666);
+  --line-accessible: light-dark(#616161, #adadad);
+  --brand: light-dark(#0f6cbd, #479ef5);
+  --brand-hover: light-dark(#115ea3, #62abf5);
+  --brand-pressed: light-dark(#0c3b5e, #2886de);
+  --brand-soft: light-dark(#ebf3fc, #082338);
+  --brand-line: light-dark(#b4d6fa, #0e4775);
+  --on-brand: light-dark(#ffffff, #0a0a0a);
+  --link: light-dark(#115ea3, #62abf5);
+  --bar: light-dark(#0f6cbd, #141414);
+  --on-bar: #ffffff;
+  --bar-muted: light-dark(rgb(255 255 255 / 0.86), rgb(255 255 255 / 0.78));
+  --bar-line: light-dark(rgb(255 255 255 / 0.32), rgb(255 255 255 / 0.24));
+  --bar-hover: light-dark(rgb(255 255 255 / 0.16), rgb(255 255 255 / 0.12));
+  --ok: light-dark(#0e700e, #54b054);
+  --ok-icon: light-dark(#107c10, #54b054);
+  --ok-soft: light-dark(#f1faf1, #052505);
+  --ok-line: light-dark(#9fd89f, #107c10);
+  --warning: light-dark(#bc4b09, #faa06b);
+  --warning-soft: light-dark(#fff9f5, #4a1e04);
+  --warning-line: light-dark(#fdcfb4, #8a3707);
+  --error: light-dark(#b10e1c, #dc626d);
+  --error-soft: light-dark(#fdf3f4, #3b0509);
+  --error-line: light-dark(#eeacb2, #b10e1c);
+  --code-bg: light-dark(#ffffff, #1e1e1e);
+  --code-ink: light-dark(#1f1f1f, #d4d4d4);
+  --code-comment: light-dark(#008000, #6a9955);
+  --code-key: light-dark(#0451a5, #9cdcfe);
+  --code-expr: light-dark(#795e26, #dcdcaa);
+  --code-no: light-dark(#237893, #858585);
+  --flash: light-dark(#fff4ce, #4b3a00);
+  --focus: light-dark(#000000, #ffffff);
+  --shadow-2: 0 0 2px light-dark(rgb(0 0 0 / 0.12), rgb(0 0 0 / 0.24)), 0 1px 2px light-dark(rgb(0 0 0 / 0.14), rgb(0 0 0 / 0.28));
+  --shadow-4: 0 0 2px light-dark(rgb(0 0 0 / 0.12), rgb(0 0 0 / 0.24)), 0 2px 4px light-dark(rgb(0 0 0 / 0.14), rgb(0 0 0 / 0.28));
+  --radius: 4px;
+  --radius-card: 8px;
+  --bar-h: 48px;
+  --tabs-h: 44px;
+  --page: 1320px;
+  --gutter: 24px;
   --font: "Segoe UI Variable Text", "Segoe UI Variable", "Segoe UI", system-ui, -apple-system, "Helvetica Neue", sans-serif;
   --display: "Segoe UI Variable Display", "Segoe UI Variable", "Segoe UI", system-ui, -apple-system, "Helvetica Neue", sans-serif;
   --mono: "Cascadia Mono", "Cascadia Code", Consolas, ui-monospace, "SF Mono", Menlo, monospace;
 }
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    color-scheme: dark;
-    --canvas: #1f1f1f; --surface: #292929; --subtle: #242424; --hover: #3d3d3d; --pressed: #1f1f1f;
-    --ink: #ffffff; --ink-2: #d6d6d6; --muted: #adadad; --line: #424242; --line-strong: #666666; --line-accessible: #adadad;
-    --brand: #479ef5; --brand-hover: #62abf5; --brand-pressed: #2886de; --brand-soft: #082338; --brand-line: #0e4775; --on-brand: #0a0a0a; --link: #62abf5;
-    --bar: #141414; --on-bar: #ffffff; --bar-muted: rgb(255 255 255 / 0.78); --bar-line: rgb(255 255 255 / 0.24); --bar-hover: rgb(255 255 255 / 0.12);
-    --ok: #54b054; --ok-icon: #54b054; --ok-soft: #052505; --ok-line: #107c10;
-    --warning: #faa06b; --warning-soft: #4a1e04; --warning-line: #8a3707;
-    --error: #dc626d; --error-soft: #3b0509; --error-line: #b10e1c;
-    --code-bg: #1e1e1e; --code-ink: #d4d4d4; --code-comment: #6a9955; --code-key: #9cdcfe; --code-expr: #dcdcaa; --code-no: #858585; --flash: #4b3a00;
-    --focus: #ffffff;
-    --shadow-2: 0 0 2px rgb(0 0 0 / 0.24), 0 1px 2px rgb(0 0 0 / 0.28);
-    --shadow-4: 0 0 2px rgb(0 0 0 / 0.24), 0 2px 4px rgb(0 0 0 / 0.28);
-    --shadow-8: 0 0 2px rgb(0 0 0 / 0.24), 0 4px 8px rgb(0 0 0 / 0.28);
-  }
-}
-:root[data-theme="dark"] {
-  color-scheme: dark;
-  --canvas: #1f1f1f; --surface: #292929; --subtle: #242424; --hover: #3d3d3d; --pressed: #1f1f1f;
-  --ink: #ffffff; --ink-2: #d6d6d6; --muted: #adadad; --line: #424242; --line-strong: #666666; --line-accessible: #adadad;
-  --brand: #479ef5; --brand-hover: #62abf5; --brand-pressed: #2886de; --brand-soft: #082338; --brand-line: #0e4775; --on-brand: #0a0a0a; --link: #62abf5;
-  --bar: #141414; --on-bar: #ffffff; --bar-muted: rgb(255 255 255 / 0.78); --bar-line: rgb(255 255 255 / 0.24); --bar-hover: rgb(255 255 255 / 0.12);
-  --ok: #54b054; --ok-icon: #54b054; --ok-soft: #052505; --ok-line: #107c10;
-  --warning: #faa06b; --warning-soft: #4a1e04; --warning-line: #8a3707;
-  --error: #dc626d; --error-soft: #3b0509; --error-line: #b10e1c;
-  --code-bg: #1e1e1e; --code-ink: #d4d4d4; --code-comment: #6a9955; --code-key: #9cdcfe; --code-expr: #dcdcaa; --code-no: #858585; --flash: #4b3a00;
-  --focus: #ffffff;
-  --shadow-2: 0 0 2px rgb(0 0 0 / 0.24), 0 1px 2px rgb(0 0 0 / 0.28);
-  --shadow-4: 0 0 2px rgb(0 0 0 / 0.24), 0 2px 4px rgb(0 0 0 / 0.28);
-  --shadow-8: 0 0 2px rgb(0 0 0 / 0.24), 0 4px 8px rgb(0 0 0 / 0.28);
-}
+:root[data-theme="light"] { color-scheme: light; }
+:root[data-theme="dark"] { color-scheme: dark; }
 
 * { box-sizing: border-box; }
 body { margin: 0; font: 14px/20px var(--font); background: var(--canvas); color: var(--ink); -webkit-font-smoothing: antialiased; }
@@ -90,12 +97,12 @@ button, input, select, textarea { font: inherit; color: inherit; }
 
 /* The steps as tabs. The current one is underlined; a finished one gets a green tick. */
 .wizard-nav { position: sticky; top: var(--bar-h); z-index: 20; display: flex; gap: 4px; height: var(--tabs-h); padding: 0 max(calc(var(--gutter) - 12px), calc((100% - var(--page)) / 2 - 12px)); background: var(--surface); border-bottom: 1px solid var(--line); overflow-x: auto; }
-.step-btn { position: relative; flex: none; display: inline-flex; align-items: center; gap: 6px; height: 100%; padding: 0 12px; color: var(--ink-2); background: none; border: 0; cursor: pointer; white-space: nowrap; }
-.step-btn::after { content: ""; position: absolute; left: 12px; right: 12px; bottom: 0; height: 3px; border-radius: 3px 3px 0 0; background: transparent; transition: background-color 0.1s; }
-.step-btn:hover { color: var(--ink); }
-.step-btn:hover::after { background: var(--line-strong); }
-.step-btn.active { color: var(--ink); font-weight: 600; }
-.step-btn.active::after { background: var(--brand); }
+.step-btn, .side-tab { position: relative; flex: none; display: inline-flex; align-items: center; gap: 6px; height: 100%; padding: 0 12px; color: var(--ink-2); background: none; border: 0; cursor: pointer; white-space: nowrap; }
+.step-btn::after, .side-tab::after { content: ""; position: absolute; left: 12px; right: 12px; bottom: 0; height: 3px; border-radius: 3px 3px 0 0; background: transparent; transition: background-color 0.1s; }
+.step-btn:hover, .side-tab:hover { color: var(--ink); }
+.step-btn:hover::after, .side-tab:hover::after { background: var(--line-strong); }
+.step-btn.active, .side-tab[aria-selected="true"] { color: var(--ink); font-weight: 600; }
+.step-btn.active::after, .side-tab[aria-selected="true"]::after { background: var(--brand); }
 .step-no { display: none; }
 .step-btn.done .step-no { display: block; position: relative; width: 16px; height: 16px; border-radius: 50%; background: var(--ok-icon); font-size: 0; }
 .step-btn.done .step-no::after { content: ""; position: absolute; left: 4px; top: 4.5px; width: 8px; height: 4px; border: solid var(--surface); border-width: 0 0 2px 2px; transform: rotate(-45deg); }
@@ -122,7 +129,8 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .flow .icon { position: absolute; left: 11px; top: 9px; display: block; width: 20px; height: 20px; color: var(--brand); }
 .flow .icon svg { display: block; width: 20px; height: 20px; }
 .flow strong { display: block; font-weight: 600; overflow-wrap: anywhere; }
-.flow span { display: block; color: var(--muted); font-size: 12px; line-height: 16px; }
+/* The second line of a stage, a choice or a need: smaller and greyer. */
+.flow span, .choice span, .needs-list .what { display: block; color: var(--muted); font-size: 12px; line-height: 16px; }
 /* An approval sits on the line, before the stage it guards. */
 .flow li.gate { flex: 0 0 auto; display: flex; flex-direction: column; align-items: center; gap: 4px; min-width: 0; max-width: 136px; padding: 8px 0 0; text-align: center; background: none; border: 0; box-shadow: none; }
 .flow .pill { display: inline-flex; align-items: center; gap: 5px; height: 24px; padding: 0 10px 0 7px; border: 1px solid var(--brand-line); border-radius: 999px; background: var(--brand-soft); color: var(--link); font-size: 12px; font-weight: 600; white-space: nowrap; }
@@ -138,14 +146,10 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .wizard-side { position: sticky; top: calc(var(--bar-h) + var(--tabs-h) + 20px); min-width: 0; max-height: calc(100dvh - var(--bar-h) - var(--tabs-h) - 20px - 57px - 20px); overflow-y: auto; background: var(--surface); border-radius: var(--radius-card); box-shadow: var(--shadow-2); }
 .result { padding: 0 20px 20px; }
 .result > .hint { padding-top: 20px; margin: 0; }
+.result > h3 { margin: 0; padding: 16px 0 0; border: 0; }
 .side-head { position: sticky; top: 0; z-index: 3; margin: 0 -20px; padding: 0 20px; background: var(--surface); border-bottom: 1px solid var(--line); }
 .side-tabs { display: flex; gap: 4px; margin: 0 -12px; height: 44px; }
-.side-tab { position: relative; padding: 0 12px; border: 0; background: none; color: var(--ink-2); cursor: pointer; }
-.side-tab::after { content: ""; position: absolute; left: 12px; right: 12px; bottom: -1px; height: 3px; border-radius: 3px 3px 0 0; background: transparent; }
-.side-tab:hover { color: var(--ink); }
-.side-tab:hover::after { background: var(--line-strong); }
-.side-tab[aria-selected="true"] { color: var(--ink); font-weight: 600; }
-.side-tab[aria-selected="true"]::after { background: var(--brand); }
+.side-tab::after { bottom: -1px; }
 
 /* Previous and Next, in a bar at the bottom as in the Azure portal. */
 .wizard-footer { position: sticky; bottom: 0; z-index: 20; display: flex; align-items: center; gap: 8px; padding: 12px max(var(--gutter), calc((100% - var(--page)) / 2)) calc(12px + env(safe-area-inset-bottom, 0px)); background: var(--surface); border-top: 1px solid var(--line); }
@@ -205,7 +209,6 @@ label.check, .card label { display: flex; align-items: center; gap: 10px; font-w
 .choice input:focus-visible { border-radius: 50%; }
 .choice label:has(input:checked) { border-color: var(--brand); background: var(--brand-soft); box-shadow: inset 0 0 0 1px var(--brand); }
 .choice strong { display: block; font-weight: 600; }
-.choice span { display: block; color: var(--muted); font-size: 12px; line-height: 16px; }
 
 /* A longer explanation of a term, folded away until asked for. */
 details.explain { margin-top: 4px; font-size: 12px; line-height: 16px; }
@@ -237,12 +240,6 @@ details.more > summary + h3 { margin-top: 8px; padding-top: 0; border-top: 0; }
 .load-settings input[type=file] { display: block; width: 100%; margin-top: 6px; color: var(--muted); font-size: 13px; }
 .load-settings input[type=file]::file-selector-button { margin-right: 10px; min-height: 32px; padding: 0 12px; font: inherit; font-weight: 600; color: var(--ink); background: var(--surface); border: 1px solid var(--line-strong); border-radius: var(--radius); cursor: pointer; }
 
-/* Environments: the order they are deployed in. */
-.order { display: flex; flex-wrap: wrap; gap: 6px 0; margin: 10px 0 0; padding: 0; list-style: none; }
-.order li { display: flex; align-items: center; }
-.order li:not(:last-child)::after { content: ""; width: 20px; height: 2px; background: var(--line-strong); }
-.order span { padding: 3px 12px; border: 1px solid var(--line-strong); border-radius: var(--radius); background: var(--subtle); font-family: var(--mono); font-size: 13px; }
-
 /* Templates: a list to pick from, as when Azure DevOps asks how to configure a pipeline. */
 .group { margin: 20px 0 8px; padding: 0; border: 0; color: var(--muted); font: 600 12px/16px var(--font); }
 .lead + .group { margin-top: 0; }
@@ -266,13 +263,10 @@ details.more > summary + h3 { margin-top: 8px; padding-top: 0; border-top: 0; }
 /* What the pipeline needs in Azure DevOps, grouped by where each thing is created. */
 .needs-list { margin: 0; padding: 0; list-style: none; }
 .needs-list li { padding: 8px 0; border-top: 1px solid var(--line); }
-.needs-list li:first-child { padding: 16px 0 0; border: 0; font: 600 16px/22px var(--font); }
-/* Under the tabs the list needs no heading of its own: the tab already says it. */
-.side-head + .needs-list li:first-child { display: none; }
 .needs-list li.where { margin-top: 12px; padding: 6px 10px; border: 0; border-radius: var(--radius); background: var(--subtle); color: var(--ink-2); font-size: 12px; line-height: 16px; }
 .needs-list li.where + li { border-top: 0; }
+.needs-list li.where:first-child { margin-top: 16px; }
 .needs-list code { display: block; overflow-wrap: anywhere; font-weight: 600; }
-.needs-list .what { display: block; color: var(--muted); font-size: 12px; line-height: 16px; }
 .needs-list .tag { margin-top: 4px; }
 
 /* The YAML file, shown the way the pipeline editor in Azure DevOps shows it. */

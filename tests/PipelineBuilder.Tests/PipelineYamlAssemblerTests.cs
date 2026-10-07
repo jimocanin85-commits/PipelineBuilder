@@ -77,7 +77,7 @@ public class PipelineYamlAssemblerTests
     [Fact]
     public void TriggerAllBranchesUsesWildcard()
     {
-        var yaml = new PipelineYamlAssembler().AddTrigger(TriggerConfig.AllBranches).Build();
+        var yaml = new PipelineYamlAssembler().AddTrigger(new TriggerConfig { TriggerAll = true }).Build();
 
         Assert.Contains("      - '*'", yaml);
         Assert.DoesNotContain("'main'", yaml);
@@ -86,7 +86,7 @@ public class PipelineYamlAssemblerTests
     [Fact]
     public void TriggerOnlyEmitsPathsWhenFiltersAreSet()
     {
-        var yaml = new PipelineYamlAssembler().AddTrigger(TriggerConfig.MainOnly).Build();
+        var yaml = new PipelineYamlAssembler().AddTrigger(new TriggerConfig { IncludeBranches = new[] { "main" } }).Build();
 
         Assert.Contains("      - 'main'", yaml);
         Assert.DoesNotContain("develop", yaml);
