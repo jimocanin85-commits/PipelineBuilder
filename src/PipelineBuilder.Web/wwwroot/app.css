@@ -218,6 +218,7 @@ details.explain p { margin: 6px 0 0; padding: 8px 12px; color: var(--ink); backg
 .card.row { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; padding: 10px 12px; }
 .card.row label { margin: 0; }
 .card.row input[type=text], .card.row select { min-height: 32px; padding: 5px 10px; color: var(--ink); background-color: var(--surface); border: 1px solid var(--line-strong); border-bottom-color: var(--line-accessible); border-radius: var(--radius); }
+.card.row select { padding-right: 30px; }
 .card .field > label { display: block; font-weight: 600; cursor: auto; }
 .card .btn-link { display: inline-block; margin-top: 12px; }
 .card.row .btn-link { margin: 0 0 0 auto; }
