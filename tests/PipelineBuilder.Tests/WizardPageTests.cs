@@ -137,7 +137,7 @@ public class WizardPageTests : BunitContext
 
         GoTo(cut, step);
 
-        Assert.Equal(new[] { "Build", "test", "preprod", "prod" }, cut.FindAll(".wizard-side .flow li strong").Select(e => e.TextContent));
+        Assert.Equal(new[] { "Build", "test", "preprod", "prod" }, cut.FindAll(".stages .flow li strong").Select(e => e.TextContent));
         Assert.NotEmpty(cut.FindAll(".wizard-side .needs-list li[data-need='Environment']"));
     }
 
@@ -146,16 +146,16 @@ public class WizardPageTests : BunitContext
     {
         var cut = Render<Home>();
         GoTo(cut, WizardStep.Safety);
-        Assert.Contains("A failed deployment is rolled back", cut.Find(".wizard-side").TextContent);
-        Assert.Contains("Approval", cut.Find(".wizard-side .flow .pill").TextContent);
-        Assert.Contains("Only from main", cut.Find(".wizard-side .flow").TextContent);
+        Assert.Contains("A failed deployment is rolled back", cut.Find(".stages").TextContent);
+        Assert.Contains("Approval", cut.Find(".stages .flow .pill").TextContent);
+        Assert.Contains("Only from main", cut.Find(".stages .flow").TextContent);
 
         cut.Find("#rollback-enabled").Change(false);
         cut.Find("#add-health-check").Click();
         cut.Find(".card input[placeholder^='https://']").Change("https://my-app.contoso.com/health");
 
-        Assert.DoesNotContain("rolled back", cut.Find(".wizard-side").TextContent);
-        Assert.Contains("Deploy, then health check", cut.Find(".wizard-side .flow").TextContent);
+        Assert.DoesNotContain("rolled back", cut.Find(".stages").TextContent);
+        Assert.Contains("Deploy, then health check", cut.Find(".stages .flow").TextContent);
     }
 
     [Fact]
@@ -166,8 +166,9 @@ public class WizardPageTests : BunitContext
 
         cut.Find("#environments").Change("Bad Name");
 
-        Assert.Empty(cut.FindAll(".wizard-side .flow"));
-        Assert.Contains("Fix the settings marked with !", cut.Find(".wizard-side").TextContent);
+        Assert.Empty(cut.FindAll(".stages .flow"));
+        Assert.Contains("Fix the settings marked with !", cut.Find(".stages").TextContent);
+        Assert.Empty(cut.FindAll(".wizard-side .needs-list"));
     }
 
     [Fact]
@@ -195,12 +196,12 @@ public class WizardPageTests : BunitContext
     public void ThePipelinePanelSaysWhetherThePipelineIsReady()
     {
         var cut = Render<Home>();
-        Assert.Equal("Ready", cut.Find(".wizard-side .chip").TextContent);
+        Assert.Equal("Ready", cut.Find(".stages .chip").TextContent);
 
         GoTo(cut, WizardStep.Target);
         cut.Find("#environments").Change("Bad Name");
 
-        Assert.Equal("Not ready", cut.Find(".wizard-side .chip").TextContent);
+        Assert.Equal("Not ready", cut.Find(".stages .chip").TextContent);
     }
 
     [Fact]
@@ -689,36 +690,49 @@ public class WizardPageTests : BunitContext
     private static void GoTo(IRenderedComponent<Home> cut, WizardStep step) =>
         cut.Find($"button[data-step='{step}']").Click();
 
-    // The steps on the left say what was chosen on each, so the whole pipeline can be read off them.
+    // The steps are tabs, as in the Azure portal: the current one is marked, and the ones before it are done.
     [Fact]
-    public void EachStepSaysWhatWasChosenThere()
+    public void TheStepsAreTabsThatShowWhereYouAre()
     {
         var cut = Render<Home>();
-        string Chosen(WizardStep step) => cut.Find($"button[data-step='{step}'] .step-sum").TextContent;
+        Assert.Equal(new[] { "What", "Where", "Safety", "Result" }, cut.FindAll(".wizard-nav .step-title").Select(e => e.TextContent));
 
-        Assert.Equal("IIS website", Chosen(WizardStep.Start));
-        Assert.Equal("test, preprod, prod", Chosen(WizardStep.Target));
-        Assert.Equal("Rollback", Chosen(WizardStep.Safety));
-        Assert.Equal("Ready", Chosen(WizardStep.Result));
-        Assert.Equal("What", cut.Find($"button[data-step='{WizardStep.Start}'] .step-title").TextContent);
-
-        cut.Find("button[data-template='linux-service']").Click();
-        GoTo(cut, WizardStep.Target);
-        cut.Find("#skip-preprod").Change(true);
         GoTo(cut, WizardStep.Safety);
-        cut.Find("#rollback-enabled").Change(false);
-        Assert.Equal("Nothing yet", Chosen(WizardStep.Safety));
-        cut.Find("#add-health-check").Click();
-        cut.Find("#add-health-check").Click();
+
+        Assert.Equal(new[] { "done", "done", "active", "" }, cut.FindAll(".wizard-nav .step-btn").Select(tab =>
+            tab.ClassList.Contains("active") ? "active" : tab.ClassList.Contains("done") ? "done" : ""));
+        Assert.Equal("step", cut.Find($"button[data-step='{WizardStep.Safety}']").GetAttribute("aria-current"));
+    }
+
+    // Previous and Next sit in a bar below the step; on the first and last step the one that leads nowhere is off.
+    [Fact]
+    public void PreviousAndNextSayWhereTheyLead()
+    {
+        var cut = Render<Home>();
+        Assert.True(cut.Find(".wizard-footer #back").HasAttribute("disabled"));
+        Assert.Equal("Next: Where", cut.Find(".wizard-footer #next").TextContent);
+
+        cut.Find("#next").Click();
+        Assert.Equal("Previous", cut.Find("#back").TextContent);
+        Assert.False(cut.Find("#back").HasAttribute("disabled"));
+        Assert.Equal("Next: Safety", cut.Find("#next").TextContent);
+
+        GoTo(cut, WizardStep.Result);
+        Assert.True(cut.Find("#next").HasAttribute("disabled"));
+    }
+
+    // The pipeline is drawn as stage boxes, each with a small drawing of what it does.
+    [Fact]
+    public void EveryStageInThePipelineHasItsDrawing()
+    {
+        var cut = Render<Home>();
+        GoTo(cut, WizardStep.Safety);
         cut.Find("#add-notification").Click();
 
-        Assert.Equal("Linux service", Chosen(WizardStep.Start));
-        Assert.Equal("test, prod", Chosen(WizardStep.Target));
-        Assert.Equal("2 health checks, 1 notification", Chosen(WizardStep.Safety));
+        var stages = cut.FindAll(".stages .flow li:not(.gate)");
 
-        GoTo(cut, WizardStep.Start);
-        cut.Find("#pipeline-name").Change(string.Empty);
-        Assert.Equal("Not ready", Chosen(WizardStep.Result));
+        Assert.Equal(new[] { "Build", "test", "preprod", "prod", "Notify" }, stages.Select(stage => stage.QuerySelector("strong")!.TextContent));
+        Assert.All(stages, stage => Assert.NotNull(stage.QuerySelector(".icon svg")));
     }
 
     // The pane beside the form can show the file itself, and marks what a setting just changed in it.
@@ -733,7 +747,7 @@ public class WizardPageTests : BunitContext
         cut.Find(".side-tab[data-tab='file']").Click();
 
         Assert.Equal("true", cut.Find(".side-tab[data-tab='file']").GetAttribute("aria-selected"));
-        Assert.Empty(cut.FindAll(".wizard-side .flow"));
+        Assert.Empty(cut.FindAll(".wizard-side .needs-list"));
         Assert.Contains("stages:", cut.Find(".yaml-live").TextContent);
         Assert.Empty(cut.FindAll(".yaml-live .line.changed")); // opening the file is not a change
 
@@ -744,15 +758,15 @@ public class WizardPageTests : BunitContext
         Assert.Contains("dependsOn: Approve", changed);
         Assert.DoesNotContain("stages:", changed);
 
-        // The Result step shows the file itself, so there the pane goes back to the overview.
+        // The Result step shows the file itself, so there the pane goes back to the list.
         GoTo(cut, WizardStep.Result);
         Assert.Empty(cut.FindAll(".side-tab"));
         Assert.Empty(cut.FindAll(".yaml-live"));
-        Assert.NotEmpty(cut.FindAll(".wizard-side .flow"));
+        Assert.NotEmpty(cut.FindAll(".wizard-side .needs-list"));
 
         GoTo(cut, WizardStep.Target);
         cut.Find(".side-tab[data-tab='overview']").Click();
-        Assert.NotEmpty(cut.FindAll(".wizard-side .flow"));
+        Assert.NotEmpty(cut.FindAll(".wizard-side .needs-list"));
     }
 
     [Fact]
@@ -762,14 +776,14 @@ public class WizardPageTests : BunitContext
         GoTo(cut, WizardStep.Target);
         cut.Find("#approve-preprod").Change(true);
 
-        var rows = cut.FindAll(".wizard-side .flow li").Select(row => (Gate: row.ClassList.Contains("gate"), Text: row.TextContent)).ToList();
+        var rows = cut.FindAll(".stages .flow li").Select(row => (Gate: row.ClassList.Contains("gate"), Text: row.TextContent)).ToList();
 
         Assert.Equal(new[] { false, false, true, false, true, false }, rows.Select(row => row.Gate)); // Build, test, gate, preprod, gate, prod
-        Assert.Contains("In the pipeline file", rows[2].Text);
-        Assert.Contains("Set on the environment in Azure DevOps", rows[4].Text);
+        Assert.Contains("In the file", rows[2].Text);
+        Assert.Contains("In Azure DevOps", rows[4].Text);
 
         cut.Find("#approve-prod").Change(true);
-        Assert.Contains("In the file, and on the environment in Azure DevOps", cut.FindAll(".wizard-side .flow li.gate")[1].TextContent);
+        Assert.Contains("In the file and in Azure DevOps", cut.FindAll(".stages .flow li.gate")[1].TextContent);
     }
 
     [Fact]

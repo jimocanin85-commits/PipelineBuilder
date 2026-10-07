@@ -1,335 +1,340 @@
 /*
-  Layout: a workbench in three columns. The steps on the left, the step being filled in
-  in the middle, and the pipeline it builds on the right, always in view.
-  One idea runs through it: a pipeline is a line with stations. The steps, the stages of
-  the pipeline and the list of what to do next are all drawn that way.
-  Theme: follows the system; the button in the header overrides it (data-theme on <html>).
-  Fonts: only fonts that come with the system, so the app also works on servers without
-  internet access. Headings use Bahnschrift, the DIN lettering of signs and control panels.
+  The look is Microsoft's Fluent 2, laid out the way Azure does it, so the people who use it
+  already know their way around:
+    - a blue bar on top and tabs with an underline, as in the Azure portal;
+    - the pipeline drawn as stage boxes joined by a line, as on a run in Azure DevOps;
+    - Previous and Next in a bar at the bottom, as in the portal's "Create" pages;
+    - the YAML shown the way the pipeline editor in Azure DevOps shows it.
+  Colours, sizes and shadows are Fluent 2's own values. Text is 14px Segoe UI.
+  Theme: follows the system; the button in the bar overrides it (data-theme on <html>).
+  Fonts: only fonts that come with the system, so the app also works on servers without internet access.
 */
 :root {
   color-scheme: light;
-  --surface: #ffffff; --canvas: #f4f5f8; --sunken: #eceef3; --ink: #0c1116; --muted: #5a6472;
-  --line: #e3e6ec; --line-strong: #c8ced8;
-  --accent: #1f3df2; --accent-strong: #1730c8; --accent-soft: #edf0ff; --on-accent: #ffffff;
-  --ok: #0a7a50; --ok-soft: #e0f3ea; --approval: #915000; --approval-soft: #fcefd9;
-  --warning: #915000; --error: #b4271b; --error-soft: #fbeae8; --info: #1f3df2;
-  --code-bg: #f7f8fb; --code-ink: #1a2230; --code-comment: #4a7a61; --code-key: #1f3df2; --code-expr: #915000; --code-muted: #a2aab6;
-  --flash: #fff1c9;
-  --shadow: 0 1px 2px rgb(12 17 22 / 0.06), 0 6px 20px -10px rgb(12 17 22 / 0.2);
-  --ring: 0 0 0 3px rgb(31 61 242 / 0.18);
-  --radius: 14px; --radius-control: 10px;
-  --bar-h: 3.5rem;
-  --font: "Segoe UI Variable Text", "Segoe UI", system-ui, -apple-system, sans-serif;
-  --display: Bahnschrift, "DIN Alternate", "Barlow Semi Condensed", "Segoe UI Variable Display", "Segoe UI", system-ui, sans-serif;
+  --canvas: #f5f5f5; --surface: #ffffff; --subtle: #fafafa; --hover: #f5f5f5; --pressed: #e0e0e0;
+  --ink: #242424; --ink-2: #424242; --muted: #616161; --line: #e0e0e0; --line-strong: #d1d1d1; --line-accessible: #616161;
+  --brand: #0f6cbd; --brand-hover: #115ea3; --brand-pressed: #0c3b5e; --brand-soft: #ebf3fc; --brand-line: #b4d6fa; --on-brand: #ffffff; --link: #115ea3;
+  --bar: #0f6cbd; --on-bar: #ffffff; --bar-muted: rgb(255 255 255 / 0.86); --bar-line: rgb(255 255 255 / 0.32); --bar-hover: rgb(255 255 255 / 0.16);
+  --ok: #0e700e; --ok-icon: #107c10; --ok-soft: #f1faf1; --ok-line: #9fd89f;
+  --warning: #bc4b09; --warning-soft: #fff9f5; --warning-line: #fdcfb4;
+  --error: #b10e1c; --error-soft: #fdf3f4; --error-line: #eeacb2;
+  --code-bg: #ffffff; --code-ink: #1f1f1f; --code-comment: #008000; --code-key: #0451a5; --code-expr: #795e26; --code-no: #237893; --flash: #fff4ce;
+  --focus: #000000;
+  --shadow-2: 0 0 2px rgb(0 0 0 / 0.12), 0 1px 2px rgb(0 0 0 / 0.14);
+  --shadow-4: 0 0 2px rgb(0 0 0 / 0.12), 0 2px 4px rgb(0 0 0 / 0.14);
+  --shadow-8: 0 0 2px rgb(0 0 0 / 0.12), 0 4px 8px rgb(0 0 0 / 0.14);
+  --radius: 4px; --radius-card: 8px;
+  --bar-h: 48px; --tabs-h: 44px; --page: 1320px; --gutter: 24px;
+  --font: "Segoe UI Variable Text", "Segoe UI Variable", "Segoe UI", system-ui, -apple-system, "Helvetica Neue", sans-serif;
+  --display: "Segoe UI Variable Display", "Segoe UI Variable", "Segoe UI", system-ui, -apple-system, "Helvetica Neue", sans-serif;
   --mono: "Cascadia Mono", "Cascadia Code", Consolas, ui-monospace, "SF Mono", Menlo, monospace;
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     color-scheme: dark;
-    --surface: #0f1114; --canvas: #15181d; --sunken: #1c2027; --ink: #eceff4; --muted: #98a2b0;
-    --line: #242932; --line-strong: #3a4250;
-    --accent: #91a4ff; --accent-strong: #b3c0ff; --accent-soft: #1a2147; --on-accent: #0b0f1d;
-    --ok: #56d3a2; --ok-soft: #10352a; --approval: #f1b75c; --approval-soft: #3a2b10;
-    --warning: #f1b75c; --error: #ff9086; --error-soft: #3b1d1b; --info: #91a4ff;
-    --code-bg: #0b0d10; --code-ink: #dfe4ec; --code-comment: #7fb89a; --code-key: #91a4ff; --code-expr: #f1b75c; --code-muted: #4d5665;
-    --flash: #4a3a12;
-    --shadow: 0 1px 2px rgb(0 0 0 / 0.5), 0 6px 20px -10px rgb(0 0 0 / 0.7);
-    --ring: 0 0 0 3px rgb(145 164 255 / 0.3);
+    --canvas: #1f1f1f; --surface: #292929; --subtle: #242424; --hover: #3d3d3d; --pressed: #1f1f1f;
+    --ink: #ffffff; --ink-2: #d6d6d6; --muted: #adadad; --line: #424242; --line-strong: #666666; --line-accessible: #adadad;
+    --brand: #479ef5; --brand-hover: #62abf5; --brand-pressed: #2886de; --brand-soft: #082338; --brand-line: #0e4775; --on-brand: #0a0a0a; --link: #62abf5;
+    --bar: #141414; --on-bar: #ffffff; --bar-muted: rgb(255 255 255 / 0.78); --bar-line: rgb(255 255 255 / 0.24); --bar-hover: rgb(255 255 255 / 0.12);
+    --ok: #54b054; --ok-icon: #54b054; --ok-soft: #052505; --ok-line: #107c10;
+    --warning: #faa06b; --warning-soft: #4a1e04; --warning-line: #8a3707;
+    --error: #dc626d; --error-soft: #3b0509; --error-line: #b10e1c;
+    --code-bg: #1e1e1e; --code-ink: #d4d4d4; --code-comment: #6a9955; --code-key: #9cdcfe; --code-expr: #dcdcaa; --code-no: #858585; --flash: #4b3a00;
+    --focus: #ffffff;
+    --shadow-2: 0 0 2px rgb(0 0 0 / 0.24), 0 1px 2px rgb(0 0 0 / 0.28);
+    --shadow-4: 0 0 2px rgb(0 0 0 / 0.24), 0 2px 4px rgb(0 0 0 / 0.28);
+    --shadow-8: 0 0 2px rgb(0 0 0 / 0.24), 0 4px 8px rgb(0 0 0 / 0.28);
   }
 }
 :root[data-theme="dark"] {
   color-scheme: dark;
-  --surface: #0f1114; --canvas: #15181d; --sunken: #1c2027; --ink: #eceff4; --muted: #98a2b0;
-  --line: #242932; --line-strong: #3a4250;
-  --accent: #91a4ff; --accent-strong: #b3c0ff; --accent-soft: #1a2147; --on-accent: #0b0f1d;
-  --ok: #56d3a2; --ok-soft: #10352a; --approval: #f1b75c; --approval-soft: #3a2b10;
-  --warning: #f1b75c; --error: #ff9086; --error-soft: #3b1d1b; --info: #91a4ff;
-  --code-bg: #0b0d10; --code-ink: #dfe4ec; --code-comment: #7fb89a; --code-key: #91a4ff; --code-expr: #f1b75c; --code-muted: #4d5665;
-  --flash: #4a3a12;
-  --shadow: 0 1px 2px rgb(0 0 0 / 0.5), 0 6px 20px -10px rgb(0 0 0 / 0.7);
-  --ring: 0 0 0 3px rgb(145 164 255 / 0.3);
+  --canvas: #1f1f1f; --surface: #292929; --subtle: #242424; --hover: #3d3d3d; --pressed: #1f1f1f;
+  --ink: #ffffff; --ink-2: #d6d6d6; --muted: #adadad; --line: #424242; --line-strong: #666666; --line-accessible: #adadad;
+  --brand: #479ef5; --brand-hover: #62abf5; --brand-pressed: #2886de; --brand-soft: #082338; --brand-line: #0e4775; --on-brand: #0a0a0a; --link: #62abf5;
+  --bar: #141414; --on-bar: #ffffff; --bar-muted: rgb(255 255 255 / 0.78); --bar-line: rgb(255 255 255 / 0.24); --bar-hover: rgb(255 255 255 / 0.12);
+  --ok: #54b054; --ok-icon: #54b054; --ok-soft: #052505; --ok-line: #107c10;
+  --warning: #faa06b; --warning-soft: #4a1e04; --warning-line: #8a3707;
+  --error: #dc626d; --error-soft: #3b0509; --error-line: #b10e1c;
+  --code-bg: #1e1e1e; --code-ink: #d4d4d4; --code-comment: #6a9955; --code-key: #9cdcfe; --code-expr: #dcdcaa; --code-no: #858585; --flash: #4b3a00;
+  --focus: #ffffff;
+  --shadow-2: 0 0 2px rgb(0 0 0 / 0.24), 0 1px 2px rgb(0 0 0 / 0.28);
+  --shadow-4: 0 0 2px rgb(0 0 0 / 0.24), 0 2px 4px rgb(0 0 0 / 0.28);
+  --shadow-8: 0 0 2px rgb(0 0 0 / 0.24), 0 4px 8px rgb(0 0 0 / 0.28);
 }
 
 * { box-sizing: border-box; }
-body { margin: 0; font: 15px/1.55 var(--font); background: var(--surface); color: var(--ink); -webkit-font-smoothing: antialiased; }
-h1, h2, h3 { margin: 0; font-family: var(--display); font-stretch: semi-condensed; font-weight: 600; line-height: 1.1; }
-h2 { font-size: 2.6rem; line-height: 1.02; letter-spacing: -0.01em; margin-bottom: 1.5rem; text-wrap: balance; }
-h3 { font-size: 1.35rem; margin-top: 2.5rem; padding-top: 2rem; border-top: 1px solid var(--line); }
-h2 + h3, .lead + h3 { margin-top: 0; padding-top: 0; border-top: 0; }
-code, pre { font-family: var(--mono); font-size: 0.875em; }
+body { margin: 0; font: 14px/20px var(--font); background: var(--canvas); color: var(--ink); -webkit-font-smoothing: antialiased; }
+h1, h2, h3 { margin: 0; font-weight: 600; }
+h2 { font: 600 28px/36px var(--display); letter-spacing: -0.01em; margin-bottom: 4px; text-wrap: balance; }
+h3 { font: 600 16px/22px var(--font); margin-top: 28px; padding-top: 24px; border-top: 1px solid var(--line); }
+h2 + h3 { margin-top: 20px; padding-top: 0; border-top: 0; }
+code, pre { font-family: var(--mono); font-size: 13px; }
 button, input, select, textarea { font: inherit; color: inherit; }
-:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+:focus-visible { outline: 2px solid var(--focus); outline-offset: 1px; border-radius: var(--radius); }
 
-/* Header: a thin bar that stays at the top. */
-.app-shell { min-height: 100dvh; display: grid; grid-template-rows: auto 1fr; }
-.app-header { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 20; display: flex; align-items: center; gap: 1rem; min-height: var(--bar-h); padding: 0 1.25rem; background: color-mix(in srgb, var(--surface) 86%, transparent); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); border-bottom: 1px solid var(--line); }
-.app-header h1 { display: flex; align-items: center; gap: 0.65rem; font-size: 1.2rem; letter-spacing: 0.005em; white-space: nowrap; }
-.app-header .mark { width: 34px; height: 14px; color: var(--accent); }
-.app-header p { margin: 0; color: var(--muted); font-size: 0.85rem; }
-.app-header .tagline { padding-left: 1rem; border-left: 1px solid var(--line); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
-.app-header strong { color: var(--ink); font-weight: 600; }
-.header-end { display: flex; align-items: center; gap: 0.9rem; margin-left: auto; white-space: nowrap; }
-.theme-toggle { display: grid; place-items: center; width: 2.1rem; height: 2.1rem; padding: 0; color: var(--ink); background: transparent; border: 1px solid var(--line-strong); border-radius: 50%; cursor: pointer; transition: border-color 0.12s, background-color 0.12s; }
-.theme-toggle:hover { background: var(--canvas); border-color: var(--muted); }
-.theme-toggle svg { width: 1.05rem; height: 1.05rem; }
-.app-main { min-width: 0; }
+/* The bar on top, as in the Azure portal. */
+.app-shell { min-height: 100dvh; display: flex; flex-direction: column; }
+.app-header { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 30; display: flex; align-items: center; gap: 12px; height: var(--bar-h); padding: 0 12px 0 20px; background: var(--bar); color: var(--on-bar); }
+.app-header h1 { display: flex; align-items: center; gap: 10px; font: 600 16px/22px var(--font); white-space: nowrap; }
+.app-header .mark { width: 30px; height: 12px; }
+.app-header p { margin: 0; color: var(--bar-muted); font-size: 13px; }
+.app-header .tagline { padding-left: 12px; border-left: 1px solid var(--bar-line); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+.app-header strong { color: var(--on-bar); font-weight: 600; }
+.header-end { display: flex; align-items: center; gap: 8px; margin-left: auto; white-space: nowrap; }
+.theme-toggle { display: grid; place-items: center; width: 32px; height: 32px; padding: 0; color: var(--on-bar); background: transparent; border: 0; border-radius: var(--radius); cursor: pointer; }
+.theme-toggle:hover { background: var(--bar-hover); }
+.theme-toggle:focus-visible { outline-color: var(--on-bar); }
+.theme-toggle svg { width: 18px; height: 18px; }
+.app-main { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+.wizard { flex: 1; display: flex; flex-direction: column; min-width: 0; }
 
-/* Three columns: steps, the step itself, the pipeline. */
-.wizard { display: grid; grid-template-columns: 15.5rem minmax(0, 1fr); align-items: start; }
-.wizard-body { display: grid; grid-template-columns: minmax(0, 1fr) 24rem; align-items: start; min-width: 0; }
+/* The steps as tabs. The current one is underlined; a finished one gets a green tick. */
+.wizard-nav { position: sticky; top: var(--bar-h); z-index: 20; display: flex; gap: 4px; height: var(--tabs-h); padding: 0 max(calc(var(--gutter) - 12px), calc((100% - var(--page)) / 2 - 12px)); background: var(--surface); border-bottom: 1px solid var(--line); overflow-x: auto; }
+.step-btn { position: relative; flex: none; display: inline-flex; align-items: center; gap: 6px; height: 100%; padding: 0 12px; color: var(--ink-2); background: none; border: 0; cursor: pointer; white-space: nowrap; }
+.step-btn::after { content: ""; position: absolute; left: 12px; right: 12px; bottom: 0; height: 3px; border-radius: 3px 3px 0 0; background: transparent; transition: background-color 0.1s; }
+.step-btn:hover { color: var(--ink); }
+.step-btn:hover::after { background: var(--line-strong); }
+.step-btn.active { color: var(--ink); font-weight: 600; }
+.step-btn.active::after { background: var(--brand); }
+.step-no { display: none; }
+.step-btn.done .step-no { display: block; position: relative; width: 16px; height: 16px; border-radius: 50%; background: var(--ok-icon); font-size: 0; }
+.step-btn.done .step-no::after { content: ""; position: absolute; left: 4px; top: 4.5px; width: 8px; height: 4px; border: solid var(--surface); border-width: 0 0 2px 2px; transform: rotate(-45deg); }
+.badge { display: grid; place-items: center; width: 16px; height: 16px; border-radius: 50%; background: var(--error); color: var(--surface); font-size: 11px; font-weight: 700; line-height: 1; }
+
+/* The pipeline, drawn as on a run in Azure DevOps: a box per stage, joined by a line. */
+.stages, .wizard-body { width: min(100% - 2 * var(--gutter), var(--page)); margin-inline: auto; }
+.stages { margin-top: 20px; padding: 16px 20px 16px; background: var(--surface); border-radius: var(--radius-card); box-shadow: var(--shadow-2); }
+.stages-head { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; }
+.stages h3 { margin: 0; padding: 0; border: 0; }
+.stages .hint { margin-top: 10px; }
+.rail-note { margin: 0 0 0 auto; color: var(--muted); font-size: 12px; line-height: 16px; }
+.chip { display: inline-flex; align-items: center; gap: 4px; height: 20px; padding: 0 8px 0 6px; border: 1px solid; border-radius: 999px; font-size: 12px; font-weight: 600; line-height: 16px; }
+.chip::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: currentColor; }
+.chip.ok { background: var(--ok-soft); color: var(--ok); border-color: var(--ok-line); }
+.chip.stop { background: var(--error-soft); color: var(--error); border-color: var(--error-line); }
+.flow { display: flex; align-items: stretch; margin: 12px 0 0; padding: 2px 2px 4px; list-style: none; overflow-x: auto; }
+.flow li { position: relative; flex: 0 1 200px; min-width: 128px; padding: 9px 12px 10px 40px; background: var(--surface); border: 1px solid var(--line-strong); border-radius: var(--radius); box-shadow: var(--shadow-2); }
+.flow li:first-child { flex: 0 1 300px; min-width: 190px; }
+.flow li + li { margin-left: 28px; }
+/* The line from the stage before. */
+.flow li + li::after { content: ""; position: absolute; right: calc(100% + 1px); top: 19px; width: 28px; height: 2px; background: var(--line-strong); }
+/* Each stage has a small drawing: the package for Build, the kind of deployment for the environments. */
+.flow .icon { position: absolute; left: 11px; top: 9px; display: block; width: 20px; height: 20px; color: var(--brand); }
+.flow .icon svg { display: block; width: 20px; height: 20px; }
+.flow strong { display: block; font-weight: 600; overflow-wrap: anywhere; }
+.flow span { display: block; color: var(--muted); font-size: 12px; line-height: 16px; }
+/* An approval sits on the line, before the stage it guards. */
+.flow li.gate { flex: 0 0 auto; display: flex; flex-direction: column; align-items: center; gap: 4px; min-width: 0; max-width: 136px; padding: 8px 0 0; text-align: center; background: none; border: 0; box-shadow: none; }
+.flow .pill { display: inline-flex; align-items: center; gap: 5px; height: 24px; padding: 0 10px 0 7px; border: 1px solid var(--brand-line); border-radius: 999px; background: var(--brand-soft); color: var(--link); font-size: 12px; font-weight: 600; white-space: nowrap; }
+.flow .pill::before { content: ""; width: 9px; height: 5px; margin: 0 1px 2px 2px; border: solid currentColor; border-width: 0 0 2px 2px; transform: rotate(-45deg); }
+
+/* The step being filled in, and beside it what the pipeline needs, or the file itself. */
+.wizard-body { flex: 1; display: grid; grid-template-columns: minmax(0, 1fr) 380px; gap: 20px; align-items: start; margin-top: 20px; margin-bottom: 24px; }
 /* With the file open beside the form, the two share the width. */
-.wizard-body:has(.side-tab[data-tab="file"][aria-selected="true"]) { grid-template-columns: minmax(0, 1fr) minmax(24rem, 46%); }
+.wizard-body:has(.side-tab[data-tab="file"][aria-selected="true"]) { grid-template-columns: minmax(0, 1fr) minmax(380px, 46%); }
+.wizard-content { min-width: 0; padding: 28px 32px 32px; background: var(--surface); border-radius: var(--radius-card); box-shadow: var(--shadow-2); }
+.step-body { animation: step-in 0.15s ease-out; }
+@keyframes step-in { from { opacity: 0; } }
+.wizard-side { position: sticky; top: calc(var(--bar-h) + var(--tabs-h) + 20px); min-width: 0; max-height: calc(100dvh - var(--bar-h) - var(--tabs-h) - 20px - 57px - 20px); overflow-y: auto; background: var(--surface); border-radius: var(--radius-card); box-shadow: var(--shadow-2); }
+.result { padding: 0 20px 20px; }
+.result > .hint { padding-top: 20px; margin: 0; }
+.side-head { position: sticky; top: 0; z-index: 3; margin: 0 -20px; padding: 0 20px; background: var(--surface); border-bottom: 1px solid var(--line); }
+.side-tabs { display: flex; gap: 4px; margin: 0 -12px; height: 44px; }
+.side-tab { position: relative; padding: 0 12px; border: 0; background: none; color: var(--ink-2); cursor: pointer; }
+.side-tab::after { content: ""; position: absolute; left: 12px; right: 12px; bottom: -1px; height: 3px; border-radius: 3px 3px 0 0; background: transparent; }
+.side-tab:hover { color: var(--ink); }
+.side-tab:hover::after { background: var(--line-strong); }
+.side-tab[aria-selected="true"] { color: var(--ink); font-weight: 600; }
+.side-tab[aria-selected="true"]::after { background: var(--brand); }
 
-/* Steps, drawn as stations on a line. Under each: what was chosen there. */
-.wizard-nav { position: sticky; top: var(--bar-h); display: flex; flex-direction: column; height: calc(100dvh - var(--bar-h)); padding: 2.5rem 0.75rem 1rem; border-right: 1px solid var(--line); overflow-y: auto; }
-.step-btn { position: relative; display: grid; grid-template-columns: 1.75rem minmax(0, 1fr); gap: 0.8rem; align-items: start; padding: 0.6rem 0.6rem 1.15rem; color: var(--muted); background: none; border: 0; border-radius: var(--radius-control); cursor: pointer; text-align: left; }
-.step-btn:hover { color: var(--ink); background: var(--canvas); }
-.step-btn:not(:last-child)::after { content: ""; position: absolute; z-index: 1; left: calc(0.6rem + 0.875rem - 1px); top: calc(0.6rem + 1.75rem + 3px); bottom: calc(-0.6rem + 3px); width: 2px; border-radius: 2px; background: var(--line-strong); }
-.step-btn.done:not(:last-child)::after { background: var(--ink); }
-.step-no { display: grid; place-items: center; width: 1.75rem; height: 1.75rem; border-radius: 50%; border: 2px solid var(--line-strong); background: var(--surface); font: 600 0.9rem/1 var(--display); transition: background-color 0.15s, border-color 0.15s; }
-.step-text { display: grid; gap: 0.1rem; min-width: 0; padding-top: 0.15rem; }
-.step-title { font: 600 1.1rem/1.2 var(--display); font-stretch: semi-condensed; }
-.step-sum { font-size: 0.8rem; line-height: 1.35; overflow-wrap: anywhere; }
-.step-btn.done { color: var(--ink); }
-.step-btn.done .step-sum { color: var(--muted); }
-.step-btn.done .step-no { border-color: var(--ink); background: var(--ink); color: var(--surface); font-size: 0; }
-.step-btn.done .step-no::after { content: ""; width: 0.62rem; height: 0.34rem; border: solid var(--surface); border-width: 0 0 2px 2px; transform: translate(0.01rem, -0.1rem) rotate(-45deg); }
-.step-btn.active { color: var(--ink); }
-.step-btn.active .step-sum { color: var(--muted); }
-.step-btn.active .step-no { border-color: var(--accent); color: var(--accent); box-shadow: var(--ring); }
-.badge { position: absolute; z-index: 2; left: 1.75rem; top: 0.25rem; display: grid; place-items: center; width: 1.05rem; height: 1.05rem; border-radius: 50%; background: var(--error); color: var(--surface); font-size: 0.7rem; font-weight: 700; box-shadow: 0 0 0 2px var(--surface); }
-
-/* The step being filled in. Its Back and Next stay in view at the bottom. */
-.wizard-content { display: flex; flex-direction: column; min-width: 0; min-height: calc(100dvh - var(--bar-h)); padding: 3rem 3rem 0; }
-.wizard-content > * { width: 100%; max-width: 48rem; margin-inline: auto; }
-.wizard-footer { position: sticky; bottom: 0; z-index: 5; display: flex; justify-content: space-between; align-items: center; gap: 1rem; margin-top: auto; padding: 0.9rem 0 calc(0.9rem + env(safe-area-inset-bottom, 0px)); background: color-mix(in srgb, var(--surface) 88%, transparent); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border-top: 1px solid var(--line); }
-.step-body { padding-bottom: 3rem; animation: step-in 0.2s ease-out; }
-@keyframes step-in { from { opacity: 0; transform: translateY(4px); } }
+/* Previous and Next, in a bar at the bottom as in the Azure portal. */
+.wizard-footer { position: sticky; bottom: 0; z-index: 20; display: flex; align-items: center; gap: 8px; padding: 12px max(var(--gutter), calc((100% - var(--page)) / 2)) calc(12px + env(safe-area-inset-bottom, 0px)); background: var(--surface); border-top: 1px solid var(--line); }
 
 /* Buttons */
-.btn-primary, .btn-secondary { display: inline-flex; align-items: center; justify-content: center; gap: 0.4rem; min-height: 2.5rem; padding: 0 1.15rem; border-radius: var(--radius-control); border: 1px solid transparent; font-weight: 600; cursor: pointer; transition: background-color 0.12s, border-color 0.12s, transform 0.06s; }
-.btn-primary { background: var(--ink); color: var(--surface); }
-.btn-primary:hover { background: color-mix(in srgb, var(--ink) 84%, var(--surface)); }
+.btn-primary, .btn-secondary { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 32px; padding: 0 12px; border-radius: var(--radius); border: 1px solid transparent; font-weight: 600; cursor: pointer; white-space: nowrap; transition: background-color 0.1s, border-color 0.1s; }
+.btn-primary { background: var(--brand); color: var(--on-brand); }
+.btn-primary:hover { background: var(--brand-hover); }
+.btn-primary:active { background: var(--brand-pressed); }
 .btn-secondary { background: var(--surface); color: var(--ink); border-color: var(--line-strong); }
-.btn-secondary:hover { background: var(--canvas); border-color: var(--muted); }
-.btn-primary:active, .btn-secondary:active { transform: translateY(1px); }
+.btn-secondary:hover { background: var(--hover); }
+.btn-secondary:active { background: var(--pressed); }
 button:disabled { visibility: hidden; }
-.btn-link { padding: 0; background: none; border: 0; color: var(--accent); text-decoration: underline; text-underline-offset: 2px; cursor: pointer; }
-.btn-secondary[id^="add-"]::before { content: "+"; font-size: 1.15em; line-height: 1; font-weight: 400; }
-.actions { display: flex; flex-wrap: wrap; align-items: center; gap: 0.6rem; }
+.wizard-footer button:disabled { display: none; }
+.btn-link { padding: 0; background: none; border: 0; color: var(--link); cursor: pointer; }
+.btn-link:hover { text-decoration: underline; }
+.btn-secondary[id^="add-"]::before { content: "+"; font-size: 18px; line-height: 1; font-weight: 400; margin-top: -2px; }
+.actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
 
 /* Forms */
-label { display: block; margin-top: 1.25rem; font-weight: 600; font-size: 0.9rem; }
-.form-control { display: block; width: 100%; max-width: 30rem; min-height: 2.5rem; margin-top: 0.4rem; padding: 0.5rem 0.75rem; color: var(--ink); background: var(--surface); border: 1px solid var(--line-strong); border-radius: var(--radius-control); transition: border-color 0.12s, box-shadow 0.12s; }
+label { display: block; margin-top: 16px; font-weight: 600; }
+.form-control { display: block; width: 100%; max-width: 420px; min-height: 32px; margin-top: 4px; padding: 5px 10px; color: var(--ink); background: var(--surface); border: 1px solid var(--line-strong); border-bottom-color: var(--line-accessible); border-radius: var(--radius); }
 .form-control:hover { border-color: var(--muted); }
-.form-control:focus { outline: 0; border-color: var(--accent); box-shadow: var(--ring); }
-.form-control::placeholder { color: var(--muted); opacity: 0.65; }
-.form-control.narrow { max-width: 7rem; }
+/* Fluent marks the field being typed in with a blue line under it. */
+.form-control:focus { outline: 0; border-bottom-color: var(--brand); box-shadow: inset 0 -1px 0 var(--brand); }
+.form-control::placeholder { color: var(--muted); opacity: 0.8; }
+.form-control.narrow { max-width: 96px; }
 /* A list to choose from, with its own arrow so it looks the same in every browser. */
-select.form-control, .card.row select { appearance: none; padding-right: 2.2rem; cursor: pointer;
+select.form-control, .card.row select { appearance: none; padding-right: 30px; cursor: pointer;
   background-image: linear-gradient(45deg, transparent 50%, var(--muted) 50%), linear-gradient(135deg, var(--muted) 50%, transparent 50%);
-  background-position: calc(100% - 1.05rem) 55%, calc(100% - 0.7rem) 55%; background-size: 0.35rem 0.35rem; background-repeat: no-repeat; }
-textarea.form-control { max-width: none; font-family: var(--mono); font-size: 0.875em; line-height: 1.6; }
-.fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 1.5rem; }
+  background-position: calc(100% - 15px) 55%, calc(100% - 10px) 55%; background-size: 5px 5px; background-repeat: no-repeat; }
+textarea.form-control { max-width: none; font-family: var(--mono); font-size: 13px; line-height: 20px; }
+.fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 24px; }
 .fields.three { grid-template-columns: repeat(3, minmax(0, 1fr)); align-items: end; }
 .fields .wide { grid-column: 1 / -1; }
 .fields .form-control { max-width: none; }
-.fields .form-control.narrow { max-width: 7rem; }
-.hint { margin: 0.4rem 0 0; color: var(--muted); font-size: 0.85rem; max-width: 68ch; }
-.lead { margin: -0.75rem 0 2rem; color: var(--muted); font-size: 1.1rem; }
+.fields .form-control.narrow { max-width: 96px; }
+.hint { margin: 4px 0 0; color: var(--muted); font-size: 12px; line-height: 16px; max-width: 72ch; }
+.lead { margin: 0 0 20px; color: var(--muted); font-size: 14px; line-height: 20px; }
 
-/* A yes/no setting, drawn as a switch. It is still a checkbox to keyboards and screen readers. */
-label.check, .card label { display: flex; align-items: center; gap: 0.7rem; font-weight: 500; font-size: 0.95rem; cursor: pointer; }
-.check input[type=checkbox], .card input[type=checkbox] { appearance: none; flex: none; position: relative; width: 2.4rem; height: 1.4rem; margin: 0; border-radius: 999px; background: var(--line-strong); cursor: pointer; transition: background-color 0.15s; }
-.check input[type=checkbox]::before, .card input[type=checkbox]::before { content: ""; position: absolute; top: 0.175rem; left: 0.175rem; width: 1.05rem; height: 1.05rem; border-radius: 50%; background: #ffffff; box-shadow: 0 1px 2px rgb(0 0 0 / 0.35); transition: transform 0.15s; }
-.check input[type=checkbox]:checked, .card input[type=checkbox]:checked { background: var(--accent); }
-.check input[type=checkbox]:checked::before, .card input[type=checkbox]:checked::before { transform: translateX(1rem); }
+/* A yes/no setting, drawn as Fluent's switch. It is still a checkbox to keyboards and screen readers. */
+label.check, .card label { display: flex; align-items: center; gap: 10px; font-weight: 400; cursor: pointer; }
+.check input[type=checkbox], .card input[type=checkbox] { appearance: none; flex: none; position: relative; width: 40px; height: 20px; margin: 0; border: 1px solid var(--line-accessible); border-radius: 999px; background: transparent; cursor: pointer; transition: background-color 0.1s, border-color 0.1s; }
+.check input[type=checkbox]::before, .card input[type=checkbox]::before { content: ""; position: absolute; top: 2px; left: 2px; width: 14px; height: 14px; border-radius: 50%; background: var(--line-accessible); transition: transform 0.1s, background-color 0.1s; }
+.check input[type=checkbox]:checked, .card input[type=checkbox]:checked { background: var(--brand); border-color: var(--brand); }
+.check input[type=checkbox]:checked::before, .card input[type=checkbox]:checked::before { background: var(--on-brand); transform: translateX(20px); }
+.check input[type=checkbox]:focus-visible, .card input[type=checkbox]:focus-visible { border-radius: 999px; }
 
 /* A choice between a few options, all in view, each with a line that says what it means. */
-.choice { margin: 1.25rem 0 0; padding: 0; border: 0; min-width: 0; }
-.choice legend { padding: 0; font-weight: 600; font-size: 0.9rem; }
-.choice .options { display: grid; grid-template-columns: repeat(auto-fit, minmax(13.5rem, 1fr)); gap: 0.6rem; margin-top: 0.45rem; }
-.choice label { position: relative; display: block; margin: 0; padding: 0.8rem 0.95rem 0.8rem 2.5rem; font-weight: 400; background: var(--surface); border: 1px solid var(--line-strong); border-radius: 12px; cursor: pointer; transition: border-color 0.12s, background-color 0.12s; }
-.choice label:hover { border-color: var(--muted); }
-.choice input { position: absolute; left: 0.9rem; top: 1rem; margin: 0; accent-color: var(--accent); }
-.choice label:has(input:checked) { border-color: var(--accent); background: var(--accent-soft); box-shadow: inset 0 0 0 1px var(--accent); }
+.choice { margin: 16px 0 0; padding: 0; border: 0; min-width: 0; }
+.choice legend { padding: 0; font-weight: 600; }
+.choice .options { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 8px; margin-top: 6px; }
+.choice label { position: relative; display: block; margin: 0; padding: 10px 12px 10px 38px; font-weight: 400; background: var(--surface); border: 1px solid var(--line-strong); border-radius: var(--radius); cursor: pointer; transition: background-color 0.1s, border-color 0.1s; }
+.choice label:hover { background: var(--hover); }
+.choice input { appearance: none; position: absolute; left: 12px; top: 12px; width: 16px; height: 16px; margin: 0; border: 1px solid var(--line-accessible); border-radius: 50%; background: var(--surface); cursor: pointer; }
+.choice input:checked { border-color: var(--brand); background: radial-gradient(circle, var(--brand) 0 4px, var(--surface) 5px); }
+.choice input:focus-visible { border-radius: 50%; }
+.choice label:has(input:checked) { border-color: var(--brand); background: var(--brand-soft); box-shadow: inset 0 0 0 1px var(--brand); }
 .choice strong { display: block; font-weight: 600; }
-.choice span { display: block; color: var(--muted); font-size: 0.85rem; }
+.choice span { display: block; color: var(--muted); font-size: 12px; line-height: 16px; }
 
 /* A longer explanation of a term, folded away until asked for. */
-details.explain { margin-top: 0.45rem; font-size: 0.85rem; }
-details.explain summary { display: inline-flex; align-items: center; gap: 0.4rem; list-style: none; cursor: pointer; color: var(--accent); }
+details.explain { margin-top: 4px; font-size: 12px; line-height: 16px; }
+details.explain summary { display: inline-flex; align-items: center; gap: 5px; list-style: none; cursor: pointer; color: var(--link); }
+details.explain summary:hover { text-decoration: underline; }
 details.explain summary::-webkit-details-marker { display: none; }
-details.explain summary::before { content: "?"; display: grid; place-items: center; width: 1.1rem; height: 1.1rem; border-radius: 50%; border: 1.5px solid currentColor; font-size: 0.7rem; font-weight: 700; }
-details.explain[open] summary::before { content: "×"; font-size: 0.85rem; }
-details.explain p { margin: 0.45rem 0 0; padding: 0.7rem 0.9rem; color: var(--ink); background: var(--canvas); border-radius: var(--radius-control); max-width: 68ch; }
-.card { margin-top: 0.75rem; padding: 0.25rem 1.1rem 1.1rem; border: 1px solid var(--line); border-radius: var(--radius); background: var(--canvas); }
-.card.row { display: flex; flex-wrap: wrap; align-items: center; gap: 0.75rem; padding: 0.65rem 0.8rem; }
+details.explain summary::before { content: "i"; display: grid; place-items: center; width: 14px; height: 14px; border-radius: 50%; border: 1px solid currentColor; font: 600 10px/1 var(--font); }
+details.explain p { margin: 6px 0 0; padding: 8px 12px; color: var(--ink); background: var(--subtle); border: 1px solid var(--line); border-radius: var(--radius); max-width: 72ch; font-size: 13px; line-height: 18px; }
+.card { margin-top: 12px; padding: 0 16px 16px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--subtle); }
+.card.row { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; padding: 10px 12px; }
 .card.row label { margin: 0; }
-.card.row input[type=text], .card.row select { min-height: 2.25rem; padding: 0.35rem 0.6rem; color: var(--ink); background: var(--surface); border: 1px solid var(--line-strong); border-radius: var(--radius-control); }
-.card .field > label { display: block; font-weight: 600; font-size: 0.9rem; cursor: auto; }
-.card .btn-link { display: inline-block; margin-top: 0.85rem; }
+.card.row input[type=text], .card.row select { min-height: 32px; padding: 5px 10px; color: var(--ink); background-color: var(--surface); border: 1px solid var(--line-strong); border-bottom-color: var(--line-accessible); border-radius: var(--radius); }
+.card.row select { padding-right: 30px; }
+.card .field > label { display: block; font-weight: 600; cursor: auto; }
+.card .btn-link { display: inline-block; margin-top: 12px; }
 .card.row .btn-link { margin: 0 0 0 auto; }
-.step-body .btn-secondary { margin-top: 0.85rem; }
+.step-body .btn-secondary { margin-top: 12px; }
 .file-head .btn-secondary, .step-body .actions .btn-secondary { margin-top: 0; }
-details.more { margin-top: 2.5rem; border-top: 1px solid var(--line); }
-details.more > summary { display: flex; align-items: center; justify-content: space-between; padding: 1.1rem 0; list-style: none; cursor: pointer; font: 600 1.35rem/1.1 var(--display); font-stretch: semi-condensed; }
+/* More settings: folded away, as an accordion. */
+details.more { margin-top: 28px; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+details.more[open] { padding-bottom: 24px; }
+details.more > summary { display: flex; align-items: center; gap: 10px; min-height: 44px; list-style: none; cursor: pointer; font: 600 16px/22px var(--font); }
+details.more > summary:hover { color: var(--link); }
 details.more > summary::-webkit-details-marker { display: none; }
-details.more > summary::after { content: ""; width: 0.55rem; height: 0.55rem; margin-right: 0.3rem; border: solid var(--muted); border-width: 0 2px 2px 0; transform: rotate(45deg); transition: transform 0.15s; }
-details.more[open] > summary::after { transform: rotate(-135deg); }
-details.more > summary + h3 { margin-top: 0.5rem; padding-top: 0; border-top: 0; }
-.load-settings { margin-top: 2.5rem; padding: 0.35rem 1.1rem 1.1rem; border: 1.5px dashed var(--line-strong); border-radius: var(--radius); }
-.load-settings input[type=file] { display: block; width: 100%; margin-top: 0.5rem; color: var(--muted); font-size: 0.9rem; }
-.load-settings input[type=file]::file-selector-button { margin-right: 0.8rem; min-height: 2.25rem; padding: 0 0.9rem; font: inherit; font-weight: 600; color: var(--ink); background: var(--surface); border: 1px solid var(--line-strong); border-radius: var(--radius-control); cursor: pointer; }
+details.more > summary::before { content: ""; width: 7px; height: 7px; margin: 0 3px 0 4px; border: solid currentColor; border-width: 0 1.5px 1.5px 0; transform: rotate(-45deg); transition: transform 0.1s; }
+details.more[open] > summary::before { transform: translateY(-2px) rotate(45deg); }
+details.more > summary + h3 { margin-top: 8px; padding-top: 0; border-top: 0; }
+.load-settings { margin-top: 28px; padding: 0 16px 14px; background: var(--subtle); border: 1px dashed var(--line-strong); border-radius: var(--radius); }
+.load-settings input[type=file] { display: block; width: 100%; margin-top: 6px; color: var(--muted); font-size: 13px; }
+.load-settings input[type=file]::file-selector-button { margin-right: 10px; min-height: 32px; padding: 0 12px; font: inherit; font-weight: 600; color: var(--ink); background: var(--surface); border: 1px solid var(--line-strong); border-radius: var(--radius); cursor: pointer; }
 
-/* Environments: the order they are deployed in, as stations on a line. */
-.order { display: flex; flex-wrap: wrap; gap: 0.4rem 0; margin: 0.9rem 0 0; padding: 0; list-style: none; }
+/* Environments: the order they are deployed in. */
+.order { display: flex; flex-wrap: wrap; gap: 6px 0; margin: 10px 0 0; padding: 0; list-style: none; }
 .order li { display: flex; align-items: center; }
-.order li:not(:last-child)::after { content: ""; width: 1.75rem; height: 2px; background: var(--accent); }
-.order span { padding: 0.3rem 0.85rem; border: 2px solid var(--accent); border-radius: 999px; background: var(--surface); font-family: var(--mono); font-size: 0.85rem; font-weight: 600; }
+.order li:not(:last-child)::after { content: ""; width: 20px; height: 2px; background: var(--line-strong); }
+.order span { padding: 3px 12px; border: 1px solid var(--line-strong); border-radius: var(--radius); background: var(--subtle); font-family: var(--mono); font-size: 13px; }
 
-/* Templates, grouped by where the app runs. */
-.group { margin: 1.6rem 0 0.6rem; padding: 0; border: 0; color: var(--muted); font: 600 0.85rem/1.3 var(--font); }
+/* Templates: a list to pick from, as when Azure DevOps asks how to configure a pipeline. */
+.group { margin: 20px 0 8px; padding: 0; border: 0; color: var(--muted); font: 600 12px/16px var(--font); }
 .lead + .group { margin-top: 0; }
-.template-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(13.5rem, 1fr)); gap: 0.6rem; padding: 0; margin: 0; list-style: none; }
-.template { position: relative; display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 0.1rem 0.8rem; align-content: start; width: 100%; height: 100%; padding: 0.9rem 0.95rem 0.95rem; text-align: left; color: var(--ink); background: var(--surface); border: 1px solid var(--line-strong); border-radius: 12px; cursor: pointer; transition: border-color 0.12s, background-color 0.12s; }
-.template:hover { border-color: var(--ink); }
-.template .icon { grid-row: 1 / span 2; display: grid; place-items: center; width: 2.4rem; height: 2.4rem; border-radius: 10px; background: var(--canvas); color: var(--ink); transition: background-color 0.12s, color 0.12s; }
-.template .icon svg { width: 1.3rem; height: 1.3rem; }
+.template-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(270px, 1fr)); gap: 8px; padding: 0; margin: 0; list-style: none; }
+.template { position: relative; display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 0 12px; align-content: center; width: 100%; height: 100%; min-height: 60px; padding: 10px 40px 10px 12px; text-align: left; color: var(--ink); background: var(--surface); border: 1px solid var(--line-strong); border-radius: var(--radius); cursor: pointer; transition: background-color 0.1s, border-color 0.1s, box-shadow 0.1s; }
+.template:hover { background: var(--hover); box-shadow: var(--shadow-4); }
+.template .icon { grid-row: 1 / span 2; align-self: center; display: grid; place-items: center; width: 36px; height: 36px; border-radius: var(--radius); background: var(--brand-soft); color: var(--brand); }
+.template .icon svg { width: 20px; height: 20px; }
 .template strong { font-weight: 600; align-self: end; }
-.template span { color: var(--muted); font-size: 0.85rem; line-height: 1.4; }
-.template.applied { border-color: var(--accent); background: var(--accent-soft); box-shadow: inset 0 0 0 1px var(--accent); }
-.template.applied .icon { background: var(--accent); color: var(--on-accent); }
-/* The chosen template is ticked. */
-.template.applied::before { content: ""; position: absolute; top: -0.5rem; right: -0.5rem; width: 1.3rem; height: 1.3rem; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 3px var(--surface); animation: pop 0.18s ease-out; }
-.template.applied::after { content: ""; position: absolute; top: -0.12rem; right: -0.15rem; width: 0.6rem; height: 0.32rem; border: solid var(--on-accent); border-width: 0 0 2px 2px; transform: rotate(-45deg); }
-@keyframes pop { from { transform: scale(0.4); opacity: 0; } }
-.template-grid + .fields { margin-top: 2.25rem; padding-top: 0.75rem; border-top: 1px solid var(--line); }
-.tag { display: inline-block; padding: 0.05rem 0.5rem; border-radius: 999px; background: var(--accent-soft); color: var(--accent); font-size: 0.75rem; font-weight: 600; }
-.tag.secret { background: var(--error-soft); color: var(--error); }
+.template span { color: var(--muted); font-size: 12px; line-height: 16px; }
+.template.applied { border-color: var(--brand); background: var(--brand-soft); box-shadow: inset 0 0 0 1px var(--brand); }
+.template.applied .icon { background: var(--brand); color: var(--on-brand); }
+/* The chosen one has its round mark filled in. */
+.template::before { content: ""; position: absolute; top: 50%; right: 14px; width: 16px; height: 16px; margin-top: -8px; border: 1px solid var(--line-accessible); border-radius: 50%; }
+.template.applied::before { border-color: var(--brand); background: var(--brand); }
+.template.applied::after { content: ""; position: absolute; top: 50%; right: 18px; width: 8px; height: 4px; margin-top: -4px; border: solid var(--on-brand); border-width: 0 0 1.5px 1.5px; transform: rotate(-45deg); }
+.template-grid + .fields { margin-top: 28px; padding-top: 8px; border-top: 1px solid var(--line); }
+.tag { display: inline-block; padding: 0 6px; border-radius: var(--radius); background: var(--brand-soft); color: var(--link); font-size: 11px; font-weight: 600; line-height: 16px; }
+.tag.secret { background: var(--warning-soft); color: var(--warning); box-shadow: inset 0 0 0 1px var(--warning-line); }
 
-/* The pipeline pane: its stages as stations on a line, then what it needs. Or the file itself. */
-.wizard-side { position: sticky; top: var(--bar-h); min-width: 0; height: calc(100dvh - var(--bar-h)); overflow-y: auto; background: var(--canvas); border-left: 1px solid var(--line); }
-.result { padding: 0 1.5rem 2rem; }
-/* The pane's name and its two views stay in view while the pane scrolls. */
-.side-head { position: sticky; top: 0; z-index: 3; margin: 0 -1.5rem; padding: 2.5rem 1.5rem 0.9rem; background: color-mix(in srgb, var(--canvas) 90%, transparent); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); }
-.result-head { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; }
-.result h3 { margin: 0; padding: 0; border: 0; font-size: 1.5rem; }
-.chip { display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.15rem 0.7rem 0.15rem 0.55rem; border-radius: 999px; font-size: 0.8rem; font-weight: 600; }
-.chip::before { content: ""; width: 0.5rem; height: 0.5rem; border-radius: 50%; background: currentColor; }
-.chip.ok { background: var(--ok-soft); color: var(--ok); }
-.chip.stop { background: var(--error-soft); color: var(--error); }
-.side-tabs { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 3px; margin-top: 1.25rem; padding: 3px; border-radius: 12px; background: var(--sunken); }
-.side-tab { min-height: 2.1rem; padding: 0 0.9rem; border: 0; border-radius: 9px; background: transparent; color: var(--muted); font-weight: 600; font-size: 0.9rem; cursor: pointer; transition: color 0.12s, background-color 0.12s; }
-.side-tab:hover { color: var(--ink); }
-.side-tab[aria-selected="true"] { background: var(--surface); color: var(--ink); box-shadow: 0 1px 2px rgb(0 0 0 / 0.12); }
-.flow { margin: 0.85rem 0 0; padding: 0; list-style: none; }
-.flow li { position: relative; padding: 0 0 1.35rem 2.1rem; animation: station-in 0.3s ease-out backwards; }
-.flow li:nth-child(2) { animation-delay: 0.05s; } .flow li:nth-child(3) { animation-delay: 0.1s; } .flow li:nth-child(4) { animation-delay: 0.15s; }
-.flow li:nth-child(5) { animation-delay: 0.2s; } .flow li:nth-child(6) { animation-delay: 0.25s; } .flow li:nth-child(n+7) { animation-delay: 0.3s; }
-@keyframes station-in { from { opacity: 0; transform: translateY(-6px); } }
-.flow li::before { content: ""; position: absolute; z-index: 1; left: 0; top: 0.2rem; width: 1rem; height: 1rem; border: 3px solid var(--accent); border-radius: 50%; background: var(--canvas); }
-.flow li:first-child::before { background: var(--accent); }
-.flow li:not(:last-child)::after { content: ""; position: absolute; left: calc(0.5rem - 1.5px); top: 0.6rem; bottom: -0.6rem; width: 3px; background: var(--accent); }
-.flow li:last-child { padding-bottom: 0; }
-.flow strong { font: 600 1.15rem/1.3 var(--display); font-stretch: semi-condensed; }
-.flow span { display: block; color: var(--muted); font-size: 0.85rem; }
-/* An approval is a gate on the line, between two stations. */
-.flow li.gate { padding-bottom: 1.15rem; }
-.flow li.gate::before { left: 0.125rem; top: 0.3rem; width: 0.75rem; height: 0.75rem; border: 0; border-radius: 2px; background: var(--approval); transform: rotate(45deg); box-shadow: 0 0 0 3px var(--canvas); }
-.flow .pill { display: inline-block; padding: 0.05rem 0.6rem; border-radius: 999px; background: var(--approval-soft); color: var(--approval); font-size: 0.8rem; font-weight: 600; }
-.rail-note { margin: 1.25rem 0 0; padding: 0.7rem 0.9rem; border-radius: var(--radius-control); background: var(--sunken); color: var(--ink); font-size: 0.85rem; }
-.needs-list { margin: 2rem 0 0; padding: 0; list-style: none; }
-.needs-list li { padding: 0.6rem 0.9rem; background: var(--surface); border: 1px solid var(--line); border-top-width: 0; }
-.needs-list li:first-child { padding: 0; background: none; border: 0; font: 600 1.15rem/1.3 var(--display); font-stretch: semi-condensed; }
-.needs-list li.where { margin-top: 1rem; padding: 0 0 0.4rem; background: none; border: 0; color: var(--muted); font-size: 0.8rem; }
-.needs-list li.where + li { border-top-width: 1px; border-radius: var(--radius-control) var(--radius-control) 0 0; }
-.needs-list li:not(.where):has(+ li.where), .needs-list li:last-child { border-radius: 0 0 var(--radius-control) var(--radius-control); }
-.needs-list li.where + li:has(+ li.where), .needs-list li.where + li:last-child { border-radius: var(--radius-control); }
+/* What the pipeline needs in Azure DevOps, grouped by where each thing is created. */
+.needs-list { margin: 0; padding: 0; list-style: none; }
+.needs-list li { padding: 8px 0; border-top: 1px solid var(--line); }
+.needs-list li:first-child { padding: 16px 0 0; border: 0; font: 600 16px/22px var(--font); }
+/* Under the tabs the list needs no heading of its own: the tab already says it. */
+.side-head + .needs-list li:first-child { display: none; }
+.needs-list li.where { margin-top: 12px; padding: 6px 10px; border: 0; border-radius: var(--radius); background: var(--subtle); color: var(--ink-2); font-size: 12px; line-height: 16px; }
+.needs-list li.where + li { border-top: 0; }
 .needs-list code { display: block; overflow-wrap: anywhere; font-weight: 600; }
-.needs-list .what { display: block; color: var(--muted); font-size: 0.85rem; }
-.needs-list .tag { margin-top: 0.25rem; }
+.needs-list .what { display: block; color: var(--muted); font-size: 12px; line-height: 16px; }
+.needs-list .tag { margin-top: 4px; }
 
-/* The YAML file, shown the way an editor shows it. */
-.file { border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; background: var(--code-bg); }
-.file-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.5rem 1rem; padding: 0.6rem 0.7rem 0.6rem 1.1rem; font-family: var(--mono); font-size: 0.875rem; font-weight: 600; background: var(--surface); border-bottom: 1px solid var(--line); }
-/* On a narrow screen the file's name keeps its line, and the buttons move below it. */
+/* The YAML file, shown the way the pipeline editor in Azure DevOps shows it. */
+.file { margin-top: 16px; border: 1px solid var(--line-strong); border-radius: var(--radius); overflow: hidden; background: var(--code-bg); }
+.file-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 16px; padding: 8px 8px 8px 16px; font-weight: 600; background: var(--subtle); border-bottom: 1px solid var(--line); }
 .file-head > span:first-child { white-space: nowrap; }
 .file-head .actions { flex-wrap: nowrap; }
-.file-head .btn-primary, .file-head .btn-secondary { min-height: 2.1rem; padding: 0 0.9rem; font-family: var(--font); }
-.yaml-preview, .yaml-live { margin: 0; padding: 0.9rem 0; overflow: auto; color: var(--code-ink); background: var(--code-bg); font-size: 0.8rem; line-height: 1.65; counter-reset: line; tab-size: 2; }
-.yaml-preview { max-height: max(18rem, calc(100dvh - 25rem)); }
-.yaml-preview .line, .yaml-live .line { display: inline-block; min-width: 100%; padding-right: 1.1rem; }
-.yaml-preview .line::before, .yaml-live .line::before { counter-increment: line; content: counter(line); display: inline-block; width: 3.1rem; padding-right: 1rem; color: var(--code-muted); text-align: right; user-select: none; }
+.yaml-preview, .yaml-live { margin: 0; padding: 10px 0; overflow: auto; color: var(--code-ink); background: var(--code-bg); font-size: 13px; line-height: 19px; counter-reset: line; tab-size: 2; }
+.yaml-preview { max-height: max(300px, calc(100dvh - 430px)); }
+.yaml-preview .line, .yaml-live .line { display: inline-block; min-width: 100%; padding-right: 16px; }
+.yaml-preview .line::before, .yaml-live .line::before { counter-increment: line; content: counter(line); display: inline-block; width: 46px; padding-right: 16px; color: var(--code-no); text-align: right; user-select: none; }
 .yaml-preview .comment, .yaml-live .comment { color: var(--code-comment); }
 .yaml-preview .k, .yaml-live .k { color: var(--code-key); }
 .yaml-preview .x, .yaml-live .x { color: var(--code-expr); }
 /* The file beside the form: a line that just changed lights up for a moment. */
-.yaml-live { margin-top: 0.9rem; border: 1px solid var(--line); border-radius: var(--radius); overflow-x: auto; overflow-y: visible; }
-.yaml-live .line::before { width: 2.6rem; padding-right: 0.8rem; }
+.yaml-live { margin: 0 -20px -20px; overflow-x: auto; overflow-y: visible; }
+.yaml-live .line::before { width: 40px; padding-right: 12px; }
 .yaml-live .line.changed { animation: line-flash 2.2s ease-out; }
 @keyframes line-flash { from, 35% { background: var(--flash); } }
-.live-note { margin: 0; color: var(--muted); font-size: 0.85rem; }
+.live-note { margin: 0 -20px; padding: 10px 20px; color: var(--muted); font-size: 12px; line-height: 16px; border-bottom: 1px solid var(--line); }
 /* What to do with the file: three steps, in order. */
-.next { margin: 2.25rem 0; padding: 0; list-style: none; counter-reset: next; }
-.next li { position: relative; padding: 0.15rem 0 1.1rem 2.6rem; counter-increment: next; }
-.next li::before { content: counter(next); position: absolute; z-index: 1; left: 0; top: 0; display: grid; place-items: center; width: 1.75rem; height: 1.75rem; border-radius: 50%; border: 2px solid var(--ink); background: var(--surface); font: 600 0.9rem/1 var(--display); }
-.next li:not(:last-child)::after { content: ""; position: absolute; left: calc(0.875rem - 1px); top: 1.75rem; bottom: 0; width: 2px; background: var(--ink); }
-.next li:last-child { padding-bottom: 0; }
-.next code { padding: 0.1rem 0.35rem; border-radius: 6px; background: var(--canvas); }
+.next { display: grid; gap: 10px; margin: 24px 0; padding: 0; list-style: none; counter-reset: next; }
+.next li { position: relative; min-height: 24px; padding: 2px 0 2px 36px; counter-increment: next; }
+.next li::before { content: counter(next); position: absolute; left: 0; top: 0; display: grid; place-items: center; width: 24px; height: 24px; border-radius: 50%; background: var(--brand-soft); color: var(--link); font-size: 12px; font-weight: 600; }
+.next code { padding: 1px 5px; border-radius: var(--radius); background: var(--hover); }
 
-/* Issues: each one a note that says what is wrong and what to do. */
+/* Messages, as Fluent's message bars: a mark, what is wrong, and what to do about it. */
 .severity-error { color: var(--error); }
 .severity-warning { color: var(--warning); }
-.severity-info { color: var(--info); }
-.status { display: inline-flex; align-items: center; gap: 0.5rem; margin: 1rem 0 0; padding: 0.45rem 0.9rem; border-radius: 999px; background: var(--ok-soft); color: var(--ok); font-weight: 600; font-size: 0.9rem; animation: pop 0.18s ease-out; }
+.severity-info { color: var(--link); }
+.status { display: flex; align-items: center; gap: 8px; width: fit-content; margin: 16px 0 0; padding: 8px 12px; border: 1px solid var(--ok-line); border-radius: var(--radius); background: var(--ok-soft); color: var(--ink); }
+.status::before { content: ""; flex: none; width: 16px; height: 16px; border-radius: 50%; background: var(--ok-icon); }
 .load-settings .status, .load-settings .severity-error { margin-bottom: 0; }
-.issue-list { display: grid; gap: 0.5rem; list-style: none; margin: 0 auto 2rem; padding: 0; }
-.issue-list li { position: relative; padding: 0.75rem 1rem 0.75rem 2.75rem; border-radius: 12px; background: var(--approval-soft); color: var(--ink); }
-.issue-list li::before { content: "!"; position: absolute; left: 0.9rem; top: 0.8rem; display: grid; place-items: center; width: 1.25rem; height: 1.25rem; border-radius: 50%; background: var(--warning); color: var(--surface); font-size: 0.8rem; font-weight: 700; }
-.issue-list li.severity-error { background: var(--error-soft); }
+.issue-list { display: grid; gap: 8px; list-style: none; margin: 0 0 20px; padding: 0; }
+.issue-list li { position: relative; padding: 8px 12px 8px 40px; border: 1px solid var(--warning-line); border-radius: var(--radius); background: var(--warning-soft); color: var(--ink); }
+.issue-list li::before { content: "!"; position: absolute; left: 12px; top: 10px; display: grid; place-items: center; width: 16px; height: 16px; border-radius: 50%; background: var(--warning); color: var(--surface); font-size: 11px; font-weight: 700; line-height: 1; }
+.issue-list li.severity-error { background: var(--error-soft); border-color: var(--error-line); }
 .issue-list li.severity-error::before { background: var(--error); }
-.issue-list li.severity-info { background: var(--accent-soft); }
-.issue-list li.severity-info::before { content: "i"; background: var(--info); }
-.issue-list li > strong { color: var(--warning); }
-.issue-list li.severity-error > strong { color: var(--error); }
-.issue-list li.severity-info > strong { color: var(--info); }
-.issue-list .hint { color: var(--ink); opacity: 0.8; }
-.go-to-step { display: block; margin-top: 0.25rem; }
-.generation-error { margin-bottom: 1rem; }
-.generation-error > p { margin: 0 0 0.6rem; font-weight: 600; }
+.issue-list li.severity-info { background: var(--subtle); border-color: var(--line-strong); }
+.issue-list li.severity-info::before { content: "i"; background: var(--brand); color: var(--on-brand); }
+.issue-list li > strong { font-weight: 600; }
+.issue-list .hint { color: var(--ink-2); font-size: 13px; line-height: 18px; }
+.go-to-step { display: block; margin-top: 4px; }
+.generation-error { margin-top: 16px; }
+.generation-error > p { margin: 0 0 8px; font-weight: 600; }
 
 @media (prefers-reduced-motion: reduce) {
   * { animation: none !important; transition: none !important; }
 }
-/* Narrower: the steps move to a row above the step. */
-@media (max-width: 1180px) {
-  .wizard { grid-template-columns: minmax(0, 1fr); }
-  .wizard-nav { position: static; flex-direction: row; height: auto; padding: 0.6rem 1rem; border-right: 0; border-bottom: 1px solid var(--line); overflow-x: auto; }
-  .step-btn { flex: 1 1 0; align-items: center; padding: 0.4rem 0.6rem; }
-  .step-btn:not(:last-child)::after { display: none; }
-  .step-text { padding-top: 0; }
-  .step-sum { display: none; }
-  .badge { top: 0.05rem; }
-  .wizard-content { min-height: 0; padding-top: 2.25rem; }
-}
-/* Narrow: the pipeline pane moves below the step. */
-@media (max-width: 900px) {
+/* Narrow: what the pipeline needs moves below the step. */
+@media (max-width: 1000px) {
   .wizard-body, .wizard-body:has(.side-tab[data-tab="file"][aria-selected="true"]) { grid-template-columns: minmax(0, 1fr); }
-  .wizard-side { position: static; height: auto; border-left: 0; border-top: 1px solid var(--line); }
+  .wizard-side { position: static; max-height: none; }
   .side-head { position: static; }
   .app-header .tagline { display: none; }
 }
 @media (max-width: 640px) {
-  h2 { font-size: 2rem; }
-  .app-header { padding: 0 1rem; }
-  .wizard-content { padding: 1.75rem 1rem 0; }
-  .wizard-nav { padding: 0.5rem; }
-  .step-btn { grid-template-columns: 1fr; justify-items: center; gap: 0.25rem; padding: 0.35rem 0.2rem; }
-  .step-title { font-size: 0.9rem; }
-  .badge { left: calc(50% + 0.35rem); }
-  .result { padding: 2rem 1rem; }
+  :root { --gutter: 16px; }
+  h2 { font-size: 24px; line-height: 32px; }
+  .stages { padding: 12px 16px; }
+  .wizard-content { padding: 20px 16px 24px; }
   .fields, .fields.three { grid-template-columns: minmax(0, 1fr); }
-  .yaml-preview .line::before { width: 2.5rem; padding-right: 0.6rem; }
+  .rail-note { margin-left: 0; }
+  .yaml-preview .line::before { width: 38px; padding-right: 10px; }
 }
