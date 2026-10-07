@@ -1,0 +1,95 @@
+@inject WizardState Wizard
+@inject IDeploymentKinds DeploymentKinds
+
+@* The pipeline at a glance, drawn as Azure DevOps draws a run: a box per stage, joined by a line. *@
+<section class="stages" aria-label="Your pipeline">
+    <div class="stages-head">
+        <h3>Your pipeline</h3>
+        @if (Pipeline != null)
+        {
+            <span class="chip ok">Ready</span>
+        }
+        else
+        {
+            <span class="chip stop">Not ready</span>
+        }
+        @if (Pipeline != null && RollsBack)
+        {
+            <p class="rail-note">A failed deployment is rolled back.</p>
+        }
+    </div>
+    @if (Pipeline != null)
+    {
+        <ol class="flow">
+            <li>
+                <span class="icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <path d="M12 3l8 4.5v9L12 21l-8-4.5v-9z" />
+                        <path d="M4 7.5l8 4.5 8-4.5M12 12v9" />
+                    </svg>
+                </span>
+                <strong>Build</strong><span>@BuildText</span>
+            </li>
+            @foreach (var env in Wizard.Definition.Environments)
+            {
+                var production = EnvironmentNames.IsProduction(env);
+                var inFile = Wizard.WaitsForApproval(env);
+                // An approval sits on the line, before the stage it guards.
+                if (production || inFile)
+                {
+                    <li class="gate"><span class="pill">Approval</span><span>@GateText(production, inFile)</span></li>
+                }
+                <li>
+                    <span class="icon"><KindIcon Kind="Wizard.Definition.Deployment.Kind" /></span>
+                    <strong>@env</strong><span>@(production ? $"Only from {Wizard.Definition.ReleaseBranch}. " : string.Empty)@DeployText</span>
+                </li>
+            }
+            @if (Wizard.Definition.Notifications.Count > 0)
+            {
+                <li>
+                    <span class="icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <path d="M6 16.5v-5a6 6 0 0 1 12 0v5l1.5 2h-15zM10 20.5a2 2 0 0 0 4 0" />
+                        </svg>
+                    </span>
+                    <strong>Notify</strong><span>@string.Join(", ", Wizard.Definition.Notifications.Select(n => NotificationName(n.NotificationType)).Distinct())</span>
+                </li>
+            }
+        </ol>
+    }
+    else
+    {
+        <p class="hint">Fix the settings marked with ! to see the pipeline.</p>
+    }
+</section>
+
+@code {
+    /// <summary>The generated pipeline. A parameter, so the stages are redrawn whenever the settings change.</summary>
+    [Parameter] public GeneratedPipeline? Pipeline { get; set; }
+
+    private string BuildText =>
+        Wizard.Definition.Artifact.ArtifactType == ArtifactType.DockerImage
+            ? "Built once. Every environment gets the same image."
+            : "Built once. Every environment gets the same package.";
+
+    private string DeployText =>
+        Wizard.Definition.HealthChecks.Any(check => check.Enabled) ? "Deploy, then health check" : "Deploy";
+
+    private bool RollsBack =>
+        Wizard.Definition.Rollback.Enabled && DeploymentKinds.For(Wizard.Definition.Deployment.Kind).SupportsRollback;
+
+    /// <summary>Where an approval is set: in the file, on the environment in Azure DevOps, or both.</summary>
+    private static string GateText(bool onEnvironment, bool inFile) => (onEnvironment, inFile) switch
+    {
+        (true, true) => "In the file and in Azure DevOps",
+        (true, false) => "In Azure DevOps",
+        _ => "In the file"
+    };
+
+    private static string NotificationName(NotificationType type) => type switch
+    {
+        NotificationType.TeamsWebhook => "Teams",
+        NotificationType.Email => "Email",
+        _ => "Webhook"
+    };
+}
