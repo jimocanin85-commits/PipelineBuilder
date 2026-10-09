@@ -78,10 +78,10 @@ net start w3svc
 In PowerShell as Administrator, in `C:\Install\PipelineBuilder`:
 
 ```powershell
-.\deploy\Install-PipelineBuilder.ps1 -PublishFolder .\publish
+.\deploy\Install-PipelineBuilder.ps1
 ```
 
-The script asks, and Enter keeps the value in brackets:
+It installs the app from the `publish` folder next to `deploy` (2.2) into the folder you choose. The script asks, and Enter keeps the value in brackets:
 
 ```text
 Website name in IIS [PipelineBuilder]: PipelineBuilder
@@ -113,7 +113,7 @@ Instead of `-CertificateThumbprint`, `-CertificateFile .\pipelines.pfx` imports 
 
 | Parameter | Default | Meaning |
 |---|---|---|
-| `-PublishFolder` | none | The `publish` folder from step 2.2. Leave it out to only reconfigure IIS. |
+| `-PublishFolder` | the `publish` folder next to `deploy` | The `publish` folder from step 2.2. When there is none, the script asks for it. |
 | `-SiteName` | `PipelineBuilder` | IIS website name |
 | `-AppPoolName` | `PipelineBuilder`, or the website's name when the script asks | IIS app pool name |
 | `-PhysicalPath` | `C:\inetpub\PipelineBuilder` | Where the app is installed |

@@ -10,7 +10,8 @@
       2. checks that the ASP.NET Core Hosting Bundle for .NET 10 is installed;
       3. asks for the website name, the install folder, HTTPS and the AD groups, unless they are given as parameters.
          For HTTPS you pick a certificate on the server, import a .pfx file, type a thumbprint, or skip it;
-      4. copies the published app into -PhysicalPath (app pool stopped meanwhile);
+      4. copies the published app into -PhysicalPath (app pool stopped meanwhile): from -PublishFolder, or else from
+         the 'publish' folder next to the deploy folder;
       5. creates or updates the app pool (No Managed Code), the website and its binding (HTTPS with a certificate);
       6. turns on Windows Authentication and turns off anonymous access for the site;
       7. optionally limits access to Active Directory groups (appsettings.Production.json).
@@ -28,7 +29,8 @@
 #>
 [CmdletBinding(SupportsShouldProcess)]
 param(
-    # Folder with the output of 'dotnet publish'. Omit to only (re)configure IIS.
+    # Folder with the output of 'dotnet publish'. Empty: the 'publish' folder next to the deploy folder,
+    # else it is asked for. Only an app that is already installed can be reconfigured without one.
     [string] $PublishFolder,
     [string] $SiteName = 'PipelineBuilder',
     [string] $AppPoolName = 'PipelineBuilder',
@@ -212,17 +214,35 @@ if (-not (Test-Path "IIS:\AppPools\$AppPoolName")) {
 Set-ItemProperty "IIS:\AppPools\$AppPoolName" -Name managedRuntimeVersion -Value ''
 Set-ItemProperty "IIS:\AppPools\$AppPoolName" -Name startMode -Value 'AlwaysRunning'
 
+# The app to install: the given folder, else 'publish' next to the deploy folder, as the install guide copies them.
+$app = 'PipelineBuilder.Web.dll'
+$installed = Test-Path (Join-Path $PhysicalPath $app)
+if (-not $PublishFolder) {
+    $beside = Join-Path (Split-Path $PSScriptRoot -Parent) 'publish'
+    if (Test-Path (Join-Path $beside $app)) { $PublishFolder = $beside }
+    elseif ($interactive -and -not $NoPrompt -and -not $installed) {
+        $PublishFolder = (Read-Answer "Folder with the app from 'dotnet publish'" '').Trim('"')
+    }
+}
+if ($PublishFolder) {
+    if (-not (Test-Path (Join-Path $PublishFolder $app))) {
+        throw "'$PublishFolder' has no $app, so it is not the output of 'dotnet publish src/PipelineBuilder.Web -c Release -o .\publish'."
+    }
+    $PublishFolder = (Resolve-Path $PublishFolder).Path
+}
+elseif (-not $installed) {
+    throw "There is no app to install in $PhysicalPath. Give -PublishFolder with the output of 'dotnet publish src/PipelineBuilder.Web -c Release -o .\publish', or put that publish folder next to the deploy folder."
+}
+
 # Files: stop the pool while copying so no files are locked.
 New-Item -ItemType Directory -Force -Path $PhysicalPath | Out-Null
 if ($PublishFolder) {
-    if (-not (Test-Path (Join-Path $PublishFolder 'PipelineBuilder.Web.dll'))) {
-        throw "'$PublishFolder' does not look like the output of 'dotnet publish src/PipelineBuilder.Web'."
-    }
     if ((Get-WebAppPoolState -Name $AppPoolName).Value -eq 'Started') { Stop-WebAppPool -Name $AppPoolName }
     Write-Host "Copying $PublishFolder to $PhysicalPath"
     robocopy $PublishFolder $PhysicalPath /MIR /XF appsettings.Production.json /NFL /NDL /NP | Out-Host
     if ($LASTEXITCODE -ge 8) { throw "robocopy failed with exit code $LASTEXITCODE" }
     $global:LASTEXITCODE = 0
+    if (-not (Test-Path (Join-Path $PhysicalPath $app))) { throw "The app was not copied to $PhysicalPath." }
 }
 
 # The app pool identity needs to read the files.
