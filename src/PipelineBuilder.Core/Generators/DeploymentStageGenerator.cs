@@ -128,6 +128,8 @@ public sealed class DeploymentStageGenerator
         deploySteps.AddRange(_artifactService.GenerateDownloadSteps(definition.Artifact));
         if (definition.KeyVault != null && !string.IsNullOrWhiteSpace(definition.KeyVault.KeyVaultName))
             deploySteps.Add(_keyVaultService.GeneratePreJobSteps(definition.KeyVault));
+        if (!string.IsNullOrWhiteSpace(definition.Deployment.SettingsFiles) && definition.Artifact.ArtifactType != ArtifactType.DockerImage)
+            deploySteps.Add(SettingsForEnvironment(definition.Deployment.SettingsFiles.Trim(), packagePath));
         if (fromAgent && definition.Artifact.ArtifactType != ArtifactType.DockerImage)
         {
             // The package was downloaded to the agent; the scripts run on the servers.
@@ -207,6 +209,19 @@ public sealed class DeploymentStageGenerator
     /// Replaces an <c>{environment}</c> token in the health check URL, so one check can target
     /// e.g. <c>https://myapp-{environment}.contoso.com/health</c> in every environment.
     /// </summary>
+    /// <summary>
+    /// Build once, configure per environment: the same package gets this environment's values before
+    /// it is deployed. Runs after Key Vault, so its secrets can be used too.
+    /// </summary>
+    private static string SettingsForEnvironment(string files, string packagePath) =>
+        "    # The settings get this environment's values: a variable named like a setting, e.g. ConnectionStrings.Default, replaces it.\n" +
+        YamlBuilder.Task("FileTransform@1", new Dictionary<string, string>
+        {
+            ["folderPath"] = packagePath,
+            ["fileType"] = "json",
+            ["targetFiles"] = files
+        }, $"Fill in the settings for {EnvironmentToken}");
+
     private static HealthCheckConfig ForEnvironment(HealthCheckConfig hc, string env) => new()
     {
         Enabled = hc.Enabled,

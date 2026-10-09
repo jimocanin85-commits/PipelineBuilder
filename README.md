@@ -17,13 +17,13 @@ Open <http://localhost:5150>.
 ## Use it
 
 1. **What**: pick what you deploy.
-2. **Where**: your servers or cluster, and where to wait for approval. Tick a box if you have no preprod.
-3. **Safety**: rollback, health checks, notifications.
-4. **Result**: download `azure-pipelines.yml`.
+2. **Where**: your servers or cluster, and the settings each environment gets. Tick a box if you have no preprod.
+3. **Safety**: approvals, rollback, health checks, notifications.
+4. **Result**: download `azure-pipelines.yml`, and tick off what you create in Azure DevOps.
 
 Above every step the pipeline is drawn the way Azure DevOps draws a run: a box per stage, with the approvals between them. Beside the step is a list of what the pipeline needs in Azure DevOps. Switch it to **YAML file** to see `azure-pipelines.yml` change as you fill in the form.
 
-On the Result step you can save your settings. Open them later to change the pipeline.
+What you fill in is kept in your browser until you press **Start over**. To keep it elsewhere, save your settings on the Result step and open them later.
 
 ## What it generates
 

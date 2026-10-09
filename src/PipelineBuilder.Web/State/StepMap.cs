@@ -12,7 +12,6 @@ public static class StepMap
         [nameof(PipelineDefinition.Artifact)] = WizardStep.Start,
         [nameof(PipelineDefinition.Environments)] = WizardStep.Target,
         [nameof(PipelineDefinition.ReleaseBranch)] = WizardStep.Target,
-        [nameof(PipelineDefinition.Approval)] = WizardStep.Target,
         [nameof(PipelineDefinition.Trigger)] = WizardStep.Target,
         [nameof(PipelineDefinition.Deployment)] = WizardStep.Target,
         [nameof(PipelineDefinition.DeploymentStrategy)] = WizardStep.Target,
@@ -21,6 +20,7 @@ public static class StepMap
         [nameof(PipelineDefinition.AzureServiceConnection)] = WizardStep.Target,
         [nameof(PipelineDefinition.VariableGroups)] = WizardStep.Target,
         [nameof(PipelineDefinition.KeyVault)] = WizardStep.Target,
+        [nameof(PipelineDefinition.Approval)] = WizardStep.Safety,
         [nameof(PipelineDefinition.Rollback)] = WizardStep.Safety,
         [nameof(PipelineDefinition.HealthChecks)] = WizardStep.Safety,
         [nameof(PipelineDefinition.Notifications)] = WizardStep.Safety

@@ -1,4 +1,5 @@
 @inject WizardState Wizard
+@inject IJSRuntime JS
 
 @* Beside every step: what the pipeline needs in Azure DevOps, or the file itself as it is now. *@
 <div class="result">
@@ -17,6 +18,7 @@
         else
         {
             <h3>Needs in Azure DevOps</h3>
+            <p class="needs-progress">Tick each one off when it is created. @Done(pipeline) of @pipeline.Requirements.Count done.</p>
         }
         if (ShowsFile)
         {
@@ -32,8 +34,20 @@
                     <li class="where">@place.Key</li>
                     foreach (var need in place)
                     {
-                        <li data-need="@need.Kind">
-                            <code>@need.Name</code>
+                        <li data-need="@need.Kind" class="@(Checklist && Wizard.DoneNeeds.Contains(WizardState.NeedKey(need)) ? "done" : null)">
+                            @if (Checklist)
+                            {
+                                <span class="need-head">
+                                    <input type="checkbox" checked="@Wizard.DoneNeeds.Contains(WizardState.NeedKey(need))" aria-label="@($"{need.Name} is created")"
+                                           @onchange="e => Wizard.SetNeedDone(need, e.Value is true)" />
+                                    <code>@need.Name</code>
+                                    <button type="button" class="btn-link copy-need" @onclick="() => CopyName(need.Name)">Copy</button>
+                                </span>
+                            }
+                            else
+                            {
+                                <code>@need.Name</code>
+                            }
                             <span class="what">@need.Purpose</span>
                             @if (need.IsSecret)
                             {
@@ -59,4 +73,21 @@
     private bool _file;
 
     private bool ShowsFile => _file && Wizard.CurrentStep != WizardStep.Result;
+
+    /// <summary>On the Result step the list is something to work through: each need can be ticked off.</summary>
+    private bool Checklist => Wizard.CurrentStep == WizardStep.Result;
+
+    private int Done(GeneratedPipeline pipeline) => pipeline.Requirements.Count(need => Wizard.DoneNeeds.Contains(WizardState.NeedKey(need)));
+
+    private async Task CopyName(string name)
+    {
+        try
+        {
+            await JS.InvokeAsync<bool>("pipelineBuilder.copyText", name);
+        }
+        catch (JSException)
+        {
+            // The browser refused; the name is still there to select.
+        }
+    }
 }

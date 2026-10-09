@@ -38,15 +38,31 @@ public sealed class BuildStageGenerator
   jobs:
   - job: BuildJob
     displayName: 'Build, test and package'
-    steps:
+{CacheFolder(definition.ProjectType)}    steps:
 {YamlBuilder.Indent(string.Join("\n", steps), 2)}
 """;
     }
+
+    private static string CacheFolder(ProjectType type) => type switch
+    {
+        ProjectType.DotNet => $"    # Packages are kept between runs, so they are not downloaded every time.\n    variables:\n      {PackageCache.NuGetVariable}: $(Pipeline.Workspace)/.nuget/packages\n",
+        ProjectType.Node => $"    # Packages are kept between runs, so they are not downloaded every time.\n    variables:\n      {PackageCache.NpmVariable}: $(Pipeline.Workspace)/.npm\n",
+        _ => string.Empty
+    };
+
+    /// <summary>Restores the package folder from an earlier run with the same project files, and saves it after this one.</summary>
+    private static string Cache(string name, string files, string variable) => YamlBuilder.Task("Cache@2", new Dictionary<string, string>
+    {
+        ["key"] = $"{name} | \"$(Agent.OS)\" | {files}",
+        ["restoreKeys"] = $"{name} | \"$(Agent.OS)\"",
+        ["path"] = $"$({variable})"
+    }, $"Cache {(name == "nuget" ? "NuGet" : "npm")} packages");
 
     private static IEnumerable<string> DotNetSteps(PipelineDefinition definition)
     {
         // Build every project (including tests) once; publish later picks the app project(s) with --no-build.
         const string allProjects = "**/*.csproj";
+        yield return Cache("nuget", allProjects, PackageCache.NuGetVariable);
         yield return YamlBuilder.Task("DotNetCoreCLI@2", new Dictionary<string, string>
         {
             ["command"] = "restore",
@@ -64,6 +80,11 @@ public sealed class BuildStageGenerator
             ["projects"] = definition.TestProjectPath ?? "**/*Tests*.csproj",
             ["arguments"] = "--configuration $(BuildConfiguration) --no-build --collect:\"XPlat Code Coverage\""
         }, "Run tests");
+        // The coverage the tests collect is shown on the run's Code Coverage tab.
+        yield return YamlBuilder.Task("PublishCodeCoverageResults@2", new Dictionary<string, string>
+        {
+            ["summaryFileLocation"] = "$(Agent.TempDirectory)/**/coverage.cobertura.xml"
+        }, "Publish code coverage");
     }
 
     private static IEnumerable<string> NodeSteps(PipelineDefinition definition)
@@ -74,6 +95,7 @@ public sealed class BuildStageGenerator
         {
             ["versionSpec"] = definition.NodeVersion
         }, $"Use Node.js {definition.NodeVersion}");
+        yield return Cache("npm", "**/package-lock.json", PackageCache.NpmVariable);
         yield return YamlBuilder.Task("Npm@1", new Dictionary<string, string>
         {
             ["command"] = "ci"

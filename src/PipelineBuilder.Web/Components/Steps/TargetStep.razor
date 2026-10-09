@@ -11,35 +11,16 @@
 </details>
 <label class="check"><InputCheckbox id="skip-preprod" @bind-Value="Wizard.SkipPreprod" /> We have no preprod</label>
 
-@* An approval between two environments. The first environment has nothing before it to wait for. *@
-@for (var i = 1; i < Wizard.Definition.Environments.Count; i++)
+@if (Wizard.Definition.Artifact.ArtifactType != ArtifactType.DockerImage)
 {
-    var before = Wizard.Definition.Environments[i - 1];
-    var environment = Wizard.Definition.Environments[i];
-    <label class="check">
-        <input type="checkbox" id="@($"approve-{environment}")" checked="@Wizard.WaitsForApproval(environment)"
-               @onchange="e => Wizard.SetApproval(environment, e.Value is true)" />
-        Wait for approval between @before and @environment
-    </label>
-}
-@if (Wizard.Definition.Environments.Skip(1).Any(Wizard.WaitsForApproval))
-{
-    <p class="hint">The pipeline waits there and sends an email. It continues when someone approves.</p>
-    <details class="explain">
-        <summary>How is this different from an approval on the environment?</summary>
-        <p>@Help.ApprovalInFile</p>
-    </details>
-    <div class="fields">
-        <Field For="approvers" Label="Who may approve" Hint="Users or groups, separated by commas. Empty means anyone who can start the pipeline.">
-            <InputText id="approvers" @bind-Value="Wizard.Definition.Approval.Approvers" class="form-control" placeholder="[Our project]\Release approvers" />
+    <label class="check"><InputCheckbox id="settings-per-environment" @bind-Value="Wizard.SettingsPerEnvironment" /> Give each environment its own settings</label>
+    <p class="hint">appsettings.json gets the values from the environment's own variable group, e.g. a variable named ConnectionStrings.Default. The groups are added for you under More settings.</p>
+    @if (Wizard.SettingsPerEnvironment)
+    {
+        <Field For="settings-files" Label="Settings files" Hint="The files that get the values.">
+            <InputText id="settings-files" @bind-Value="Wizard.Definition.Deployment.SettingsFiles" class="form-control" placeholder="@WizardState.DefaultSettingsFiles" />
         </Field>
-        <Field For="approval-notify" Label="Who gets the email" Hint="Users or groups, separated by commas.">
-            <InputText id="approval-notify" @bind-Value="Wizard.Definition.Approval.NotifyUsers" class="form-control" placeholder="lead@contoso.com" />
-        </Field>
-        <Field For="approval-wait" Label="Hours to wait" Hint="With no answer in this time, the deployment is stopped.">
-            <InputNumber id="approval-wait" @bind-Value="Wizard.Definition.Approval.WaitHours" class="form-control narrow" />
-        </Field>
-    </div>
+    }
 }
 
 <h3>@KindTitle</h3>

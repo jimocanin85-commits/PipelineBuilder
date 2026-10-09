@@ -34,11 +34,20 @@ stages:
   jobs:
   - job: BuildJob
     displayName: 'Build, test and package'
+    # Packages are kept between runs, so they are not downloaded every time.
+    variables:
+      npm_config_cache: $(Pipeline.Workspace)/.npm
     steps:
       - task: NodeTool@0
         displayName: 'Use Node.js 24.x'
         inputs:
           versionSpec: '24.x'
+      - task: Cache@2
+        displayName: 'Cache npm packages'
+        inputs:
+          key: 'npm | "$(Agent.OS)" | **/package-lock.json'
+          restoreKeys: 'npm | "$(Agent.OS)"'
+          path: '$(npm_config_cache)'
       - task: Npm@1
         displayName: 'Install packages (npm ci)'
         inputs:

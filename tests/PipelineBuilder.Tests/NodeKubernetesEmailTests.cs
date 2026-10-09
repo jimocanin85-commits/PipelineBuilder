@@ -29,14 +29,14 @@ public class NodeKubernetesEmailTests
 
         var steps = BuildSteps(Generator.Generate(definition).Yaml);
 
-        Assert.Equal(new[] { "NodeTool@0", "Npm@1", "Npm@1", "Npm@1", "CopyFiles@2", "PublishPipelineArtifact@1" },
+        Assert.Equal(new[] { "NodeTool@0", "Cache@2", "Npm@1", "Npm@1", "Npm@1", "CopyFiles@2", "PublishPipelineArtifact@1" },
             steps.Select(s => s.GetValueOrDefault("task") as string));
         Assert.Equal("22.x", (string)Inputs(steps[0])["versionSpec"]);
-        Assert.Equal("ci", (string)Inputs(steps[1])["command"]);
-        Assert.Equal("run build --if-present", (string)Inputs(steps[2])["customCommand"]);
-        Assert.Equal("run test --if-present", (string)Inputs(steps[3])["customCommand"]);
-        Assert.Equal("true", (string)Assert.IsType<Dictionary<object, object>>(steps[3]["env"])["CI"]);
-        Assert.Equal("build", (string)Inputs(steps[4])["SourceFolder"]);
+        Assert.Equal("ci", (string)Inputs(steps[2])["command"]);
+        Assert.Equal("run build --if-present", (string)Inputs(steps[3])["customCommand"]);
+        Assert.Equal("run test --if-present", (string)Inputs(steps[4])["customCommand"]);
+        Assert.Equal("true", (string)Assert.IsType<Dictionary<object, object>>(steps[4]["env"])["CI"]);
+        Assert.Equal("build", (string)Inputs(steps[5])["SourceFolder"]);
     }
 
     [Fact]

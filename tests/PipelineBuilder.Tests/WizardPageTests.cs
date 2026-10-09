@@ -1,6 +1,8 @@
 using Bunit;
 using Microsoft.AspNetCore.Components.Forms;
+using System.Text.Json;
 using Microsoft.Extensions.DependencyInjection;
+using PipelineBuilder.Core.Abstractions;
 using PipelineBuilder.Core.DependencyInjection;
 using PipelineBuilder.Core.Enums;
 using PipelineBuilder.Core.Models;
@@ -19,6 +21,8 @@ public class WizardPageTests : BunitContext
     {
         Services.AddPipelineBuilderCore();
         Services.AddScoped<WizardState>();
+        // The page keeps the wizard in the browser's storage; here nothing is stored, and nothing is there.
+        JSInterop.Mode = JSRuntimeMode.Loose;
         JSInterop.SetupVoid("pipelineBuilder.downloadText", _ => true).SetVoidResult();
         JSInterop.Setup<bool>("pipelineBuilder.copyText", _ => true).SetResult(true);
     }
@@ -740,7 +744,7 @@ public class WizardPageTests : BunitContext
     public void TheFileCanBeShownBesideTheFormAndMarksWhatASettingChanged()
     {
         var cut = Render<Home>();
-        GoTo(cut, WizardStep.Target);
+        GoTo(cut, WizardStep.Safety);
         Assert.Empty(cut.FindAll(".yaml-live"));
         Assert.Equal("true", cut.Find(".side-tab[data-tab='overview']").GetAttribute("aria-selected"));
 
@@ -776,7 +780,7 @@ public class WizardPageTests : BunitContext
     public void AnApprovalIsShownAsAGateBeforeItsStageAndSaysWhereItIsSet()
     {
         var cut = Render<Home>();
-        GoTo(cut, WizardStep.Target);
+        GoTo(cut, WizardStep.Safety);
         cut.Find("#approve-preprod").Change(true);
 
         var rows = cut.FindAll(".stages .flow li").Select(row => (Gate: row.ClassList.Contains("gate"), Text: row.TextContent)).ToList();
@@ -813,5 +817,86 @@ public class WizardPageTests : BunitContext
         Assert.Contains(cut.FindAll(".yaml-preview .k"), key => key.TextContent == "trigger");
         Assert.Contains(cut.FindAll(".yaml-preview .x"), expression => expression.TextContent == "${{ environment }}");
         Assert.Empty(cut.FindAll(".yaml-preview .changed"));
+    }
+
+    [Fact]
+    public void EachNeedCanBeTickedOffAndCopiedOnTheResultStep()
+    {
+        var cut = Render<Home>();
+        GoTo(cut, WizardStep.Result);
+        var total = cut.FindAll(".needs-list li[data-need]").Count;
+        Assert.Contains($"0 of {total} done", cut.Find(".needs-progress").TextContent);
+
+        cut.Find(".needs-list li[data-need] input[type=checkbox]").Change(true);
+
+        Assert.Contains("done", cut.Find(".needs-list li[data-need]").ClassList);
+        Assert.Contains($"1 of {total} done", cut.Find(".needs-progress").TextContent);
+
+        var name = cut.Find(".needs-list li[data-need] code").TextContent;
+        cut.Find(".needs-list li[data-need] .copy-need").Click();
+        Assert.Contains(JSInterop.Invocations["pipelineBuilder.copyText"], call => (string)call.Arguments[0]! == name);
+
+        // Before the Result step the list is only to read.
+        GoTo(cut, WizardStep.Target);
+        cut.Find(".side-tab[data-tab='overview']").Click();
+        Assert.Empty(cut.FindAll(".wizard-side input[type=checkbox]"));
+    }
+
+    [Fact]
+    public void WhatIsFilledInIsKeptInTheBrowser()
+    {
+        var cut = Render<Home>();
+
+        cut.Find("#pipeline-name").Change("kept-app");
+
+        var saved = JsonDocument.Parse((string)JSInterop.Invocations["pipelineBuilder.saveState"].Last().Arguments[0]!);
+        Assert.Equal("kept-app", PipelineDefinitionSerializer.FromJson(saved.RootElement.GetProperty("Settings").GetString()!).Name);
+    }
+
+    [Fact]
+    public void WhatTheBrowserKeptIsBackAfterAReload()
+    {
+        var kept = WizardState.CreateDefault();
+        kept.Name = "kept-app";
+        var need = Services.GetRequiredService<IPipelineGeneratorService>().Generate(kept).Requirements.First();
+        var json = JsonSerializer.Serialize(new { Settings = PipelineDefinitionSerializer.ToJson(kept), Done = new[] { WizardState.NeedKey(need) } });
+        JSInterop.Setup<string?>("pipelineBuilder.loadState").SetResult(json);
+
+        var cut = Render<Home>();
+
+        cut.WaitForAssertion(() => Assert.Equal("kept-app", cut.Find("#pipeline-name").GetAttribute("value")));
+        Assert.Contains("Your settings from last time are back.", cut.Markup);
+        GoTo(cut, WizardStep.Result);
+        Assert.Contains("1 of", cut.Find(".needs-progress").TextContent);
+    }
+
+    [Theory]
+    [InlineData("{ nope")]
+    [InlineData("{\"Settings\":\"{ nope\",\"Done\":[]}")]
+    public void WhatTheBrowserKeptIsIgnoredWhenItIsBroken(string json)
+    {
+        JSInterop.Setup<string?>("pipelineBuilder.loadState").SetResult(json);
+
+        var cut = Render<Home>();
+
+        Assert.Equal("my-app", cut.Find("#pipeline-name").GetAttribute("value"));
+        Assert.DoesNotContain("from last time", cut.Markup);
+    }
+
+    [Fact]
+    public void StartOverGoesBackToANewPipeline()
+    {
+        var cut = Render<Home>();
+        cut.Find("#pipeline-name").Change("old-app");
+        GoTo(cut, WizardStep.Result);
+        cut.Find(".needs-list li[data-need] input[type=checkbox]").Change(true);
+        GoTo(cut, WizardStep.Start);
+
+        cut.Find("#start-over").Click();
+
+        Assert.Equal("my-app", cut.Find("#pipeline-name").GetAttribute("value"));
+        Assert.Contains("Started over with a new pipeline.", cut.Markup);
+        GoTo(cut, WizardStep.Result);
+        Assert.Contains("0 of", cut.Find(".needs-progress").TextContent);
     }
 }

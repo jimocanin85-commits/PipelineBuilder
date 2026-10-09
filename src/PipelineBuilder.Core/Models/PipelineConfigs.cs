@@ -68,6 +68,12 @@ public sealed class DeploymentConfig
     /// </summary>
     public DeployFrom RunFrom { get; set; } = DeployFrom.Server;
 
+    /// <summary>
+    /// Settings files that get each environment's values when it is deployed, e.g. <c>**/appsettings.json</c>.
+    /// A variable named like a setting (<c>ConnectionStrings.Default</c>) replaces it. Empty: the files are left as built.
+    /// </summary>
+    public string? SettingsFiles { get; set; }
+
     /// <summary>Account the build agent logs in as on Linux servers (<see cref="DeployFrom.Agent"/>).</summary>
     public string? SshUser { get; set; }
 

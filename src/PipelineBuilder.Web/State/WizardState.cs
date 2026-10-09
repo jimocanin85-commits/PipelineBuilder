@@ -109,6 +109,49 @@ public sealed class WizardState
     public const string Preprod = "preprod";
 
     /// <summary>The flow is test, preprod, prod. Teams without a preprod environment leave it out.</summary>
+    /// <summary>The settings files that get each environment's values, unless the user names others.</summary>
+    public const string DefaultSettingsFiles = "**/appsettings.json";
+
+    /// <summary>
+    /// Each environment gets its own values in the settings files, from its own variable group. Turning it
+    /// on adds a variable group for every environment that has none yet, so nothing has to be added by hand.
+    /// </summary>
+    public bool SettingsPerEnvironment
+    {
+        get => !string.IsNullOrWhiteSpace(Definition.Deployment.SettingsFiles);
+        set
+        {
+            Definition.Deployment.SettingsFiles = value ? DefaultSettingsFiles : null;
+            if (!value)
+                return;
+            foreach (var environment in Definition.Environments)
+            {
+                if (!VariableGroups.Any(g => g.Scope == VariableGroupScope.Environment && string.Equals(g.EnvironmentName, environment, StringComparison.OrdinalIgnoreCase)))
+                {
+                    VariableGroups.Add(new VariableGroupConfig
+                    {
+                        Name = $"vg-{Definition.Name}-{environment}",
+                        Scope = VariableGroupScope.Environment,
+                        EnvironmentName = environment,
+                        ContainsSecrets = true
+                    });
+                }
+            }
+        }
+    }
+
+    /// <summary>What has been created in Azure DevOps, ticked off on the Result step. Kept per need: its kind and name.</summary>
+    public HashSet<string> DoneNeeds { get; } = new(StringComparer.Ordinal);
+
+    public static string NeedKey(PipelineRequirement need) => $"{need.Kind}:{need.Name}";
+
+    public void SetNeedDone(PipelineRequirement need, bool done)
+    {
+        if (done) DoneNeeds.Add(NeedKey(need));
+        else DoneNeeds.Remove(NeedKey(need));
+        NotifyChanged();
+    }
+
     public bool SkipPreprod
     {
         get => !Definition.Environments.Contains(Preprod, StringComparer.OrdinalIgnoreCase);

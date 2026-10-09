@@ -36,11 +36,16 @@ if (connected) {
   const small = await page.locator('.stages .flow li span:not(.icon)').first().evaluate(element => getComputedStyle(element).fontSize);
   check(small === '12px', `The stage boxes are not styled (their second line is ${small}, not 12px).`);
 
+  // A name, to see later that what is filled in is kept.
+  await page.fill('#pipeline-name', 'browser-app');
+  await page.press('#pipeline-name', 'Tab');
+
   // The file beside the form: it shows the pipeline, and marks the lines a setting just changed.
   await page.click('button[data-step="Target"]');
   await page.click('.side-tab[data-tab="file"]');
   const live = await page.locator('.yaml-live').textContent({ timeout: 10000 });
   check(live.includes('systemctl start'), 'The File view beside the form does not show the pipeline.');
+  await page.click('button[data-step="Safety"]');
   await page.locator('#approve-preprod').check();
   const marked = await page.locator('.yaml-live .line.changed').first().waitFor({ timeout: 10000 }).then(() => true, () => false);
   check(marked, 'The File view did not mark the lines that the approval added.');
@@ -63,6 +68,15 @@ if (connected) {
   check(['light', 'dark'].includes(chosen) && chosen !== before, `The theme button did not switch (was "${before}", is "${chosen}").`);
   await page.reload();
   check(await theme() === chosen, 'The chosen theme was forgotten after a reload.');
+
+  // What was filled in is back after the reload, and Start over clears it.
+  const named = name => page.waitForFunction(value => document.querySelector('#pipeline-name')?.value === value, name, { timeout: 15000 }).then(() => true, () => false);
+  const kept = await named('browser-app');
+  check(kept, 'What was filled in was forgotten after a reload.');
+  if (kept) {
+    await page.click('#start-over');
+    check(await named('my-app'), 'Start over did not go back to a new pipeline.');
+  }
 }
 
 await browser.close();
@@ -70,4 +84,4 @@ if (problems.length > 0) {
   for (const problem of problems) console.log(`::error title=Browser test::${problem}`);
   process.exit(1);
 }
-console.log('The wizard works in a browser: templates, the file beside the form, the Result step, download and the theme button.');
+console.log('The wizard works in a browser: templates, the file beside the form, the Result step, download, the theme button and what is kept after a reload.');

@@ -268,6 +268,13 @@ details.more > summary + h3 { margin-top: 8px; padding-top: 0; border-top: 0; }
 .needs-list li.where:first-child { margin-top: 16px; }
 .needs-list code { display: block; overflow-wrap: anywhere; font-weight: 600; }
 .needs-list .tag { margin-top: 4px; }
+.needs-progress { margin: 4px 0 0; color: var(--muted); font-size: 12px; line-height: 16px; }
+.need-head { display: flex; align-items: center; gap: 8px; }
+.need-head code { flex: 1; min-width: 0; }
+.need-head input { margin: 0; }
+.copy-need { font-size: 12px; }
+.needs-list li.done code { color: var(--muted); text-decoration: line-through; }
+.needs-list li.done .what { opacity: .7; }
 
 /* The YAML file, shown the way the pipeline editor in Azure DevOps shows it. */
 .file { margin-top: 16px; border: 1px solid var(--line-strong); border-radius: var(--radius); overflow: hidden; background: var(--code-bg); }
