@@ -1,5 +1,6 @@
 @inject WizardState Wizard
 @inject IJSRuntime JS
+@inject IServiceProvider Services
 
 <h2>Your pipeline file</h2>
 @if (Wizard.BlockingErrors.Count > 0)
@@ -36,6 +37,7 @@ else if (Pipeline is { } result)
 
     <div class="actions">
         <button type="button" class="btn-secondary" id="download-settings" @onclick="DownloadSettings">Save settings</button>
+        <TeamSave />
         <span class="hint">To change the pipeline later, open this file on the first step.</span>
     </div>
 
@@ -65,6 +67,8 @@ else if (Pipeline is { } result)
         {
             await JS.InvokeVoidAsync("pipelineBuilder.downloadText", fileName, content, mimeType);
             _status = $"Downloaded {fileName}.";
+            if (fileName == PipelineFileName)
+                await new Team(Services).LogAsync(ActivityKind.Downloaded, Wizard.Definition.Name);
         }
         catch (JSException ex)
         {
@@ -81,6 +85,8 @@ else if (Pipeline is { } result)
         {
             var copied = await JS.InvokeAsync<bool>("pipelineBuilder.copyText", content);
             _copied = copied;
+            if (copied)
+                await new Team(Services).LogAsync(ActivityKind.Copied, Wizard.Definition.Name);
             _status = copied ? "Copied." : "The browser blocked the copy. Select the text instead.";
         }
         catch (JSException ex)

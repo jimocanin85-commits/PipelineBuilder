@@ -1,0 +1,141 @@
+@inject IServiceProvider Services
+@inject WizardState Wizard
+
+@* The team's saved pipelines, and what was done with them. Only with a database. *@
+@if (_team.IsAvailable)
+{
+    <section class="team" aria-labelledby="team-title">
+        <h3 id="team-title">The team's pipelines</h3>
+        @if (_error != null)
+        {
+            <p class="severity-error" role="status">@_error</p>
+        }
+        else if (_saved == null)
+        {
+            <p class="hint">Loading…</p>
+        }
+        else if (_saved.Count == 0)
+        {
+            <p class="hint">None saved yet. Save one for the team on the Result step.</p>
+        }
+        else
+        {
+            <ul class="team-list">
+                @foreach (var saved in _saved)
+                {
+                    <li data-saved="@saved.Id">
+                        <span class="team-name">
+                            <strong>@saved.Name</strong>
+                            <span class="what">Saved by @saved.SavedBy, @saved.SavedAt.ToLocalTime().ToString("yyyy-MM-dd HH:mm")</span>
+                        </span>
+                        <button type="button" class="btn-secondary open-saved" @onclick="() => Open(saved)">Open</button>
+                        @if (string.Equals(saved.SavedBy, _user, StringComparison.OrdinalIgnoreCase))
+                        {
+                            <button type="button" class="btn-link delete-saved" @onclick="() => Delete(saved)">Delete</button>
+                        }
+                    </li>
+                }
+            </ul>
+        }
+        @if (_status != null)
+        {
+            <p class="status" role="status">@_status</p>
+        }
+        <details class="explain activity">
+            <summary>Recent activity</summary>
+            @if (_activity.Count == 0)
+            {
+                <p class="hint">Nothing yet.</p>
+            }
+            else
+            {
+                <ul class="activity-list">
+                    @foreach (var entry in _activity)
+                    {
+                        <li><span class="when">@entry.At.ToLocalTime().ToString("yyyy-MM-dd HH:mm")</span> @entry.UserName: @entry.Action.ToLowerInvariant() <strong>@entry.Pipeline</strong></li>
+                    }
+                </ul>
+            }
+        </details>
+    </section>
+}
+
+@code {
+    /// <summary>How many lines of the activity log are shown.</summary>
+    public const int ActivityShown = 20;
+
+    private Team _team = default!;
+    private string _user = Team.Unknown;
+    private IReadOnlyList<SavedPipeline>? _saved;
+    private IReadOnlyList<ActivityEntry> _activity = Array.Empty<ActivityEntry>();
+    private string? _error;
+    private string? _status;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _team = new Team(Services);
+        if (!_team.IsAvailable)
+            return;
+        _user = await _team.UserNameAsync();
+        await Refresh();
+    }
+
+    private async Task Refresh()
+    {
+        try
+        {
+            _saved = await _team.Store!.ListAsync();
+            _activity = await _team.Store!.RecentActivityAsync(ActivityShown);
+            _error = null;
+        }
+        catch (Exception ex) when (Team.IsDatabaseError(ex))
+        {
+            _error = $"The team's pipelines could not be loaded: {ex.Message}";
+        }
+    }
+
+    private async Task Open(SavedPipeline saved)
+    {
+        try
+        {
+            var settings = await _team.Store!.LoadAsync(saved.Id);
+            if (settings == null)
+            {
+                _status = $"'{saved.Name}' is no longer saved.";
+                await Refresh();
+                return;
+            }
+            Wizard.Load(PipelineDefinitionSerializer.FromJson(settings));
+            Wizard.DoneNeeds.Clear();
+            Wizard.SettingsMessage = null;
+            _status = $"Opened '{saved.Name}', saved by {saved.SavedBy}.";
+            await _team.LogAsync(ActivityKind.Opened, saved.Name);
+            Wizard.NotifyChanged();
+            await Refresh();
+        }
+        catch (FormatException ex)
+        {
+            _status = $"Could not open '{saved.Name}': {ex.Message}";
+        }
+        catch (Exception ex) when (Team.IsDatabaseError(ex))
+        {
+            _error = $"The team's pipelines could not be loaded: {ex.Message}";
+        }
+    }
+
+    private async Task Delete(SavedPipeline saved)
+    {
+        try
+        {
+            _status = await _team.Store!.DeleteAsync(saved.Id, _user)
+                ? $"Deleted '{saved.Name}'."
+                : $"'{saved.Name}' can only be deleted by {saved.SavedBy}.";
+            await _team.LogAsync(ActivityKind.Deleted, saved.Name);
+            await Refresh();
+        }
+        catch (Exception ex) when (Team.IsDatabaseError(ex))
+        {
+            _error = $"The team's pipelines could not be loaded: {ex.Message}";
+        }
+    }
+}

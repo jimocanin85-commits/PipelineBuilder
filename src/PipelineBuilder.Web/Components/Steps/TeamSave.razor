@@ -1,0 +1,42 @@
+@inject IServiceProvider Services
+@inject WizardState Wizard
+
+@* Saves the settings in the team's database, so anyone can open them on the first step. Only with a database. *@
+@if (_team.IsAvailable)
+{
+    <button type="button" class="btn-secondary" id="save-team" @onclick="Save">Save for the team</button>
+    @if (_status != null)
+    {
+        <span class="status" role="status">@_status</span>
+    }
+}
+
+@code {
+    private Team _team = default!;
+    private string? _status;
+
+    protected override void OnInitialized() => _team = new Team(Services);
+
+    private async Task Save()
+    {
+        var name = Wizard.Definition.Name.Trim();
+        try
+        {
+            var user = await _team.UserNameAsync();
+            var earlier = (await _team.Store!.ListAsync()).FirstOrDefault(p => string.Equals(p.Name, name, StringComparison.OrdinalIgnoreCase));
+            await _team.Store!.SaveAsync(name, PipelineDefinitionSerializer.ToJson(Wizard.Definition), user);
+            await _team.LogAsync(ActivityKind.Saved, name);
+            _status = earlier == null || string.Equals(earlier.SavedBy, user, StringComparison.OrdinalIgnoreCase)
+                ? $"Saved '{name}' for the team. It is listed on the first step."
+                : $"Saved '{name}' for the team, replacing the one {earlier.SavedBy} saved.";
+        }
+        catch (ArgumentException ex)
+        {
+            _status = $"Not saved: {ex.Message}";
+        }
+        catch (Exception ex) when (Team.IsDatabaseError(ex))
+        {
+            _status = $"Not saved: the database could not be reached ({ex.Message}).";
+        }
+    }
+}
