@@ -124,7 +124,7 @@ public sealed class SqlPipelineStoreTests : IAsyncLifetime
     [Fact]
     public async Task AServerThatCannotBeReachedFailsAsADatabaseError()
     {
-        var store = new SqlPipelineStore("Server=tcp:127.0.0.1,1;Database=x;Integrated Security=False;User ID=x;Password=x;Connect Timeout=1;Encrypt=False");
+        var store = new SqlPipelineStore("Server=tcp:127.0.0.1,1;Database=x;Integrated Security=False;User ID=x;Password=x;Connect Timeout=1;Encrypt=True");
         var error = await Assert.ThrowsAnyAsync<Exception>(() => store.ListAsync());
         Assert.True(Team.IsDatabaseError(error), error.GetType().FullName);
     }

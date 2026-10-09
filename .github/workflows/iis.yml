@@ -68,6 +68,10 @@ jobs:
           if ((Get-Content publish\web.config -Raw) -notmatch 'value="Test"') { Write-Host '::error title=Questions::The extracted app''s web.config does not say its environment.'; exit 1 }
           Write-Host 'The typed name and folder were used.' -ForegroundColor Green
 
+      - name: Install SQL Server Express
+        shell: pwsh
+        run: choco install sql-server-express -y --no-progress | Select-Object -Last 5
+
       - name: Move the first site to HTTPS in another folder
         shell: pwsh
         run: |
@@ -81,11 +85,25 @@ jobs:
           Export-PfxCertificate -Cert $certificate -FilePath site.pfx -Password $password | Out-Null
           Remove-Item "Cert:\LocalMachine\My\$($certificate.Thumbprint)" -DeleteKey
           ./deploy/Install-PipelineBuilder.ps1 -PublishFolder publish -PhysicalPath C:\apps\pipelinebuilder `
-            -HostName localhost -Port 8443 -CertificateFile site.pfx -CertificatePassword $password -Environment Preprod
+            -HostName localhost -Port 8443 -CertificateFile site.pfx -CertificatePassword $password -Environment Preprod `
+            -SqlServer '.\SQLEXPRESS' -TrustSqlServerCertificate
           if (-not (Test-Path "Cert:\LocalMachine\My\$($certificate.Thumbprint)")) { Write-Host '::error title=HTTPS::The certificate file was not imported.'; exit 1 }
           $folder = & "$env:windir\System32\inetsrv\appcmd.exe" list vdir 'PipelineBuilder/' /text:physicalPath
           if ((Get-Content C:\apps\pipelinebuilder\web.config -Raw) -notmatch 'value="Preprod"') { Write-Host '::error title=HTTPS::web.config does not say the environment is Preprod.'; exit 1 }
           if (-not (Test-Path C:\apps\pipelinebuilder\appsettings.Preprod.json)) { Write-Host '::error title=HTTPS::appsettings.Preprod.json was not made.'; exit 1 }
+          # The database: named for preprod, Danish collation, its tables, and the app pool let in.
+          $settings = Get-Content C:\apps\pipelinebuilder\appsettings.Preprod.json -Raw | ConvertFrom-Json
+          if ($settings.ConnectionStrings.PipelineBuilder -notmatch 'PipelineBuild\.PP') { Write-Host "::error title=SQL::The connection string is $($settings.ConnectionStrings.PipelineBuilder)."; exit 1 }
+          $facts = powershell.exe -NoProfile -Command {
+            $connection = New-Object System.Data.SqlClient.SqlConnection 'Data Source=.\SQLEXPRESS;Initial Catalog=master;Integrated Security=True'
+            $connection.Open()
+            $command = $connection.CreateCommand()
+            $command.CommandText = "SELECT CAST(DATABASEPROPERTYEX(N'PipelineBuild.PP', 'Collation') AS nvarchar(128)) + '|' + CAST(SUSER_ID(N'IIS APPPOOL\PipelineBuilder') AS nvarchar(20)) + '|' + CAST((SELECT COUNT(*) FROM [PipelineBuild.PP].sys.tables WHERE name IN (N'SavedPipelines', N'ActivityLog')) AS nvarchar(5))"
+            $command.ExecuteScalar()
+            $connection.Dispose()
+          }
+          Write-Host "Collation|login|tables: $facts"
+          if ($facts -notmatch '^Danish_Norwegian_CI_AS\|\d+\|2$') { Write-Host "::error title=SQL::The database is not as expected: $facts"; exit 1 }
           # A folder that holds other things is never made a copy of the app.
           $refused = $false
           try { ./deploy/Install-PipelineBuilder.ps1 -PhysicalPath C:\apps -Port 8090 -SiteName Refused } catch { $refused = $true }
@@ -138,6 +156,11 @@ jobs:
             if ($signedIn.StatusCode -ne 200) { Fail "Expected 200 with Windows credentials, got $($signedIn.StatusCode)" $signedIn }
             if ($signedIn.Content -notmatch 'What are you deploying') { Fail 'The wizard did not render.' $signedIn }
             if ($signedIn.Content -notmatch 'Signed in as') { Fail 'The signed-in user is not shown.' $signedIn }
+            # The HTTPS site has the team database: the app pool reads it with its own Windows login.
+            if ($url -like 'https://*') {
+              if ($signedIn.Content -notmatch "The team's pipelines|The team&#x27;s pipelines") { Fail 'The team''s pipelines are not shown.' $signedIn }
+              if ($signedIn.Content -match 'could not be loaded') { Fail 'The app could not read the team database.' $signedIn }
+            }
           }
           Write-Host 'Windows login works on HTTP and HTTPS.' -ForegroundColor Green
 

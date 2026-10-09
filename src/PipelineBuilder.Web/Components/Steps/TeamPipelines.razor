@@ -107,11 +107,11 @@
             }
             Wizard.Load(PipelineDefinitionSerializer.FromJson(settings));
             Wizard.DoneNeeds.Clear();
-            Wizard.SettingsMessage = null;
-            _status = $"Opened '{saved.Name}', saved by {saved.SavedBy}.";
+            // Shown where an opened file is reported: the step is drawn anew for the new settings.
+            Wizard.SettingsMessage = ($"Opened '{saved.Name}', saved by {saved.SavedBy}.", false);
+            _status = null;
             await _team.LogAsync(ActivityKind.Opened, saved.Name);
             Wizard.NotifyChanged();
-            await Refresh();
         }
         catch (FormatException ex)
         {
