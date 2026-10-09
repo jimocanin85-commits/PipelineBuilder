@@ -11,7 +11,7 @@ What the generated pipelines need in Azure DevOps is in [AZURE-DEVOPS.md](AZURE-
 
 The three commands to start it are in the [README](../README.md#run-it). There is no login when you run it this way.
 
-- Older SDKs than 10.0.401 are rejected. Check yours with `dotnet --version`.
+- Any .NET 10 SDK works; the newest one installed is used. Check yours with `dotnet --list-sdks`.
 - The first build needs internet access to nuget.org.
 - For <https://localhost:7150>, first run `dotnet dev-certs https --trust` once.
 - To reload on code changes: `dotnet watch --project src/PipelineBuilder.Web`.
@@ -47,7 +47,7 @@ Unblock-File .\PipelineBuilder-iis.zip
 
 Extract it on the server, e.g. to `C:\Install\PipelineBuilder`.
 
-The source code from GitHub (*Code → Download ZIP*) works too, but only where the .NET 10 SDK is installed: the script then builds the app first.
+The source code from GitHub (*Code → Download ZIP*) works too, where a .NET 10 SDK is installed: the script then builds the app from it first. That needs internet access to nuget.org.
 
 ### 2.3 Run the install script
 

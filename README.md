@@ -4,7 +4,7 @@ A wizard that writes your `azure-pipelines.yml` for Azure DevOps. The pipeline b
 
 ## Run it
 
-You need the [.NET 10 SDK](https://dotnet.microsoft.com/download/dotnet/10.0) (10.0.401 or later).
+You need the [.NET 10 SDK](https://dotnet.microsoft.com/download/dotnet/10.0) (any 10.0 version).
 
 ```bash
 git clone https://github.com/jimocanin85-commits/PipelineBuilder.git
