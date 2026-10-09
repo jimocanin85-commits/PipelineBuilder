@@ -74,12 +74,21 @@ Certificate for HTTPS:
 Choose [1]:
 Host name users type in the browser [pipelines.contoso.local]:
 Port [443]:
+SQL Server or alias for the team's saved pipelines (Enter for none): SQLPROD01
 AD groups that may use it, separated by commas (Enter for every domain user): CONTOSO\Platform-Team
 ...
 PipelineBuilder is running at https://pipelines.contoso.local:443/ (Windows login).
 ```
 
 **The environment** is written in the app's `web.config` (`ASPNETCORE_ENVIRONMENT`), also in the extracted `publish` folder, and the script makes `appsettings.Test.json`, `appsettings.Preprod.json` or `appsettings.Prod.json` next to the app, with the AD groups. Each server gets its own environment, so the same download installs test, preprod and prod.
+
+**The database** (optional) keeps the pipelines the team saves and a log of who saved, opened, downloaded or copied which pipeline. Type the SQL Server, `server\instance` or an alias. The script then:
+
+- makes the database `PipelineBuild` for Prod, `PipelineBuild.PP` for Preprod or `PipelineBuild.Test` for Test, with collation `Danish_Norwegian_CI_AS`, and its tables. It is left as it is when it already exists;
+- lets the app in with Windows login, so no password is stored: the app pool (`IIS APPPOOL\PipelineBuilder`) when SQL Server is on the same machine, else this server's computer account (`CONTOSO\WEBSERVER01$`). It may only read and write rows;
+- writes the connection string in `appsettings.<environment>.json`.
+
+You run the script as a Windows user that may create databases and logins on that SQL Server (e.g. `sysadmin`). Run it again and answer `none` to stop using the database; it is not deleted.
 
 **The folder** is picked in a window, where you can also make a new folder. Close the window to type the path instead. A folder that already holds other files gets a new folder for the app in it, e.g. `D:\Apps\PipelineBuilder`, because the app's folder is made an exact copy of the app.
 
@@ -109,6 +118,9 @@ Instead of `-CertificateThumbprint`, `-CertificateFile .\pipelines.pfx` imports 
 | `-CertificateThumbprint` | none | Certificate in *LocalMachine\My*. When set, the binding uses HTTPS. |
 | `-CertificateFile` | none | A `.pfx` file to import into *LocalMachine\My* and use for HTTPS |
 | `-CertificatePassword` | asked | The `.pfx` file's password, as a SecureString |
+| `-SqlServer` | the one set up, else none | SQL Server, `server\instance` or alias for the team database |
+| `-DatabaseName` | from the environment | Another name than `PipelineBuild`, `PipelineBuild.PP` or `PipelineBuild.<environment>` |
+| `-TrustSqlServerCertificate` | off | Connect even when this server does not trust the SQL Server's certificate. The connection is still encrypted. |
 | `-AllowedGroups` | none | Only members of these AD groups may use the app |
 | `-InstallMissingFeatures` | asked | Install missing IIS features and the Hosting Bundle without asking |
 | `-NoPrompt` | off | Ask nothing; use the parameters and the defaults. Nothing is asked in a pipeline either. |
@@ -152,6 +164,9 @@ Settings go in the environment's own file in the install folder, e.g. `appsettin
     "Mode": "Windows",
     "AllowedGroups": [ "CONTOSO\\Platform-Team" ]
   },
+  "ConnectionStrings": {
+    "PipelineBuilder": "Data Source=SQLPROD01;Initial Catalog=PipelineBuild;Integrated Security=True;Encrypt=True;TrustServerCertificate=False;Application Name=PipelineBuilder"
+  },
   "PipelineBuilder": {
     "TemplatesFile": "C:\\PipelineBuilder\\our-templates.json"
   }
@@ -162,6 +177,7 @@ Settings go in the environment's own file in the install folder, e.g. `appsettin
 |---|---|
 | `Authentication:Mode` | Empty means Windows login, except when you run it locally. `Windows` means always. `None` turns login off; use it only when something else controls access. |
 | `Authentication:AllowedGroups` | AD groups (`DOMAIN\Group`) allowed to use the app. When empty, any signed-in domain user can. |
+| `ConnectionStrings:PipelineBuilder` | The team database (2.3). Without it, the team's list and the log are not shown, and the rest works as before. |
 | `PipelineBuilder:TemplatesFile` | Optional JSON file with your own templates, in the same format as `src/PipelineBuilder.Core/Templates/templates.json`. A template with the same `id` replaces the built-in one. |
 
 As environment variables, use `__` instead of `:`, e.g. `Authentication__Mode`.
@@ -187,5 +203,8 @@ Remove-Item C:\inetpub\PipelineBuilder -Recurse -Force
 | **403 Forbidden** after signing in | The user isn't in one of the `AllowedGroups` | Add the user to the group. The user must sign out of Windows and back in to get the new group membership. Group names must be written `DOMAIN\Group`. |
 | Script: *Missing IIS features* | IIS or one of its features isn't installed, and you answered N | Run it again and answer Y, or add `-InstallMissingFeatures` |
 | Script: *holds the source code, not the built app* | You downloaded the source code, and the .NET 10 SDK isn't on the server | Download `PipelineBuilder-iis.zip` instead (2.2) |
+| Script: *Could not connect to SQL Server* | The name is wrong, the server can't be reached, or your Windows user may not create databases there | Check the name with SQL Server Management Studio from this server, and run the script as a user with `sysadmin` (or `dbcreator` and `securityadmin`) |
+| Script: *has a certificate this server does not trust* | SQL Server uses its own certificate | Give SQL Server a certificate this server trusts, or answer Y (or add `-TrustSqlServerCertificate`) |
+| *The team's pipelines could not be loaded* | The app pool's login can't reach the database | Run the script again with the same SQL Server; it adds the login. For a SQL Server on another machine, this server must be in the domain |
 | Script: *cannot be loaded* or *is not digitally signed* | Windows blocks scripts from a downloaded zip | Unblock the zip before extracting it (2.2), or run `Get-ChildItem C:\Install\PipelineBuilder -Recurse \| Unblock-File` |
 | Script: *Run this script as Administrator* | PowerShell wasn't started as Administrator | Right-click PowerShell → *Run as administrator* |

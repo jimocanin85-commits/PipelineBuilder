@@ -12,6 +12,7 @@
     <PackageVersion Include="YamlDotNet" Version="18.1.0" />
     <!-- Web -->
     <PackageVersion Include="Microsoft.AspNetCore.Authentication.Negotiate" Version="10.0.12" />
+    <PackageVersion Include="Microsoft.Data.SqlClient" Version="6.1.1" />
     <!-- Tests -->
     <PackageVersion Include="bunit" Version="2.11.3" />
     <PackageVersion Include="coverlet.collector" Version="10.1.0" />

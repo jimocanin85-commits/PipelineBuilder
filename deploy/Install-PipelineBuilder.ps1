@@ -9,14 +9,18 @@
          Authentication, and installs missing ones (asked first, or always with -InstallMissingFeatures);
       2. checks the ASP.NET Core Hosting Bundle for .NET 10, and downloads and installs it from Microsoft
          when it is missing (asked first, or always with -InstallMissingFeatures);
-      3. asks for the website name, the install folder, HTTPS and the AD groups, unless they are given as parameters.
+      3. asks for the website name, the environment, the install folder (picked in a window), HTTPS, the SQL Server
+         and the AD groups, unless they are given as parameters.
          For HTTPS you pick a certificate on the server, import a .pfx file, type a thumbprint, or skip it;
       4. copies the app into -PhysicalPath (app pool stopped meanwhile), from the folder this download was
          extracted to: the ready-built app, or the source code, built when the .NET 10 SDK is installed;
       5. creates or updates the app pool (No Managed Code), the website and its binding (HTTPS with a certificate);
       6. turns on Windows Authentication and turns off anonymous access for the site;
       7. writes the environment (e.g. Test, Preprod or Prod) in web.config as ASPNETCORE_ENVIRONMENT, and keeps
-         that environment's settings in appsettings.<environment>.json, with the AD groups that may use the app.
+         that environment's settings in appsettings.<environment>.json, with the AD groups that may use the app;
+      8. with -SqlServer (or when asked): makes the database PipelineBuild (Prod), PipelineBuild.PP (Preprod) or
+         PipelineBuild.<environment> with collation Danish_Norwegian_CI_AS, its tables, and a Windows login for the
+         app pool, and writes the connection string in appsettings.<environment>.json.
 
     Download the ready-built app, extract it and run this script from there:
         https://github.com/jimocanin85-commits/PipelineBuilder/releases/latest/download/PipelineBuilder-iis.zip
@@ -52,6 +56,14 @@ param(
     [string[]] $AllowedGroups = @(),
     # Install missing IIS features and the Hosting Bundle without asking.
     [switch] $InstallMissingFeatures,
+    # SQL Server (name, name\instance or alias) for the team's saved pipelines and the activity log. The script
+    # makes the database PipelineBuild, PipelineBuild.PP or PipelineBuild.<environment> (Danish_Norwegian_CI_AS)
+    # and lets the app pool in with Windows login. Empty: the one already set up, or none.
+    [string] $SqlServer = '',
+    # Another database name than the one made from the environment.
+    [string] $DatabaseName = '',
+    # Connect even when the SQL Server's certificate is not trusted by this server (it is still encrypted).
+    [switch] $TrustSqlServerCertificate,
     # Never ask; use the parameters and their defaults. Questions are also skipped in a pipeline.
     [switch] $NoPrompt
 )
@@ -236,6 +248,114 @@ function Format-Environment([string] $Name) {
     $Name.Trim()
 }
 
+# The team's database for an environment: PipelineBuild for prod, PipelineBuild.PP for preprod, else PipelineBuild.<environment>.
+function Get-DatabaseName([string] $Name) {
+    switch ($Name) {
+        'Prod' { 'PipelineBuild' }
+        'Production' { 'PipelineBuild' }
+        'Preprod' { 'PipelineBuild.PP' }
+        default { "PipelineBuild.$Name" }
+    }
+}
+
+# The SQL Server in the app's connection string in $SettingsFile, or ''.
+function Get-SqlServer([string] $SettingsFile) {
+    if (-not (Test-Path $SettingsFile)) { return '' }
+    $connection = (Get-Content $SettingsFile -Raw | ConvertFrom-Json).ConnectionStrings.PipelineBuilder
+    if (-not $connection) { return '' }
+    (New-Object System.Data.SqlClient.SqlConnectionStringBuilder $connection).DataSource
+}
+
+# Windows login, encrypted; the certificate checked unless $TrustCertificate.
+function New-SqlConnectionString([string] $Server, [string] $Database, [bool] $TrustCertificate) {
+    $builder = New-Object System.Data.SqlClient.SqlConnectionStringBuilder
+    $builder['Data Source'] = $Server
+    $builder['Initial Catalog'] = $Database
+    $builder['Integrated Security'] = $true
+    $builder['Encrypt'] = $true
+    $builder['TrustServerCertificate'] = $TrustCertificate
+    $builder['Application Name'] = 'PipelineBuilder'
+    $builder.ConnectionString
+}
+
+# Runs $Query with its values as parameters and returns the first value.
+function Invoke-Sql([string] $ConnectionString, [string] $Query, [hashtable] $Parameters = @{}) {
+    $connection = New-Object System.Data.SqlClient.SqlConnection $ConnectionString
+    try {
+        $connection.Open()
+        $command = $connection.CreateCommand()
+        $command.CommandText = $Query
+        $command.CommandTimeout = 120
+        foreach ($name in $Parameters.Keys) { [void] $command.Parameters.AddWithValue($name, $Parameters[$name]) }
+        $command.ExecuteScalar()
+    }
+    finally {
+        $connection.Dispose()
+    }
+}
+
+# Makes the database, its tables and the app pool's login, and returns the app's connection string.
+function Install-Database([string] $Server, [string] $Database) {
+    $trust = [bool] $TrustSqlServerCertificate
+    $master = New-SqlConnectionString $Server 'master' $trust
+    try { $machine = Invoke-Sql $master "SELECT CAST(SERVERPROPERTY('MachineName') AS nvarchar(128))" }
+    catch {
+        $message = $_.Exception.GetBaseException().Message
+        if ($trust -or $message -notmatch 'certificate') {
+            throw "Could not connect to SQL Server '$Server' as $env:USERDOMAIN\$env:USERNAME (it must be allowed to create databases and logins): $message"
+        }
+        Write-Host "SQL Server '$Server' has a certificate this server does not trust. The connection is still encrypted." -ForegroundColor Yellow
+        if (-not ($script:CanAsk -and (Read-Answer 'Connect anyway? (Y/N)' 'N') -match '^(y|yes|j|ja)$')) {
+            throw "SQL Server '$Server' has a certificate this server does not trust. Give it a trusted certificate, or run again with -TrustSqlServerCertificate."
+        }
+        $trust = $true
+        $master = New-SqlConnectionString $Server 'master' $trust
+        $machine = Invoke-Sql $master "SELECT CAST(SERVERPROPERTY('MachineName') AS nvarchar(128))"
+    }
+
+    Write-Host "Database $Database on $Server"
+    Invoke-Sql $master @'
+IF DB_ID(@database) IS NULL
+BEGIN
+    DECLARE @create nvarchar(max) = N'CREATE DATABASE ' + QUOTENAME(@database) + N' COLLATE Danish_Norwegian_CI_AS';
+    EXEC (@create);
+END
+'@ @{ '@database' = $Database } | Out-Null
+    $collation = Invoke-Sql $master "SELECT CAST(DATABASEPROPERTYEX(@database, 'Collation') AS nvarchar(128))" @{ '@database' = $Database }
+    if ($collation -ne 'Danish_Norwegian_CI_AS') { Write-Warning "$Database already existed with collation $collation. It is left as it is." }
+
+    # On the same machine the app pool's own identity logs in; from another machine, this server's computer account.
+    if ($machine -eq $env:COMPUTERNAME) { $login = "IIS APPPOOL\$AppPoolName" }
+    else {
+        try { $login = (New-Object Security.Principal.NTAccount "$env:COMPUTERNAME`$").Translate([Security.Principal.SecurityIdentifier]).Translate([Security.Principal.NTAccount]).Value }
+        catch { throw "SQL Server '$Server' is on another machine, so this server must be in the domain: the app logs in there as this server's computer account." }
+    }
+    Write-Host "The app logs in to SQL Server as $login"
+    Invoke-Sql $master @'
+IF SUSER_ID(@login) IS NULL
+BEGIN
+    DECLARE @create nvarchar(max) = N'CREATE LOGIN ' + QUOTENAME(@login) + N' FROM WINDOWS';
+    EXEC (@create);
+END
+'@ @{ '@login' = $login } | Out-Null
+
+    # Reading and writing rows is all the app may do; the tables are made here.
+    $connection = New-SqlConnectionString $Server $Database $trust
+    Invoke-Sql $connection @'
+IF DATABASE_PRINCIPAL_ID(@login) IS NULL
+BEGIN
+    DECLARE @create nvarchar(max) = N'CREATE USER ' + QUOTENAME(@login) + N' FOR LOGIN ' + QUOTENAME(@login);
+    EXEC (@create);
+END
+DECLARE @roles nvarchar(max) = N'ALTER ROLE db_datareader ADD MEMBER ' + QUOTENAME(@login) + N'; ALTER ROLE db_datawriter ADD MEMBER ' + QUOTENAME(@login);
+EXEC (@roles);
+'@ @{ '@login' = $login } | Out-Null
+    $schema = Join-Path $PhysicalPath 'Database\schema.sql'
+    if (-not (Test-Path $schema)) { throw "$schema is missing, so the tables cannot be made." }
+    Invoke-Sql $connection (Get-Content $schema -Raw) | Out-Null
+    $connection
+}
+
 # Certificates that can serve HTTPS: in LocalMachine\My, with a private key, not expired.
 function Get-HttpsCertificates {
     @(Get-ChildItem Cert:\LocalMachine\My | Where-Object { $_.HasPrivateKey -and $_.NotAfter -gt (Get-Date) } | Sort-Object NotAfter -Descending)
@@ -292,6 +412,12 @@ function Read-Settings {
         }
         if (-not $script:CertificateThumbprint) { $script:HostName = Read-Answer 'Host name users type in the browser (Enter for any)' '' }
         $script:Port = [int](Read-Answer 'Port' $(if ($script:CertificateThumbprint) { '443' } else { '80' }))
+    }
+    if (-not $script:Bound.ContainsKey('SqlServer')) {
+        $current = Get-SqlServer (Join-Path $script:PhysicalPath "appsettings.$(Format-Environment $script:Environment).json")
+        $answer = Read-Answer "SQL Server or alias for the team's saved pipelines ($(if ($current) { 'none for no database' } else { 'Enter for none' }))" $current
+        $script:SqlServer = if ($answer -eq 'none') { '' } else { $answer }
+        $script:SqlServerAsked = $true
     }
     if (-not $script:Bound.ContainsKey('AllowedGroups')) {
         $groups = Read-Answer 'AD groups that may use it, separated by commas (Enter for every domain user)' ''
@@ -427,6 +553,18 @@ if ($AllowedGroups.Count -gt 0 -or -not $authentication.PSObject.Properties['All
 foreach ($name in $values.Keys) {
     if ($authentication.PSObject.Properties[$name]) { $authentication.$name = $values[$name] }
     else { $authentication | Add-Member -NotePropertyName $name -NotePropertyValue $values[$name] }
+}
+# The team's database: made when a SQL Server is given, removed when 'none' was answered, else kept as it is.
+if ($SqlServer) {
+    $database = if ($DatabaseName) { $DatabaseName } else { Get-DatabaseName $Environment }
+    $connectionString = Install-Database $SqlServer $database
+    if (-not $settings.PSObject.Properties['ConnectionStrings']) { $settings | Add-Member -NotePropertyName ConnectionStrings -NotePropertyValue (New-Object psobject) }
+    if ($settings.ConnectionStrings.PSObject.Properties['PipelineBuilder']) { $settings.ConnectionStrings.PipelineBuilder = $connectionString }
+    else { $settings.ConnectionStrings | Add-Member -NotePropertyName PipelineBuilder -NotePropertyValue $connectionString }
+}
+elseif ($script:SqlServerAsked -and $settings.PSObject.Properties['ConnectionStrings'] -and $settings.ConnectionStrings.PSObject.Properties['PipelineBuilder']) {
+    $settings.ConnectionStrings.PSObject.Properties.Remove('PipelineBuilder')
+    Write-Host 'The team database is no longer used (it is not deleted).'
 }
 Set-Content -Path $settingsFile -Value ($settings | ConvertTo-Json -Depth 10) -Encoding UTF8
 $groups = @($authentication.AllowedGroups)

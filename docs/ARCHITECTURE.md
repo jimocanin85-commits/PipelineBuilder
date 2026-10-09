@@ -3,7 +3,7 @@
 Two projects:
 
 - **Core** builds and checks the pipeline. It has no web code.
-- **Web** is the wizard (Blazor Server) and the Windows login.
+- **Web** is the wizard (Blazor Server), the Windows login and the optional team database (`Storage/`: SQL Server, tables in `Database/schema.sql`, which the install script runs).
 
 ```
 Web  →  Core
@@ -40,7 +40,8 @@ A script that runs on a server is created with `ServerScript.Step`. It becomes a
 3. **A secret reaches a script through `env:`**, never as part of the script text.
 4. **A pull request is not deployed.** Every deploy and notify stage has `DeploymentStageGenerator.NotPullRequest` in its condition.
 5. **Nothing goes in a shared folder on a server** (`/tmp`, `C:\ProgramData`). Use `ServerScript.RemotePackageFolder`.
-6. **No script is written into a page.** The Content-Security-Policy (`SecurityHeaders`) only runs files from `wwwroot/js`.
+6. **SQL takes values only as parameters** (`SqlPipelineStore`), and the app's login may only read and write rows; the tables are made by the install script.
+7. **No script is written into a page.** The Content-Security-Policy (`SecurityHeaders`) only runs files from `wwwroot/js`.
 
 ## Generated scripts
 

@@ -268,6 +268,14 @@ details.more > summary + h3 { margin-top: 8px; padding-top: 0; border-top: 0; }
 .needs-list li.where:first-child { margin-top: 16px; }
 .needs-list code { display: block; overflow-wrap: anywhere; font-weight: 600; }
 .needs-list .tag { margin-top: 4px; }
+.team { margin-top: 24px; }
+.team-list { margin: 8px 0 0; padding: 0; list-style: none; }
+.team-list li { display: flex; align-items: center; gap: 12px; padding: 8px 0; border-top: 1px solid var(--line); }
+.team-list li:first-child { border-top: 0; }
+.team-name { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.team-name .what { display: block; color: var(--muted); font-size: 12px; line-height: 16px; }
+.activity-list { margin: 8px 0 0; padding: 0; list-style: none; font-size: 12px; line-height: 20px; }
+.activity-list .when { color: var(--muted); margin-right: 4px; }
 .needs-progress { margin: 4px 0 0; color: var(--muted); font-size: 12px; line-height: 16px; }
 .need-head { display: flex; align-items: center; gap: 8px; }
 .need-head code { flex: 1; min-width: 0; }

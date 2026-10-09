@@ -62,7 +62,20 @@ jobs:
 
   build-and-test:
     runs-on: ubuntu-latest
+    # A real SQL Server for the database tests (SqlPipelineStoreTests). Test-only, thrown away after the run.
+    services:
+      sql:
+        image: mcr.microsoft.com/mssql/server:2022-latest
+        env:
+          ACCEPT_EULA: Y
+          MSSQL_SA_PASSWORD: Test-only-Pa55
+        ports:
+          - 1433:1433
+        options: >-
+          --health-cmd "/opt/mssql-tools18/bin/sqlcmd -C -S localhost -U sa -P Test-only-Pa55 -Q 'SELECT 1' || exit 1"
+          --health-interval 10s --health-timeout 5s --health-retries 20
     env:
+      PIPELINEBUILDER_SQL: Server=localhost,1433;User ID=sa;Password=Test-only-Pa55;Encrypt=True;TrustServerCertificate=True
       # Minimum coverage. Raise these when coverage rises; never lower them.
       MIN_LINE_COVERAGE: 90
       MIN_BRANCH_COVERAGE: 80

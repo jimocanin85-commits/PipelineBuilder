@@ -34,6 +34,7 @@ public class ArchitectureTests
         "PipelineBuilder.Core.Generators",
         "PipelineBuilder.Web.State",
         "PipelineBuilder.Web.Security",
+        "PipelineBuilder.Web.Storage",
     };
 
     public const int MaxConstructorDependencies = 5;

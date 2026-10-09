@@ -4,6 +4,13 @@
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.Authentication.Negotiate" />
+    <PackageReference Include="Microsoft.Data.SqlClient" />
+  </ItemGroup>
+  <ItemGroup>
+    <!-- One script makes the tables: in the app, and next to it for the install script to run. -->
+    <None Remove="Database\schema.sql" />
+    <EmbeddedResource Include="Database\schema.sql" />
+    <Content Include="Database\schema.sql" CopyToPublishDirectory="PreserveNewest" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\PipelineBuilder.Core\PipelineBuilder.Core.csproj" />
