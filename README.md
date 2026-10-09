@@ -23,7 +23,7 @@ Open <http://localhost:5150>.
 
 Above every step the pipeline is drawn the way Azure DevOps draws a run: a box per stage, with the approvals between them. Beside the step is a list of what the pipeline needs in Azure DevOps. Switch it to **YAML file** to see `azure-pipelines.yml` change as you fill in the form.
 
-What you fill in is kept in your browser until you press **Start over**. To keep it elsewhere, save your settings on the Result step and open them later.
+What you fill in is kept in your browser until you press **Start over**. To keep it elsewhere, save your settings on the Result step and open them later. With a team database (SQL Server, set up by the install script), **Save for the team** puts it in a list everyone opens on the first step, and every save, download and copy is logged.
 
 ## What it generates
 
