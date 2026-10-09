@@ -36,7 +36,7 @@ On the server:
 For HTTPS, which we recommend:
 
 - A DNS name that points to the server, e.g. `pipelines.contoso.local`.
-- A certificate for that name in the server's *Local Computer → Personal* store. You need its thumbprint.
+- A certificate for that name: already in the server's *Local Computer → Personal* store, or as a `.pfx` file the script imports.
 - An SPN for the name (see 2.7).
 
 To limit who can use it: one or more AD groups, e.g. `CONTOSO\Platform-Team`.
@@ -86,15 +86,18 @@ The script asks, and Enter keeps the value in brackets:
 ```text
 Website name in IIS [PipelineBuilder]: PipelineBuilder
 Folder to install the app in [C:\inetpub\PipelineBuilder]: D:\Apps\PipelineBuilder
-Certificates for HTTPS:
+Certificate for HTTPS:
   1. pipelines.contoso.local  (valid until 2027-09-30)
-Number of the certificate to use, or 0 for HTTP [1]:
+  F. Import a certificate file (.pfx)
+  T. Type a thumbprint
+  S. Skip: use HTTP
+Choose [1]:
 Host name users type in the browser [pipelines.contoso.local]:
 Port [443]:
 AD groups that may use it, separated by commas (Enter for every domain user): CONTOSO\Platform-Team
 ```
 
-The certificates listed are the ones in *Local Computer → Personal* with a private key that have not expired. The app pool gets the website's name.
+For HTTPS, pick a certificate already on the server (those in *Local Computer → Personal* with a private key that have not expired), import a `.pfx` file (it asks for the path and the password), type a thumbprint, or press **S** to skip HTTPS and use HTTP. Run the script again later to add HTTPS. The app pool gets the website's name.
 
 **Without questions**, e.g. in a script, give the values as parameters. Only what is missing is asked; `-NoPrompt` asks nothing and uses the defaults:
 
@@ -106,6 +109,8 @@ The certificates listed are the ones in *Local Computer → Personal* with a pri
     -AllowedGroups 'CONTOSO\Platform-Team', 'CONTOSO\Release-Managers'
 ```
 
+Instead of `-CertificateThumbprint`, `-CertificateFile .\pipelines.pfx` imports the file; the password is asked for, or given with `-CertificatePassword`.
+
 | Parameter | Default | Meaning |
 |---|---|---|
 | `-PublishFolder` | none | The `publish` folder from step 2.2. Leave it out to only reconfigure IIS. |
@@ -115,6 +120,8 @@ The certificates listed are the ones in *Local Computer → Personal* with a pri
 | `-HostName` | none | DNS name in the binding, e.g. `pipelines.contoso.local` |
 | `-Port` | `80` | Port of the binding |
 | `-CertificateThumbprint` | none | Certificate in *LocalMachine\My*. When set, the binding uses HTTPS. |
+| `-CertificateFile` | none | A `.pfx` file to import into *LocalMachine\My* and use for HTTPS |
+| `-CertificatePassword` | asked | The `.pfx` file's password, as a SecureString |
 | `-AllowedGroups` | none | Only members of these AD groups may use the app |
 | `-InstallMissingFeatures` | off | Install IIS, WebSockets and Windows Authentication if they're missing |
 | `-NoPrompt` | off | Ask nothing; use the parameters and the defaults. Nothing is asked in a pipeline either. |

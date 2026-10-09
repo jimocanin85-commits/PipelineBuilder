@@ -8,7 +8,8 @@
       1. checks (and with -InstallMissingFeatures installs) the IIS features it needs:
          the web server, WebSockets (required by Blazor) and Windows Authentication;
       2. checks that the ASP.NET Core Hosting Bundle for .NET 10 is installed;
-      3. asks for the website name, the install folder, HTTPS and the AD groups, unless they are given as parameters;
+      3. asks for the website name, the install folder, HTTPS and the AD groups, unless they are given as parameters.
+         For HTTPS you pick a certificate on the server, import a .pfx file, type a thumbprint, or skip it;
       4. copies the published app into -PhysicalPath (app pool stopped meanwhile);
       5. creates or updates the app pool (No Managed Code), the website and its binding (HTTPS with a certificate);
       6. turns on Windows Authentication and turns off anonymous access for the site;
@@ -36,6 +37,10 @@ param(
     [int] $Port = 80,
     # Thumbprint of a certificate in LocalMachine\My. When set, the binding uses HTTPS.
     [string] $CertificateThumbprint = '',
+    # A .pfx file to import into LocalMachine\My and use for HTTPS, instead of a thumbprint.
+    [string] $CertificateFile = '',
+    # The .pfx file's password. Asked for when it is missing.
+    [securestring] $CertificatePassword,
     # Only members of these groups may use the app (e.g. 'CONTOSO\Platform-Team').
     [string[]] $AllowedGroups = @(),
     [switch] $InstallMissingFeatures,
@@ -44,6 +49,25 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
+
+# Imports a .pfx file into Local Computer > Personal and returns its thumbprint.
+function Import-HttpsCertificate([string] $File, [securestring] $Password) {
+    if (-not (Test-Path $File -PathType Leaf)) { throw "The certificate file '$File' was not found." }
+    if (-not $Password) { $Password = Read-Host "Password for $(Split-Path $File -Leaf)" -AsSecureString }
+    # A .pfx can hold the issuer's certificates too; the one with the private key is the site's.
+    $imported = @(Import-PfxCertificate -FilePath $File -CertStoreLocation Cert:\LocalMachine\My -Password $Password) | Where-Object HasPrivateKey | Select-Object -First 1
+    if (-not $imported) { throw "'$File' has no private key, so it cannot be used for HTTPS." }
+    Write-Host "Imported the certificate for $($imported.Subject), valid until $($imported.NotAfter.ToString('yyyy-MM-dd'))"
+    $imported.Thumbprint
+}
+
+# A certificate file is imported first, in whichever PowerShell runs this, and used by its thumbprint.
+if ($CertificateFile) {
+    $CertificateThumbprint = Import-HttpsCertificate $CertificateFile $CertificatePassword
+    $PSBoundParameters['CertificateThumbprint'] = $CertificateThumbprint
+    [void] $PSBoundParameters.Remove('CertificateFile')
+    [void] $PSBoundParameters.Remove('CertificatePassword')
+}
 
 # The IIS cmdlets (WebAdministration, IIS: drive) only work in Windows PowerShell 5.1.
 # When started from PowerShell 7, run this same script in Windows PowerShell with the same parameters.
@@ -122,23 +146,36 @@ function Read-Settings {
     }
     if (-not ($script:Bound.ContainsKey('CertificateThumbprint') -or $script:Bound.ContainsKey('Port') -or $script:Bound.ContainsKey('HostName'))) {
         $certificates = Get-HttpsCertificates
-        if ($certificates.Count -eq 0) {
-            Write-Host 'No certificate for HTTPS was found in Local Computer > Personal, so the site uses HTTP.' -ForegroundColor Yellow
+        Write-Host 'Certificate for HTTPS:'
+        for ($i = 0; $i -lt $certificates.Count; $i++) {
+            $names = ($certificates[$i].DnsNameList | ForEach-Object Unicode) -join ', '
+            Write-Host ('  {0}. {1}  (valid until {2:yyyy-MM-dd})' -f ($i + 1), $(if ($names) { $names } else { $certificates[$i].Subject }), $certificates[$i].NotAfter)
         }
-        else {
-            Write-Host 'Certificates for HTTPS:'
-            for ($i = 0; $i -lt $certificates.Count; $i++) {
-                $names = ($certificates[$i].DnsNameList | ForEach-Object Unicode) -join ', '
-                Write-Host ('  {0}. {1}  (valid until {2:yyyy-MM-dd})' -f ($i + 1), $(if ($names) { $names } else { $certificates[$i].Subject }), $certificates[$i].NotAfter)
-            }
-            $pick = Read-Answer 'Number of the certificate to use, or 0 for HTTP' '1'
-            $number = 0
-            if (-not [int]::TryParse($pick, [ref] $number) -or $number -lt 0 -or $number -gt $certificates.Count) { throw "'$pick' is not one of the numbers shown." }
-            if ($number -gt 0) {
-                $chosen = $certificates[$number - 1]
-                $script:CertificateThumbprint = $chosen.Thumbprint
-                $script:HostName = Read-Answer 'Host name users type in the browser' $(@($chosen.DnsNameList | ForEach-Object Unicode)[0])
-            }
+        Write-Host '  F. Import a certificate file (.pfx)'
+        Write-Host '  T. Type a thumbprint'
+        Write-Host '  S. Skip: use HTTP'
+        $pick = (Read-Answer 'Choose' $(if ($certificates.Count -gt 0) { '1' } else { 'S' })).ToUpperInvariant()
+        $number = 0
+        $chosen = $null
+        if ($pick -eq 'F') {
+            $file = (Read-Answer 'Path to the .pfx file' '').Trim('"')
+            $chosen = Get-Item "Cert:\LocalMachine\My\$(Import-HttpsCertificate $file $null)"
+        }
+        elseif ($pick -eq 'T') {
+            $typed = (Read-Answer 'Thumbprint' '') -replace '[^0-9A-Fa-f]', ''
+            $chosen = Get-Item "Cert:\LocalMachine\My\$typed" -ErrorAction SilentlyContinue
+            if (-not $typed -or -not $chosen) { throw "No certificate with thumbprint '$typed' in Local Computer > Personal (Cert:\LocalMachine\My)." }
+            if (-not $chosen.HasPrivateKey) { throw "The certificate $typed has no private key on this server, so it cannot be used for HTTPS." }
+        }
+        elseif ([int]::TryParse($pick, [ref] $number) -and $number -ge 1 -and $number -le $certificates.Count) {
+            $chosen = $certificates[$number - 1]
+        }
+        elseif ($pick -ne 'S' -and $pick -ne '0') {
+            throw "'$pick' is not one of the choices shown."
+        }
+        if ($chosen) {
+            $script:CertificateThumbprint = $chosen.Thumbprint
+            $script:HostName = Read-Answer 'Host name users type in the browser' $(@($chosen.DnsNameList | ForEach-Object Unicode)[0])
         }
         if (-not $script:CertificateThumbprint) { $script:HostName = Read-Answer 'Host name users type in the browser (Enter for any)' '' }
         $script:Port = [int](Read-Answer 'Port' $(if ($script:CertificateThumbprint) { '443' } else { '80' }))

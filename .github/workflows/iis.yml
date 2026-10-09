@@ -65,8 +65,9 @@ jobs:
           $ErrorActionPreference = 'Stop'
           # The script asks only when someone can answer; here the answers come in typed lines.
           $env:CI = $null
-          "PipelineBuilderAsked`nC:\apps\asked`n`n" |
-            powershell.exe -NoProfile -ExecutionPolicy Bypass -File ./deploy/Install-PipelineBuilder.ps1 -PublishFolder publish -Port 8081
+          # Name, folder, S to skip HTTPS, any host name, port 8081, every domain user.
+          "PipelineBuilderAsked`nC:\apps\asked`nS`n`n8081`n`n" |
+            powershell.exe -NoProfile -ExecutionPolicy Bypass -File ./deploy/Install-PipelineBuilder.ps1 -PublishFolder publish
           if ($LASTEXITCODE -ne 0) { Write-Host "::error title=Questions::The script failed (exit code $LASTEXITCODE)."; exit 1 }
           $appcmd = "$env:windir\System32\inetsrv\appcmd.exe"
           $folder = & $appcmd list vdir 'PipelineBuilderAsked/' /text:physicalPath
@@ -85,8 +86,13 @@ jobs:
           # Trusted, so the HTTPS check below is a real one.
           $root = Get-Item Cert:\LocalMachine\Root
           $root.Open('ReadWrite'); $root.Add($certificate); $root.Close()
+          # Handed over as a .pfx file, as a certificate usually arrives: the script imports it.
+          $password = ConvertTo-SecureString 'Test-only-1' -AsPlainText -Force
+          Export-PfxCertificate -Cert $certificate -FilePath site.pfx -Password $password | Out-Null
+          Remove-Item "Cert:\LocalMachine\My\$($certificate.Thumbprint)" -DeleteKey
           ./deploy/Install-PipelineBuilder.ps1 -PublishFolder publish -PhysicalPath C:\apps\pipelinebuilder `
-            -HostName localhost -Port 8443 -CertificateThumbprint $certificate.Thumbprint
+            -HostName localhost -Port 8443 -CertificateFile site.pfx -CertificatePassword $password
+          if (-not (Test-Path "Cert:\LocalMachine\My\$($certificate.Thumbprint)")) { Write-Host '::error title=HTTPS::The certificate file was not imported.'; exit 1 }
           $folder = & "$env:windir\System32\inetsrv\appcmd.exe" list vdir 'PipelineBuilder/' /text:physicalPath
           if ($folder -ne 'C:\apps\pipelinebuilder') { Write-Host '::error title=HTTPS::The site was not moved to the new folder.'; exit 1 }
 
