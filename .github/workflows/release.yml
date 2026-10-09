@@ -1,0 +1,58 @@
+name: Release
+
+# Every change on main is published as a ready-to-install zip for IIS: the built app in 'publish',
+# the install script in 'deploy' and the install guide. Download it, extract it, run the script.
+# The link never changes:
+#   https://github.com/jimocanin85-commits/PipelineBuilder/releases/latest/download/PipelineBuilder-iis.zip
+on:
+  push:
+    branches: [main]
+  # A pull request only builds the zip, to see that it can be built.
+  pull_request:
+    paths:
+      - 'deploy/**'
+      - 'src/PipelineBuilder.Web/**'
+      - '.github/workflows/release.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  iis-zip:
+    # Built on Windows, as it runs there: the publish output then has the Windows web.config and exe.
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-dotnet@v6
+        with:
+          global-json-file: global.json
+
+      - name: Build the zip
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          dotnet publish src/PipelineBuilder.Web -c Release -o package/publish
+          if ($LASTEXITCODE -ne 0) { exit 1 }
+          New-Item -ItemType Directory package/deploy | Out-Null
+          Copy-Item deploy/Install-PipelineBuilder.ps1 package/deploy/
+          Copy-Item docs/INSTALL.md package/INSTALL.md
+          if (-not (Test-Path package/publish/PipelineBuilder.Web.dll)) { Write-Host '::error::The app is missing from the zip.'; exit 1 }
+          Compress-Archive -Path package/* -DestinationPath PipelineBuilder-iis.zip
+
+      - name: Publish it as the latest release
+        if: github.event_name != 'pull_request'
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # One release, replaced on every change, so the download link above always gives the newest.
+          gh release delete latest --yes --cleanup-tag 2>$null
+          $notes = "Built from $env:GITHUB_SHA. Extract the zip on the IIS server and run deploy\Install-PipelineBuilder.ps1 as Administrator. See INSTALL.md in the zip."
+          gh release create latest PipelineBuilder-iis.zip --title 'PipelineBuilder for IIS' --notes $notes --target $env:GITHUB_SHA --latest
+          if ($LASTEXITCODE -ne 0) { exit 1 }

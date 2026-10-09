@@ -5,32 +5,33 @@
 .DESCRIPTION
     Run as Administrator on the Windows server that will host PipelineBuilder.
     The script:
-      1. checks (and with -InstallMissingFeatures installs) the IIS features it needs:
-         the web server, WebSockets (required by Blazor) and Windows Authentication;
-      2. checks that the ASP.NET Core Hosting Bundle for .NET 10 is installed;
+      1. checks the IIS features it needs: the web server, WebSockets (required by Blazor) and Windows
+         Authentication, and installs missing ones (asked first, or always with -InstallMissingFeatures);
+      2. checks the ASP.NET Core Hosting Bundle for .NET 10, and downloads and installs it from Microsoft
+         when it is missing (asked first, or always with -InstallMissingFeatures);
       3. asks for the website name, the install folder, HTTPS and the AD groups, unless they are given as parameters.
          For HTTPS you pick a certificate on the server, import a .pfx file, type a thumbprint, or skip it;
-      4. copies the published app into -PhysicalPath (app pool stopped meanwhile): from -PublishFolder, or else from
-         the 'publish' folder next to the deploy folder;
+      4. copies the app into -PhysicalPath (app pool stopped meanwhile), from the folder this download was
+         extracted to: the ready-built app, or the source code, built when the .NET 10 SDK is installed;
       5. creates or updates the app pool (No Managed Code), the website and its binding (HTTPS with a certificate);
       6. turns on Windows Authentication and turns off anonymous access for the site;
       7. optionally limits access to Active Directory groups (appsettings.Production.json).
 
-    Publish the app first:
-        dotnet publish src/PipelineBuilder.Web -c Release -o .\publish
+    Download the ready-built app, extract it and run this script from there:
+        https://github.com/jimocanin85-commits/PipelineBuilder/releases/latest/download/PipelineBuilder-iis.zip
 
 .EXAMPLE
-    .\deploy\Install-PipelineBuilder.ps1 -PublishFolder .\publish
+    .\deploy\Install-PipelineBuilder.ps1
     Asks for the website name, the install folder, the certificate for HTTPS and the AD groups.
 
 .EXAMPLE
-    .\deploy\Install-PipelineBuilder.ps1 -PublishFolder .\publish -SiteName PipelineBuilder -PhysicalPath D:\Apps\PipelineBuilder `
+    .\deploy\Install-PipelineBuilder.ps1 -SiteName PipelineBuilder -PhysicalPath D:\Apps\PipelineBuilder `
         -HostName pipelines.contoso.local -Port 443 -CertificateThumbprint 0123456789ABCDEF... -AllowedGroups 'CONTOSO\Platform-Team'
 #>
 [CmdletBinding(SupportsShouldProcess)]
 param(
-    # Folder with the output of 'dotnet publish'. Empty: the 'publish' folder next to the deploy folder,
-    # else it is asked for. Only an app that is already installed can be reconfigured without one.
+    # Folder with the built app. Empty: the folder this download was extracted to; the app is in its
+    # 'publish' folder, or built from the source code there. Asked for when none is found.
     [string] $PublishFolder,
     [string] $SiteName = 'PipelineBuilder',
     [string] $AppPoolName = 'PipelineBuilder',
@@ -45,6 +46,7 @@ param(
     [securestring] $CertificatePassword,
     # Only members of these groups may use the app (e.g. 'CONTOSO\Platform-Team').
     [string[]] $AllowedGroups = @(),
+    # Install missing IIS features and the Hosting Bundle without asking.
     [switch] $InstallMissingFeatures,
     # Never ask; use the parameters and their defaults. Questions are also skipped in a pipeline.
     [switch] $NoPrompt
@@ -99,7 +101,7 @@ function Test-IisFeatures {
         $features = 'Web-Server', 'Web-WebSockets', 'Web-Windows-Auth'
         $missing = $features | Where-Object { -not (Get-WindowsFeature -Name $_).Installed }
         if ($missing) {
-            if (-not $InstallMissingFeatures) { throw "Missing IIS features: $($missing -join ', '). Re-run with -InstallMissingFeatures." }
+            if (-not (Confirm-Install "IIS is missing $($missing -join ', ')")) { throw "Missing IIS features: $($missing -join ', '). Run again with -InstallMissingFeatures, or answer Y." }
             Write-Host "Installing IIS features: $($missing -join ', ')"
             Install-WindowsFeature -Name $missing -IncludeManagementTools | Out-Null
         }
@@ -108,20 +110,59 @@ function Test-IisFeatures {
         $features = 'IIS-WebServerRole', 'IIS-WebServer', 'IIS-WebSockets', 'IIS-WindowsAuthentication', 'IIS-ManagementConsole'
         $missing = $features | Where-Object { (Get-WindowsOptionalFeature -Online -FeatureName $_).State -ne 'Enabled' }
         if ($missing) {
-            if (-not $InstallMissingFeatures) { throw "Missing IIS features: $($missing -join ', '). Re-run with -InstallMissingFeatures." }
+            if (-not (Confirm-Install "IIS is missing $($missing -join ', ')")) { throw "Missing IIS features: $($missing -join ', '). Run again with -InstallMissingFeatures, or answer Y." }
             Write-Host "Installing IIS features: $($missing -join ', ')"
             Enable-WindowsOptionalFeature -Online -FeatureName $missing -All -NoRestart | Out-Null
         }
     }
 }
 
-function Assert-HostingBundle {
+function Test-HostingBundle {
     $module = 'HKLM:\SOFTWARE\Microsoft\IIS Extensions\IIS AspNetCore Module V2'
     $runtimes = Join-Path $env:ProgramFiles 'dotnet\shared\Microsoft.AspNetCore.App'
-    $hasNet10 = (Test-Path $runtimes) -and (Get-ChildItem $runtimes -Directory | Where-Object Name -like '10.*')
-    if (-not (Test-Path $module) -or -not $hasNet10) {
-        throw 'The ASP.NET Core Hosting Bundle for .NET 10 is not installed. Download it from https://dotnet.microsoft.com/download/dotnet/10.0 (Hosting Bundle), install it, then run this script again.'
+    (Test-Path $module) -and (Test-Path $runtimes) -and [bool](Get-ChildItem $runtimes -Directory | Where-Object Name -like '10.*')
+}
+
+# Downloads the newest Hosting Bundle for .NET 10 from Microsoft, checks it, installs it and restarts IIS.
+function Install-HostingBundle {
+    [Net.ServicePointManager]::SecurityProtocol = [Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12
+    $ProgressPreference = 'SilentlyContinue'
+    Write-Host 'Downloading the ASP.NET Core Hosting Bundle for .NET 10 from Microsoft'
+    $releases = Invoke-RestMethod 'https://builds.dotnet.microsoft.com/dotnet/release-metadata/10.0/releases.json' -UseBasicParsing
+    $latest = $releases.releases | Where-Object { $_.'release-version' -eq $releases.'latest-release' } | Select-Object -First 1
+    $bundle = $latest.'aspnetcore-runtime'.files | Where-Object name -eq 'dotnet-hosting-win.exe' | Select-Object -First 1
+    if (-not $bundle) { throw 'The Hosting Bundle was not found in Microsoft''s list of .NET 10 releases.' }
+    $file = Join-Path $env:TEMP 'dotnet-hosting-win.exe'
+    Invoke-WebRequest $bundle.url -OutFile $file -UseBasicParsing
+    if ((Get-FileHash $file -Algorithm SHA512).Hash -ne $bundle.hash) {
+        Remove-Item $file
+        throw 'The downloaded Hosting Bundle does not match Microsoft''s checksum, so it was not installed.'
     }
+    Write-Host "Installing the Hosting Bundle $($latest.'aspnetcore-runtime'.version)"
+    $process = Start-Process $file -ArgumentList '/install', '/quiet', '/norestart' -Wait -PassThru
+    Remove-Item $file
+    if ($process.ExitCode -notin 0, 3010) { throw "The Hosting Bundle installer failed (exit code $($process.ExitCode))." }
+    Write-Host 'Restarting IIS'
+    net stop was /y | Out-Null
+    net start w3svc | Out-Null
+}
+
+function Assert-HostingBundle {
+    if (Test-HostingBundle) { return }
+    $manual = 'Download it from https://dotnet.microsoft.com/download/dotnet/10.0 (ASP.NET Core Runtime, Windows, Hosting Bundle), install it, then run this script again.'
+    if (-not (Confirm-Install 'The ASP.NET Core Hosting Bundle for .NET 10 is missing')) {
+        throw "The ASP.NET Core Hosting Bundle for .NET 10 is not installed. $manual"
+    }
+    try { Install-HostingBundle }
+    catch { throw "The Hosting Bundle could not be installed: $($_.Exception.Message) $manual" }
+    if (-not (Test-HostingBundle)) { throw "The Hosting Bundle is still missing after installing it. $manual" }
+}
+
+# Yes with -InstallMissingFeatures; otherwise asked, when someone is there to answer.
+function Confirm-Install([string] $What) {
+    if ($InstallMissingFeatures) { return $true }
+    if (-not $script:CanAsk) { return $false }
+    (Read-Answer "$What. Install it now? (Y/N)" 'Y') -match '^(y|yes|j|ja)$'
 }
 
 # Asks, showing the default in brackets. Enter keeps the default.
@@ -188,16 +229,18 @@ function Read-Settings {
     }
 }
 
+# Ask only when someone is there to answer.
+$script:Bound = $PSBoundParameters
+$interactive = [Environment]::UserInteractive -and -not $env:CI -and -not $env:TF_BUILD -and
+    -not ([Environment]::GetCommandLineArgs() | Where-Object { $_ -like '-noni*' })
+$script:CanAsk = $interactive -and -not $NoPrompt
+
 Assert-Administrator
 Test-IisFeatures
 Assert-HostingBundle
 Import-Module WebAdministration
 
-# Ask for what was not given, unless nobody is there to answer.
-$script:Bound = $PSBoundParameters
-$interactive = [Environment]::UserInteractive -and -not $env:CI -and -not $env:TF_BUILD -and
-    -not ([Environment]::GetCommandLineArgs() | Where-Object { $_ -like '-noni*' })
-if ($interactive -and -not $NoPrompt) { Read-Settings }
+if ($script:CanAsk) { Read-Settings }
 
 # Values as one string (from PowerShell 7, or typed): 'A, B' is two groups. A copied thumbprint can hold spaces or hidden characters.
 $AllowedGroups = @($AllowedGroups | ForEach-Object { $_ -split ',' } | ForEach-Object { $_.Trim() } | Where-Object { $_ })
@@ -214,25 +257,48 @@ if (-not (Test-Path "IIS:\AppPools\$AppPoolName")) {
 Set-ItemProperty "IIS:\AppPools\$AppPoolName" -Name managedRuntimeVersion -Value ''
 Set-ItemProperty "IIS:\AppPools\$AppPoolName" -Name startMode -Value 'AlwaysRunning'
 
-# The app to install: the given folder, else 'publish' next to the deploy folder, as the install guide copies them.
+# The app to install. Looked for in the folder the download was extracted to (the one holding 'deploy'):
+# the ready-built app in 'publish', or else the source code, which is built when the .NET 10 SDK is there.
 $app = 'PipelineBuilder.Web.dll'
+$release = 'https://github.com/jimocanin85-commits/PipelineBuilder/releases/latest/download/PipelineBuilder-iis.zip'
 $installed = Test-Path (Join-Path $PhysicalPath $app)
-if (-not $PublishFolder) {
-    $beside = Join-Path (Split-Path $PSScriptRoot -Parent) 'publish'
-    if (Test-Path (Join-Path $beside $app)) { $PublishFolder = $beside }
-    elseif ($interactive -and -not $NoPrompt -and -not $installed) {
-        $PublishFolder = (Read-Answer "Folder with the app from 'dotnet publish'" '').Trim('"')
+
+# The folder with the built app inside $Folder, or $null. Builds it from the source code when it can.
+function Find-App([string] $Folder) {
+    foreach ($candidate in $Folder, (Join-Path $Folder 'publish')) {
+        if (Test-Path (Join-Path $candidate $app)) { return (Resolve-Path $candidate).Path }
     }
+    $project = Join-Path $Folder 'src\PipelineBuilder.Web\PipelineBuilder.Web.csproj'
+    if (-not (Test-Path $project)) { return $null }
+    $sdk = if (Get-Command dotnet -ErrorAction SilentlyContinue) { @(& dotnet --list-sdks 2>$null) -match '^10\.' } else { @() }
+    if (-not $sdk) {
+        throw "'$Folder' holds the source code, not the built app, and the .NET 10 SDK is not installed to build it. Download the ready-built app instead: $release (or the Releases page on GitHub), extract it and run this script from there."
+    }
+    $output = Join-Path $Folder 'publish'
+    Write-Host "Building the app from the source code in $Folder"
+    & dotnet publish $project -c Release -o $output | Out-Host
+    if ($LASTEXITCODE -ne 0) { throw "Building the app failed (exit code $LASTEXITCODE). It needs internet access to nuget.org. See the output above, or download the ready-built app: $release" }
+    $global:LASTEXITCODE = 0
+    (Resolve-Path $output).Path
 }
+
 if ($PublishFolder) {
-    if (-not (Test-Path (Join-Path $PublishFolder $app))) {
-        throw "'$PublishFolder' has no $app, so it is not the output of 'dotnet publish src/PipelineBuilder.Web -c Release -o .\publish'."
+    $found = Find-App $PublishFolder
+    if (-not $found) { throw "'$PublishFolder' has neither the built app ($app) nor its source code." }
+    $PublishFolder = $found
+}
+else {
+    $PublishFolder = Find-App (Split-Path $PSScriptRoot -Parent)
+    if (-not $PublishFolder -and -not $installed) {
+        if (-not $script:CanAsk) {
+            throw "There is no app to install. Download $release, extract it and run this script from there, or give -PublishFolder."
+        }
+        $typed = (Read-Answer 'Folder with the app (the extracted download)' '').Trim('"')
+        $PublishFolder = if ($typed) { Find-App $typed }
+        if (-not $PublishFolder) { throw "'$typed' has neither the built app ($app) nor its source code. Download $release and extract it." }
     }
-    $PublishFolder = (Resolve-Path $PublishFolder).Path
 }
-elseif (-not $installed) {
-    throw "There is no app to install in $PhysicalPath. Give -PublishFolder with the output of 'dotnet publish src/PipelineBuilder.Web -c Release -o .\publish', or put that publish folder next to the deploy folder."
-}
+if ($PublishFolder) { Write-Host "Installing the app from $PublishFolder" }
 
 # Files: stop the pool while copying so no files are locked.
 New-Item -ItemType Directory -Force -Path $PhysicalPath | Out-Null
