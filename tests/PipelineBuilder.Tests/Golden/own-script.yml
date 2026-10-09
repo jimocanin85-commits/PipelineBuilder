@@ -34,7 +34,16 @@ stages:
   jobs:
   - job: BuildJob
     displayName: 'Build, test and package'
+    # Packages are kept between runs, so they are not downloaded every time.
+    variables:
+      NUGET_PACKAGES: $(Pipeline.Workspace)/.nuget/packages
     steps:
+      - task: Cache@2
+        displayName: 'Cache NuGet packages'
+        inputs:
+          key: 'nuget | "$(Agent.OS)" | **/*.csproj'
+          restoreKeys: 'nuget | "$(Agent.OS)"'
+          path: '$(NUGET_PACKAGES)'
       - task: DotNetCoreCLI@2
         displayName: 'Restore NuGet packages'
         inputs:
@@ -52,6 +61,10 @@ stages:
           command: 'test'
           projects: '**/*Tests*.csproj'
           arguments: '--configuration $(BuildConfiguration) --no-build --collect:"XPlat Code Coverage"'
+      - task: PublishCodeCoverageResults@2
+        displayName: 'Publish code coverage'
+        inputs:
+          summaryFileLocation: '$(Agent.TempDirectory)/**/coverage.cobertura.xml'
       - task: DotNetCoreCLI@2
         displayName: 'Publish application'
         inputs:
