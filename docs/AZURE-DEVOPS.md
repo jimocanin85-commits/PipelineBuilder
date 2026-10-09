@@ -1,12 +1,12 @@
 # What to set up in Azure DevOps
 
-The wizard lists what your pipeline needs under "Needs in Azure DevOps". This page explains the list.
+The wizard lists what your pipeline needs under "Needs in Azure DevOps". On the Result step you can tick each one off as you create it. This page explains the list.
 
 ## How the pipeline runs
 
 **Build → one deploy stage per environment → notify.**
 
-The app is built once. Every environment gets that same package or image. Each deploy stage backs up the current version, deploys, runs the health checks, and rolls back if a step fails.
+The app is built once, with its tests. The test results and the code coverage are shown on the run's **Tests** and **Code Coverage** tabs. NuGet and npm packages are kept between runs, so they are not downloaded every time. Every environment gets that same package or image. Each deploy stage backs up the current version, deploys, runs the health checks, and rolls back if a step fails.
 
 ## Always
 
@@ -24,12 +24,13 @@ The app is built once. Every environment gets that same package or image. Each d
 | Kubernetes | A **Kubernetes service connection**, and your manifests in the repository |
 | Ansible | A Linux agent with Ansible installed that can reach your servers; your playbook and inventory in the repository. Optionally the SSH key as a **secure file** |
 | Self-hosted build agent | The agent pool |
+| Each environment its own settings | A **variable group** per environment, e.g. `vg-orders-api-prod`, with a variable for each setting to replace, named like the setting: `ConnectionStrings.Default` replaces `ConnectionStrings:Default` in `appsettings.json`. The wizard adds the groups for you |
 
 ## Two kinds of approval
 
 **On the environment.** Set in Azure DevOps under Pipelines → Environments → the environment → Approvals and checks. It is not in the file, so nobody can remove it by changing the file.
 
-**In the pipeline file.** On the Where step, tick "Wait for approval between test and preprod" (or any two environments). The pipeline stops there, sends an email and continues when someone presses Resume. You choose who may approve, who gets the email and how long it waits. Nothing has to be set up in Azure DevOps. Naming who may approve needs a recent Azure DevOps. With no names, anyone who can start the pipeline can approve.
+**In the pipeline file.** On the Safety step, tick "Wait for approval between test and preprod" (or any two environments). The pipeline stops there, sends an email and continues when someone presses Resume. You choose who may approve, who gets the email and how long it waits. Nothing has to be set up in Azure DevOps. Naming who may approve needs a recent Azure DevOps. With no names, anyone who can start the pipeline can approve.
 
 ## Two ways to reach your servers
 

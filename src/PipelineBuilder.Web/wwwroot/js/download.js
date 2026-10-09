@@ -1,5 +1,11 @@
-// Browser helpers for the Result step: download and copy.
+// Browser helpers: download and copy, and the wizard kept in this browser between visits.
 window.pipelineBuilder = {
+  saveState: function (json) {
+    try { localStorage.setItem('pipelinebuilder-state', json); } catch (e) { /* not kept */ }
+  },
+  loadState: function () {
+    try { return localStorage.getItem('pipelinebuilder-state'); } catch (e) { return null; }
+  },
   downloadText: function (fileName, content, mimeType) {
     const blob = new Blob([content], { type: mimeType || 'text/plain' });
     const url = URL.createObjectURL(blob);

@@ -171,12 +171,12 @@ public class GeneratedYamlTests
         var job = Assert.Single(JobsOf(StageNamed(root, "Build")));
         var steps = StepsOf(job);
         var commands = steps.Select(s => s.GetValueOrDefault("task") as string == "DotNetCoreCLI@2" ? (string)Inputs(s)["command"] : s.GetValueOrDefault("task") as string).ToList();
-        Assert.Equal(new[] { "restore", "build", "test", "publish", "PublishPipelineArtifact@1" }, commands);
+        Assert.Equal(new[] { "Cache@2", "restore", "build", "test", "PublishCodeCoverageResults@2", "publish", "PublishPipelineArtifact@1" }, commands);
 
         // Only the build step compiles; test and publish reuse its output.
-        Assert.Contains("--no-build", (string)Inputs(steps[2])["arguments"]);
         Assert.Contains("--no-build", (string)Inputs(steps[3])["arguments"]);
-        Assert.Equal("$(Build.ArtifactStagingDirectory)/app", (string)Inputs(steps[4])["targetPath"]);
+        Assert.Contains("--no-build", (string)Inputs(steps[5])["arguments"]);
+        Assert.Equal("$(Build.ArtifactStagingDirectory)/app", (string)Inputs(steps[6])["targetPath"]);
     }
 
     [Fact]
@@ -388,5 +388,22 @@ public class GeneratedYamlTests
                     yield return nested;
                 break;
         }
+    }
+
+    [Fact]
+    public void GeneratedYaml_PackagesAreKeptBetweenRunsAndTheCoverageIsShown()
+    {
+        var yaml = _generator.Generate(FullDefinition()).Yaml;
+        var job = Assert.Single(JobsOf(StageNamed(Parse(yaml), "Build")));
+
+        Assert.Equal("$(Pipeline.Workspace)/.nuget/packages", (string)Assert.IsType<Dictionary<object, object>>(job["variables"])["NUGET_PACKAGES"]);
+        var steps = StepsOf(job);
+        var cache = Inputs(steps[0]);
+        Assert.Equal("nuget | \"$(Agent.OS)\" | **/*.csproj", (string)cache["key"]);
+        Assert.Equal("$(NUGET_PACKAGES)", (string)cache["path"]);
+        Assert.Equal("$(Agent.TempDirectory)/**/coverage.cobertura.xml", (string)Inputs(steps[4])["summaryFileLocation"]);
+
+        // The cache folder is the pipeline's own: nothing to set up in Azure DevOps.
+        Assert.DoesNotContain(_generator.Generate(FullDefinition()).Requirements, need => need.Name == "NUGET_PACKAGES");
     }
 }

@@ -25,6 +25,8 @@ public class ApprovalTests : BunitContext
     {
         Services.AddPipelineBuilderCore();
         Services.AddScoped<WizardState>();
+        // The page keeps the wizard in the browser's storage; here nothing is stored, and nothing is there.
+        JSInterop.Mode = JSRuntimeMode.Loose;
     }
 
     private static PipelineDefinition WithApproval(params string[] environments)
@@ -177,7 +179,7 @@ public class ApprovalTests : BunitContext
     public void TheWizardOffersAnApprovalBetweenEachPairOfEnvironments()
     {
         var cut = Render<Home>();
-        cut.Find($"button[data-step='{WizardStep.Target}']").Click();
+        cut.Find($"button[data-step='{WizardStep.Safety}']").Click();
 
         Assert.Empty(cut.FindAll("#approve-test")); // nothing comes before the first environment
         Assert.Contains("between test and preprod", cut.Find("#approve-preprod").ParentElement!.TextContent);
@@ -194,7 +196,7 @@ public class ApprovalTests : BunitContext
         Assert.Contains("- task: ManualValidation@0", yaml);
         Assert.Contains("notifyUsers: 'lead@contoso.com'", yaml);
 
-        cut.Find($"button[data-step='{WizardStep.Target}']").Click();
+        cut.Find($"button[data-step='{WizardStep.Safety}']").Click();
         cut.Find("#approve-preprod").Change(false);
         Assert.Empty(cut.FindAll("#approvers"));
         cut.Find($"button[data-step='{WizardStep.Result}']").Click();
@@ -206,8 +208,9 @@ public class ApprovalTests : BunitContext
     {
         var cut = Render<Home>();
         cut.Find($"button[data-step='{WizardStep.Target}']").Click();
-
         cut.Find("#skip-preprod").Change(true);
+
+        cut.Find($"button[data-step='{WizardStep.Safety}']").Click();
 
         Assert.Empty(cut.FindAll("#approve-preprod"));
         Assert.Contains("between test and prod", cut.Find("#approve-prod").ParentElement!.TextContent);
@@ -217,12 +220,12 @@ public class ApprovalTests : BunitContext
     public void AWaitingTimeOutsideTheLimitsIsShownOnTheStep()
     {
         var cut = Render<Home>();
-        cut.Find($"button[data-step='{WizardStep.Target}']").Click();
+        cut.Find($"button[data-step='{WizardStep.Safety}']").Click();
         cut.Find("#approve-preprod").Change(true);
 
         cut.Find("#approval-wait").Change("0");
 
         Assert.Contains("between 1 and 672 hours", cut.Find(".issue-list").TextContent);
-        Assert.NotNull(cut.Find($"button[data-step='{WizardStep.Target}'] .badge"));
+        Assert.NotNull(cut.Find($"button[data-step='{WizardStep.Safety}'] .badge"));
     }
 }

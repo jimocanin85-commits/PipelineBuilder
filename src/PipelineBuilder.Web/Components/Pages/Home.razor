@@ -2,6 +2,7 @@
 @rendermode InteractiveServer
 @inject WizardState Wizard
 @inject IPipelineGeneratorService Generator
+@inject IJSRuntime JS
 @implements IDisposable
 
 <PageTitle>PipelineBuilder</PageTitle>
@@ -35,8 +36,8 @@
         }
         @* Input* components need a cascading EditContext, so every step renders inside this form. *@
         <EditForm EditContext="CurrentEditContext">
-            @* Keyed by the step, so opening a step draws it anew and it slides in. *@
-            <div class="step-body" @key="Wizard.CurrentStep">
+            @* Keyed by the step, so opening a step draws it anew and it slides in. A restore draws it anew too. *@
+            <div class="step-body" @key="(Wizard.CurrentStep, _restoredCount)">
             @switch (Wizard.CurrentStep)
             {
                 case WizardStep.Start:
@@ -71,11 +72,37 @@
 @code {
     private EditContext? _editContext;
 
+    /// <summary>True once what the browser kept has been put back. Before that, saving would overwrite it.</summary>
+    private bool _restored;
+
+    /// <summary>Counts restores, so the open step is drawn anew with the settings that came back.</summary>
+    private int _restoredCount;
+
     protected override void OnInitialized()
     {
         Wizard.NavigationRequested += OnNavigationRequested;
         Wizard.Changed += OnWizardChanged;
         Wizard.Generate(Generator);
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender)
+            return;
+        if (await BrowserMemory.RestoreAsync(JS, Wizard))
+        {
+            _restoredCount++;
+            Wizard.Generate(Generator);
+            StateHasChanged();
+        }
+        _restored = true;
+    }
+
+    /// <summary>Keeps the wizard in the browser after every change.</summary>
+    private void Remember()
+    {
+        if (_restored)
+            _ = BrowserMemory.SaveAsync(JS, Wizard);
     }
 
     public void Dispose()
@@ -107,12 +134,14 @@
     {
         Wizard.Generate(Generator);
         StateHasChanged();
+        Remember();
     }
 
     private void OnWizardChanged() => InvokeAsync(() =>
     {
         Wizard.Generate(Generator);
         StateHasChanged();
+        Remember();
     });
 
     private void OnNavigationRequested(WizardStep step)

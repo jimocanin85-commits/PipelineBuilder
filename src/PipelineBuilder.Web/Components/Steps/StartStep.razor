@@ -64,11 +64,12 @@
 <div class="load-settings">
     <label for="settings-file">Open saved settings</label>
     <InputFile id="settings-file" accept=".json,application/json" OnChange="LoadSettings" />
-    <p class="hint">A file you saved on the Result step.</p>
+    <p class="hint">A file you saved on the Result step. What you fill in is also kept in this browser until you start over.</p>
     @if (Wizard.SettingsMessage is { } message)
     {
         <p class="@(message.IsError ? "severity-error" : "status")" role="status">@message.Text</p>
     }
+    <button type="button" class="btn-secondary" id="start-over" @onclick="StartOver">Start over</button>
 </div>
 
 @code {
@@ -81,6 +82,15 @@
         DeploymentKind.DockerContainer or DeploymentKind.Kubernetes => Groups[2],
         _ => Groups[3]
     };
+
+    /// <summary>Back to a new pipeline: every setting and every ticked-off need is cleared.</summary>
+    private void StartOver()
+    {
+        Wizard.Load(WizardState.CreateDefault());
+        Wizard.DoneNeeds.Clear();
+        Wizard.SettingsMessage = ("Started over with a new pipeline.", false);
+        Wizard.NotifyChanged();
+    }
 
     private void Apply(string templateId)
     {

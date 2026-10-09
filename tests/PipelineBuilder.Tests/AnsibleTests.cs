@@ -21,6 +21,8 @@ public class AnsibleTests : BunitContext
     {
         Services.AddPipelineBuilderCore();
         Services.AddScoped<WizardState>();
+        // The page keeps the wizard in the browser's storage; here nothing is stored, and nothing is there.
+        JSInterop.Mode = JSRuntimeMode.Loose;
     }
 
     private static PipelineDefinition Ansible()

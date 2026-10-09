@@ -18,7 +18,10 @@ public static class PipelineRequirements
     private const string VariablesPath = "Pipelines → your pipeline → Edit → Variables";
 
     /// <summary>Variables the pipeline defines itself.</summary>
-    private static readonly HashSet<string> DefinedInYaml = new(StringComparer.OrdinalIgnoreCase) { "BuildConfiguration", ServerScript.ServersVariable };
+    private static readonly HashSet<string> DefinedInYaml = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "BuildConfiguration", ServerScript.ServersVariable, PackageCache.NuGetVariable, PackageCache.NpmVariable
+    };
 
     private static readonly Dictionary<string, string> Purposes = new(StringComparer.OrdinalIgnoreCase)
     {
