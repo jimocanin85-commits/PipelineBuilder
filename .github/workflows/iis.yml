@@ -89,6 +89,7 @@ jobs:
           # A folder that holds other things is never made a copy of the app.
           $refused = $false
           try { ./deploy/Install-PipelineBuilder.ps1 -PhysicalPath C:\apps -Port 8090 -SiteName Refused } catch { $refused = $true }
+          $global:LASTEXITCODE = 0 # the refused run's exit code is expected
           if (-not $refused -or -not (Test-Path C:\apps\asked\PipelineBuilder.Web.dll)) { Write-Host '::error title=Folder::A folder with other files in it was used for the app.'; exit 1 }
           if ($folder -ne 'C:\apps\pipelinebuilder') { Write-Host '::error title=HTTPS::The site was not moved to the new folder.'; exit 1 }
 
