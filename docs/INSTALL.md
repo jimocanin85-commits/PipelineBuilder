@@ -30,14 +30,14 @@ On the machine you build on: the .NET 10 SDK, 10.0.401 or later.
 On the server:
 
 - Windows Server 2019 or later, **joined to the domain** (Windows login needs it), and Administrator access.
-- The **ASP.NET Core Hosting Bundle for .NET 10**, installed after IIS (see 2.3).
+- The **ASP.NET Core Hosting Bundle for .NET 10**, installed after IIS (see 2.4).
 - A free port, open in the firewall: 443 for HTTPS, or 80.
 
 For HTTPS, which we recommend:
 
 - A DNS name that points to the server, e.g. `pipelines.contoso.local`.
 - A certificate for that name in the server's *Local Computer → Personal* store. You need its thumbprint.
-- An SPN for the name (see 2.6).
+- An SPN for the name (see 2.7).
 
 To limit who can use it: one or more AD groups, e.g. `CONTOSO\Platform-Team`.
 
@@ -51,7 +51,20 @@ dotnet publish src/PipelineBuilder.Web -c Release -o .\publish
 
 Copy the `publish` folder and the `deploy` folder to the server, e.g. to `C:\Install\PipelineBuilder`.
 
-### 2.3 Install the Hosting Bundle
+Do the steps below in this order. If IIS and the Hosting Bundle are already on the server, skip to 2.5.
+
+### 2.3 Install the IIS features
+
+Open **PowerShell as Administrator** on the server. Windows PowerShell and PowerShell 7 both work.
+
+```powershell
+cd C:\Install\PipelineBuilder
+.\deploy\Install-PipelineBuilder.ps1 -InstallMissingFeatures
+```
+
+This installs IIS, WebSockets and Windows Authentication. The script then stops and says the Hosting Bundle is missing. That is expected.
+
+### 2.4 Install the Hosting Bundle
 
 Download the **Hosting Bundle** for .NET 10 from <https://dotnet.microsoft.com/download/dotnet/10.0> (under *ASP.NET Core Runtime*, Windows), run it on the server, and restart IIS:
 
@@ -60,26 +73,23 @@ net stop was /y
 net start w3svc
 ```
 
-If IIS is not installed yet, do it in this order: run the install script with `-InstallMissingFeatures` (2.4), install the Hosting Bundle, run the script again.
+### 2.5 Install the app
 
-### 2.4 Run the install script
-
-Open **PowerShell as Administrator** on the server. Windows PowerShell and PowerShell 7 both work.
-
-**Quick test over HTTP**, reachable as `http://<server>:8080/`:
-
-```powershell
-cd C:\Install\PipelineBuilder
-.\deploy\Install-PipelineBuilder.ps1 -PublishFolder .\publish -Port 8080 -InstallMissingFeatures
-```
+In PowerShell as Administrator, in `C:\Install\PipelineBuilder`:
 
 **Production over HTTPS**, with a DNS name and limited to an AD group:
 
 ```powershell
-.\deploy\Install-PipelineBuilder.ps1 -PublishFolder .\publish -InstallMissingFeatures `
+.\deploy\Install-PipelineBuilder.ps1 -PublishFolder .\publish `
     -HostName pipelines.contoso.local -Port 443 `
     -CertificateThumbprint 0123456789ABCDEF0123456789ABCDEF01234567 `
     -AllowedGroups 'CONTOSO\Platform-Team', 'CONTOSO\Release-Managers'
+```
+
+**Quick test over HTTP**, reachable as `http://<server>:8080/`:
+
+```powershell
+.\deploy\Install-PipelineBuilder.ps1 -PublishFolder .\publish -Port 8080
 ```
 
 | Parameter | Default | Meaning |
@@ -94,9 +104,9 @@ cd C:\Install\PipelineBuilder
 | `-AllowedGroups` | none | Only members of these AD groups may use the app |
 | `-InstallMissingFeatures` | off | Install IIS, WebSockets and Windows Authentication if they're missing |
 
-The script turns Windows login on and anonymous access off, starts the site and prints its address.
+The script creates the app pool and the website, turns Windows login on and anonymous access off, sets the file permissions, starts the site and prints its address.
 
-### 2.5 Open the firewall and check
+### 2.6 Open the firewall
 
 If users connect from other machines, open the port:
 
@@ -104,9 +114,7 @@ If users connect from other machines, open the port:
 New-NetFirewallRule -DisplayName 'PipelineBuilder' -Direction Inbound -Protocol TCP -LocalPort 443 -Action Allow
 ```
 
-Then open the address in a browser on a domain PC. You should see the wizard, with **"Signed in as DOMAIN\you"** at the top.
-
-### 2.6 Automatic login in the browser (Kerberos)
+### 2.7 Automatic login in the browser (Kerberos)
 
 Users are signed in automatically only when the browser treats the site as an intranet site. Otherwise they are asked to log in.
 
@@ -119,11 +127,15 @@ If the DNS name is not the server's own name, register an **SPN** for it, so Ker
 setspn -S HTTP/pipelines.contoso.local CONTOSO\WEBSERVER01$
 ```
 
-### 2.7 Update to a new version
+### 2.8 Check that it works
 
-Build a new `publish` folder (2.2), copy it to the server and run the script again with the same parameters. Your settings in `appsettings.Production.json` are kept.
+Open the address in a browser on a domain PC. You should see the wizard, with **"Signed in as DOMAIN\you"** at the top.
 
-### 2.8 Configuration
+### 2.9 Update to a new version
+
+Build a new `publish` folder (2.2), copy it to the server and run the script again with the same parameters as in 2.5. Your settings in `appsettings.Production.json` are kept.
+
+### 2.10 Configuration
 
 Settings go in `appsettings.Production.json` in the install folder (`C:\inetpub\PipelineBuilder`), or in environment variables on the app pool. Restart the app pool after changing them: `Restart-WebAppPool PipelineBuilder`.
 
@@ -147,7 +159,7 @@ Settings go in `appsettings.Production.json` in the install folder (`C:\inetpub\
 
 As environment variables, use `__` instead of `:`, e.g. `Authentication__Mode`.
 
-### 2.9 Uninstall
+### 2.11 Uninstall
 
 ```powershell
 Import-Module WebAdministration
@@ -156,14 +168,14 @@ Remove-WebAppPool -Name PipelineBuilder
 Remove-Item C:\inetpub\PipelineBuilder -Recurse -Force
 ```
 
-### 2.10 Troubleshooting
+### 2.12 Troubleshooting
 
 | What you see | Likely cause | Fix |
 |---|---|---|
 | **HTTP Error 500.19**, code `0x8007000d` | Hosting Bundle missing, or installed before IIS | Install the Hosting Bundle, or run its installer again and choose *Repair*; then `net stop was /y` and `net start w3svc` |
 | **HTTP Error 500.30** or **502.5** | The app fails at startup | See *Event Viewer → Windows Logs → Application* (source *IIS AspNetCore Module V2*). For more detail, set `stdoutLogEnabled="true"` in `web.config` in the install folder, create a `logs` folder, and check `logs\stdout_*.log`. |
 | The page loads but buttons do nothing, or it keeps saying it's reconnecting | The IIS **WebSockets** feature is missing | Run the script with `-InstallMissingFeatures`, or add *WebSocket Protocol* in Server Manager |
-| A login prompt appears every time | The site isn't in the intranet zone, the SPN is missing, or users browse by IP address | See 2.6. Always use the DNS name, not the IP address. |
+| A login prompt appears every time | The site isn't in the intranet zone, the SPN is missing, or users browse by IP address | See 2.7. Always use the DNS name, not the IP address. |
 | **HTTP Error 401.2** | Windows Authentication is off for the site | Run the script again. It turns Windows Authentication on and anonymous access off. |
 | **403 Forbidden** after signing in | The user isn't in one of the `AllowedGroups` | Add the user to the group. The user must sign out of Windows and back in to get the new group membership. Group names must be written `DOMAIN\Group`. |
 | Script: *Missing IIS features* | IIS or one of its features isn't installed | Run it with `-InstallMissingFeatures` |
