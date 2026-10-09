@@ -1,6 +1,7 @@
 name: IIS install test
 
-# Publishes the app and installs it on IIS on a Windows runner with deploy/Install-PipelineBuilder.ps1,
+# Publishes the app and installs it on a Windows runner without IIS with deploy/Install-PipelineBuilder.ps1
+# (which installs IIS and the Hosting Bundle itself),
 # answers its questions for a second site, moves the first to HTTPS in another folder, and checks on
 # every address that anonymous requests are refused and Windows-authenticated requests get the wizard.
 on:
@@ -27,30 +28,12 @@ jobs:
       - name: Publish
         run: dotnet publish src/PipelineBuilder.Web -c Release -o publish
 
-      - name: Install IIS features
-        shell: pwsh
-        run: Install-WindowsFeature -Name Web-Server, Web-WebSockets, Web-Windows-Auth -IncludeManagementTools | Out-Null
-
-      - name: Install the ASP.NET Core Hosting Bundle (.NET 10)
-        shell: pwsh
-        run: |
-          $ErrorActionPreference = 'Stop'
-          # The official release list names the current Hosting Bundle download.
-          $releases = Invoke-RestMethod 'https://builds.dotnet.microsoft.com/dotnet/release-metadata/10.0/releases.json'
-          $latest = $releases.releases | Where-Object { $_.'release-version' -eq $releases.'latest-release' } | Select-Object -First 1
-          $bundle = $latest.'aspnetcore-runtime'.files | Where-Object { $_.name -like 'dotnet-hosting-win.exe' } | Select-Object -First 1
-          if (-not $bundle) { throw 'Hosting Bundle download not found in releases.json' }
-          Write-Host "Installing $($bundle.url)"
-          Invoke-WebRequest $bundle.url -OutFile hosting.exe
-          Start-Process hosting.exe -ArgumentList '/install', '/quiet', '/norestart' -Wait
-          net stop was /y | Out-Null
-          net start w3svc | Out-Null
-
       - name: Run the install script
         shell: pwsh
         run: |
           try {
-            ./deploy/Install-PipelineBuilder.ps1 -PublishFolder publish -Port 8080
+            # IIS and the Hosting Bundle are not on the runner: the script installs both.
+            ./deploy/Install-PipelineBuilder.ps1 -PublishFolder publish -Port 8080 -InstallMissingFeatures
           }
           catch {
             # Show the failure on the run summary, including where in the script it happened.
@@ -66,7 +49,8 @@ jobs:
           # The script asks only when someone can answer; here the answers come in typed lines.
           $env:CI = $null
           # Name, folder, S to skip HTTPS, any host name, port 8081, every domain user.
-          # No -PublishFolder: the app is taken from the 'publish' folder next to the deploy folder.
+          # No -PublishFolder and no built app: the script builds it from the source code it was extracted with.
+          Remove-Item publish -Recurse -Force
           "PipelineBuilderAsked`nC:\apps\asked`nS`n`n8081`n`n" |
             powershell.exe -NoProfile -ExecutionPolicy Bypass -File ./deploy/Install-PipelineBuilder.ps1
           if ($LASTEXITCODE -ne 0) { Write-Host "::error title=Questions::The script failed (exit code $LASTEXITCODE)."; exit 1 }
@@ -76,6 +60,7 @@ jobs:
           if (-not $folder) { Write-Host '::error title=Questions::The website was not given the typed name.'; exit 1 }
           if ($folder -ne 'C:\apps\asked') { Write-Host "::error title=Questions::The app is in $folder, not in the typed folder."; exit 1 }
           if ($pool -ne 'PipelineBuilderAsked') { Write-Host "::error title=Questions::The app pool is $pool, not named after the site."; exit 1 }
+          if (-not (Test-Path publish/PipelineBuilder.Web.dll)) { Write-Host '::error title=Questions::The app was not built from the source code.'; exit 1 }
           if (-not (Test-Path C:\apps\asked\PipelineBuilder.Web.dll)) { Write-Host '::error title=Questions::The app was not installed in the typed folder.'; exit 1 }
           if (Test-Path C:\apps\asked\appsettings.Production.json) { Write-Host '::error title=Questions::No groups were typed, yet access is limited.'; exit 1 }
           Write-Host 'The typed name and folder were used.' -ForegroundColor Green
