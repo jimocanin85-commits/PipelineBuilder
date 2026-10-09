@@ -77,34 +77,49 @@ net start w3svc
 
 In PowerShell as Administrator, in `C:\Install\PipelineBuilder`:
 
-**Production over HTTPS**, with a DNS name and limited to an AD group:
+```powershell
+.\deploy\Install-PipelineBuilder.ps1 -PublishFolder .\publish
+```
+
+The script asks, and Enter keeps the value in brackets:
+
+```text
+Website name in IIS [PipelineBuilder]: PipelineBuilder
+Folder to install the app in [C:\inetpub\PipelineBuilder]: D:\Apps\PipelineBuilder
+Certificates for HTTPS:
+  1. pipelines.contoso.local  (valid until 2027-09-30)
+Number of the certificate to use, or 0 for HTTP [1]:
+Host name users type in the browser [pipelines.contoso.local]:
+Port [443]:
+AD groups that may use it, separated by commas (Enter for every domain user): CONTOSO\Platform-Team
+```
+
+The certificates listed are the ones in *Local Computer → Personal* with a private key that have not expired. The app pool gets the website's name.
+
+**Without questions**, e.g. in a script, give the values as parameters. Only what is missing is asked; `-NoPrompt` asks nothing and uses the defaults:
 
 ```powershell
 .\deploy\Install-PipelineBuilder.ps1 -PublishFolder .\publish `
+    -SiteName PipelineBuilder -PhysicalPath D:\Apps\PipelineBuilder `
     -HostName pipelines.contoso.local -Port 443 `
     -CertificateThumbprint 0123456789ABCDEF0123456789ABCDEF01234567 `
     -AllowedGroups 'CONTOSO\Platform-Team', 'CONTOSO\Release-Managers'
-```
-
-**Quick test over HTTP**, reachable as `http://<server>:8080/`:
-
-```powershell
-.\deploy\Install-PipelineBuilder.ps1 -PublishFolder .\publish -Port 8080
 ```
 
 | Parameter | Default | Meaning |
 |---|---|---|
 | `-PublishFolder` | none | The `publish` folder from step 2.2. Leave it out to only reconfigure IIS. |
 | `-SiteName` | `PipelineBuilder` | IIS website name |
-| `-AppPoolName` | `PipelineBuilder` | IIS app pool name |
+| `-AppPoolName` | `PipelineBuilder`, or the website's name when the script asks | IIS app pool name |
 | `-PhysicalPath` | `C:\inetpub\PipelineBuilder` | Where the app is installed |
 | `-HostName` | none | DNS name in the binding, e.g. `pipelines.contoso.local` |
 | `-Port` | `80` | Port of the binding |
 | `-CertificateThumbprint` | none | Certificate in *LocalMachine\My*. When set, the binding uses HTTPS. |
 | `-AllowedGroups` | none | Only members of these AD groups may use the app |
 | `-InstallMissingFeatures` | off | Install IIS, WebSockets and Windows Authentication if they're missing |
+| `-NoPrompt` | off | Ask nothing; use the parameters and the defaults. Nothing is asked in a pipeline either. |
 
-The script creates the app pool and the website, turns Windows login on and anonymous access off, sets the file permissions, starts the site and prints its address.
+The script creates the app pool and the website with its HTTP or HTTPS binding, turns Windows login on and anonymous access off, sets the file permissions, starts the site and prints its address.
 
 ### 2.6 Open the firewall
 
@@ -133,7 +148,7 @@ Open the address in a browser on a domain PC. You should see the wizard, with **
 
 ### 2.9 Update to a new version
 
-Build a new `publish` folder (2.2), copy it to the server and run the script again with the same parameters as in 2.5. Your settings in `appsettings.Production.json` are kept.
+Build a new `publish` folder (2.2), copy it to the server and run the script again as in 2.5. When asked, it suggests the folder the site already uses. To move a site from HTTP to HTTPS, run it again and pick the certificate. Your settings in `appsettings.Production.json` are kept.
 
 ### 2.10 Configuration
 

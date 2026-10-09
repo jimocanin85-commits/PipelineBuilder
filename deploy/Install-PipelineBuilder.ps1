@@ -8,20 +8,22 @@
       1. checks (and with -InstallMissingFeatures installs) the IIS features it needs:
          the web server, WebSockets (required by Blazor) and Windows Authentication;
       2. checks that the ASP.NET Core Hosting Bundle for .NET 10 is installed;
-      3. copies the published app into -PhysicalPath (app pool stopped meanwhile);
-      4. creates or updates the app pool (No Managed Code) and the website;
-      5. turns on Windows Authentication and turns off anonymous access for the site;
-      6. optionally limits access to Active Directory groups (appsettings.Production.json).
+      3. asks for the website name, the install folder, HTTPS and the AD groups, unless they are given as parameters;
+      4. copies the published app into -PhysicalPath (app pool stopped meanwhile);
+      5. creates or updates the app pool (No Managed Code), the website and its binding (HTTPS with a certificate);
+      6. turns on Windows Authentication and turns off anonymous access for the site;
+      7. optionally limits access to Active Directory groups (appsettings.Production.json).
 
     Publish the app first:
         dotnet publish src/PipelineBuilder.Web -c Release -o .\publish
 
 .EXAMPLE
-    .\deploy\Install-PipelineBuilder.ps1 -PublishFolder .\publish -InstallMissingFeatures
+    .\deploy\Install-PipelineBuilder.ps1 -PublishFolder .\publish
+    Asks for the website name, the install folder, the certificate for HTTPS and the AD groups.
 
 .EXAMPLE
-    .\deploy\Install-PipelineBuilder.ps1 -PublishFolder .\publish -HostName pipelines.contoso.local `
-        -Port 443 -CertificateThumbprint 0123456789ABCDEF... -AllowedGroups 'CONTOSO\Platform-Team'
+    .\deploy\Install-PipelineBuilder.ps1 -PublishFolder .\publish -SiteName PipelineBuilder -PhysicalPath D:\Apps\PipelineBuilder `
+        -HostName pipelines.contoso.local -Port 443 -CertificateThumbprint 0123456789ABCDEF... -AllowedGroups 'CONTOSO\Platform-Team'
 #>
 [CmdletBinding(SupportsShouldProcess)]
 param(
@@ -36,24 +38,24 @@ param(
     [string] $CertificateThumbprint = '',
     # Only members of these groups may use the app (e.g. 'CONTOSO\Platform-Team').
     [string[]] $AllowedGroups = @(),
-    [switch] $InstallMissingFeatures
+    [switch] $InstallMissingFeatures,
+    # Never ask; use the parameters and their defaults. Questions are also skipped in a pipeline.
+    [switch] $NoPrompt
 )
 
 $ErrorActionPreference = 'Stop'
 
 # The IIS cmdlets (WebAdministration, IIS: drive) only work in Windows PowerShell 5.1.
 # When started from PowerShell 7, run this same script in Windows PowerShell with the same parameters.
+# -File keeps the same window, so the questions below can be answered there.
 if ($PSVersionTable.PSEdition -eq 'Core') {
-    $forward = @{}
+    $forward = @()
     foreach ($entry in $PSBoundParameters.GetEnumerator()) {
-        $forward[$entry.Key] = if ($entry.Value -is [switch]) { $entry.Value.IsPresent } else { $entry.Value }
+        if ($entry.Value -is [switch]) { if ($entry.Value.IsPresent) { $forward += "-$($entry.Key)" } }
+        elseif ($entry.Value -is [array]) { $forward += "-$($entry.Key)", ($entry.Value -join ',') }
+        else { $forward += "-$($entry.Key)", "$($entry.Value)" }
     }
-    & powershell.exe -NoProfile -ExecutionPolicy Bypass -Command {
-        param($Script, $Parameters)
-        $ErrorActionPreference = 'Stop'
-        try { & $Script @Parameters; exit 0 }
-        catch { Write-Host "ERROR: $($_ | Out-String)$($_.ScriptStackTrace)"; exit 1 }
-    } -args $PSCommandPath, $forward
+    & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $PSCommandPath @forward
     if ($LASTEXITCODE -ne 0) { throw "Install-PipelineBuilder failed in Windows PowerShell (exit code $LASTEXITCODE). See the output above." }
     return
 }
@@ -96,10 +98,74 @@ function Assert-HostingBundle {
     }
 }
 
+# Asks, showing the default in brackets. Enter keeps the default.
+function Read-Answer([string] $Question, [string] $Default) {
+    $answer = Read-Host $(if ($Default) { "$Question [$Default]" } else { $Question })
+    if ([string]::IsNullOrWhiteSpace($answer)) { $Default } else { $answer.Trim() }
+}
+
+# Certificates that can serve HTTPS: in LocalMachine\My, with a private key, not expired.
+function Get-HttpsCertificates {
+    @(Get-ChildItem Cert:\LocalMachine\My | Where-Object { $_.HasPrivateKey -and $_.NotAfter -gt (Get-Date) } | Sort-Object NotAfter -Descending)
+}
+
+function Read-Settings {
+    if (-not $script:Bound.ContainsKey('SiteName')) {
+        $script:SiteName = Read-Answer 'Website name in IIS' $SiteName
+    }
+    if (-not $script:Bound.ContainsKey('AppPoolName')) { $script:AppPoolName = $script:SiteName }
+    if (-not $script:Bound.ContainsKey('PhysicalPath')) {
+        # When updating, the folder the site already uses.
+        $existing = Get-Website -Name $script:SiteName
+        $folder = if ($existing) { [Environment]::ExpandEnvironmentVariables($existing.physicalPath) } else { "C:\inetpub\$($script:SiteName)" }
+        $script:PhysicalPath = Read-Answer 'Folder to install the app in' $folder
+    }
+    if (-not ($script:Bound.ContainsKey('CertificateThumbprint') -or $script:Bound.ContainsKey('Port') -or $script:Bound.ContainsKey('HostName'))) {
+        $certificates = Get-HttpsCertificates
+        if ($certificates.Count -eq 0) {
+            Write-Host 'No certificate for HTTPS was found in Local Computer > Personal, so the site uses HTTP.' -ForegroundColor Yellow
+        }
+        else {
+            Write-Host 'Certificates for HTTPS:'
+            for ($i = 0; $i -lt $certificates.Count; $i++) {
+                $names = ($certificates[$i].DnsNameList | ForEach-Object Unicode) -join ', '
+                Write-Host ('  {0}. {1}  (valid until {2:yyyy-MM-dd})' -f ($i + 1), $(if ($names) { $names } else { $certificates[$i].Subject }), $certificates[$i].NotAfter)
+            }
+            $pick = Read-Answer 'Number of the certificate to use, or 0 for HTTP' '1'
+            $number = 0
+            if (-not [int]::TryParse($pick, [ref] $number) -or $number -lt 0 -or $number -gt $certificates.Count) { throw "'$pick' is not one of the numbers shown." }
+            if ($number -gt 0) {
+                $chosen = $certificates[$number - 1]
+                $script:CertificateThumbprint = $chosen.Thumbprint
+                $script:HostName = Read-Answer 'Host name users type in the browser' $(@($chosen.DnsNameList | ForEach-Object Unicode)[0])
+            }
+        }
+        if (-not $script:CertificateThumbprint) { $script:HostName = Read-Answer 'Host name users type in the browser (Enter for any)' '' }
+        $script:Port = [int](Read-Answer 'Port' $(if ($script:CertificateThumbprint) { '443' } else { '80' }))
+    }
+    if (-not $script:Bound.ContainsKey('AllowedGroups')) {
+        $groups = Read-Answer 'AD groups that may use it, separated by commas (Enter for every domain user)' ''
+        $script:AllowedGroups = @($groups -split ',' | ForEach-Object { $_.Trim() } | Where-Object { $_ })
+    }
+}
+
 Assert-Administrator
 Test-IisFeatures
 Assert-HostingBundle
 Import-Module WebAdministration
+
+# Ask for what was not given, unless nobody is there to answer.
+$script:Bound = $PSBoundParameters
+$interactive = [Environment]::UserInteractive -and -not $env:CI -and -not $env:TF_BUILD -and
+    -not ([Environment]::GetCommandLineArgs() | Where-Object { $_ -like '-noni*' })
+if ($interactive -and -not $NoPrompt) { Read-Settings }
+
+# Values as one string (from PowerShell 7, or typed): 'A, B' is two groups. A copied thumbprint can hold spaces or hidden characters.
+$AllowedGroups = @($AllowedGroups | ForEach-Object { $_ -split ',' } | ForEach-Object { $_.Trim() } | Where-Object { $_ })
+$CertificateThumbprint = ($CertificateThumbprint -replace '[^0-9A-Fa-f]', '').ToUpperInvariant()
+if ($CertificateThumbprint -and -not (Test-Path "Cert:\LocalMachine\My\$CertificateThumbprint")) {
+    throw "No certificate with thumbprint $CertificateThumbprint in Local Computer > Personal (Cert:\LocalMachine\My)."
+}
 
 # App pool: ASP.NET Core runs out of the CLR-less pool ("No Managed Code").
 if (-not (Test-Path "IIS:\AppPools\$AppPoolName")) {
@@ -136,18 +202,30 @@ if ($AllowedGroups.Count -gt 0) {
 }
 
 # Website and binding.
+# With a host name, HTTPS uses SNI, so other sites on the server can have their own certificate on 443.
 $protocol = if ($CertificateThumbprint) { 'https' } else { 'http' }
+$sslFlags = if ($CertificateThumbprint -and $HostName) { 1 } else { 0 }
 if (-not (Get-Website -Name $SiteName)) {
     Write-Host "Creating website $SiteName ($protocol, port $Port)"
-    New-Website -Name $SiteName -PhysicalPath $PhysicalPath -ApplicationPool $AppPoolName -Port $Port -HostHeader $HostName -Ssl:([bool]$CertificateThumbprint) | Out-Null
+    New-Website -Name $SiteName -PhysicalPath $PhysicalPath -ApplicationPool $AppPoolName -Port $Port -HostHeader $HostName -Ssl:([bool]$CertificateThumbprint) -SslFlags $sslFlags | Out-Null
 }
 else {
     Set-ItemProperty "IIS:\Sites\$SiteName" -Name physicalPath -Value $PhysicalPath
     Set-ItemProperty "IIS:\Sites\$SiteName" -Name applicationPool -Value $AppPoolName
+    if (-not (Get-WebBinding -Name $SiteName -Protocol $protocol -Port $Port -HostHeader $HostName)) {
+        Write-Host "Adding $protocol on port $Port to website $SiteName"
+        New-WebBinding -Name $SiteName -Protocol $protocol -Port $Port -HostHeader $HostName -SslFlags $sslFlags
+    }
 }
 if ($CertificateThumbprint) {
-    $binding = Get-WebBinding -Name $SiteName -Protocol https -Port $Port
-    $binding.AddSslCertificate($CertificateThumbprint, 'My')
+    # The certificate is set on the port (or port and host name), not on the site. Replace another one there.
+    $sslBinding = if ($sslFlags -eq 1) { "IIS:\SslBindings\!$Port!$HostName" } else { "IIS:\SslBindings\0.0.0.0!$Port" }
+    $current = Get-Item $sslBinding -ErrorAction SilentlyContinue
+    if ($current -and $current.Thumbprint -ne $CertificateThumbprint) { Remove-Item $sslBinding; $current = $null }
+    if (-not $current) {
+        Write-Host "Using certificate $CertificateThumbprint for HTTPS"
+        (Get-WebBinding -Name $SiteName -Protocol https -Port $Port -HostHeader $HostName).AddSslCertificate($CertificateThumbprint, 'My')
+    }
 }
 
 # Windows login on, anonymous access off (stored for this site in applicationHost.config).
