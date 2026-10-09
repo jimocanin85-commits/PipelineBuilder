@@ -63,7 +63,9 @@ If IIS or the Hosting Bundle is missing, it says so and installs it when you ans
 IIS is missing Web-Server, Web-WebSockets, Web-Windows-Auth. Install it now? (Y/N) [Y]:
 The ASP.NET Core Hosting Bundle for .NET 10 is missing. Install it now? (Y/N) [Y]:
 Website name in IIS [PipelineBuilder]:
-Folder to install the app in [C:\inetpub\PipelineBuilder]: D:\Apps\PipelineBuilder
+Environment: Test, Preprod or Prod [Prod]: Test
+Folder to install the app in: pick it in the window that opened.
+  D:\Apps\PipelineBuilder
 Certificate for HTTPS:
   1. pipelines.contoso.local  (valid until 2027-09-30)
   F. Import a certificate file (.pfx)
@@ -77,13 +79,17 @@ AD groups that may use it, separated by commas (Enter for every domain user): CO
 PipelineBuilder is running at https://pipelines.contoso.local:443/ (Windows login).
 ```
 
+**The environment** is written in the app's `web.config` (`ASPNETCORE_ENVIRONMENT`), also in the extracted `publish` folder, and the script makes `appsettings.Test.json`, `appsettings.Preprod.json` or `appsettings.Prod.json` next to the app, with the AD groups. Each server gets its own environment, so the same download installs test, preprod and prod.
+
+**The folder** is picked in a window, where you can also make a new folder. Close the window to type the path instead. A folder that already holds other files gets a new folder for the app in it, e.g. `D:\Apps\PipelineBuilder`, because the app's folder is made an exact copy of the app.
+
 For HTTPS, pick a certificate already on the server (those in *Local Computer → Personal* with a private key that have not expired), import a `.pfx` file (it asks for the path and the password), type a thumbprint, or press **S** to skip HTTPS and use HTTP. Run the script again later to add HTTPS. The app pool gets the website's name.
 
 **Without questions**, e.g. in a script, give the values as parameters. Only what is missing is asked; `-NoPrompt` asks nothing and uses the defaults:
 
 ```powershell
 .\deploy\Install-PipelineBuilder.ps1 -InstallMissingFeatures `
-    -SiteName PipelineBuilder -PhysicalPath D:\Apps\PipelineBuilder `
+    -SiteName PipelineBuilder -Environment Prod -PhysicalPath D:\Apps\PipelineBuilder `
     -HostName pipelines.contoso.local -Port 443 `
     -CertificateThumbprint 0123456789ABCDEF0123456789ABCDEF01234567 `
     -AllowedGroups 'CONTOSO\Platform-Team', 'CONTOSO\Release-Managers'
@@ -96,7 +102,8 @@ Instead of `-CertificateThumbprint`, `-CertificateFile .\pipelines.pfx` imports 
 | `-PublishFolder` | the extracted download | A folder with the built app, or with the source code to build it |
 | `-SiteName` | `PipelineBuilder` | IIS website name |
 | `-AppPoolName` | `PipelineBuilder`, or the website's name when the script asks | IIS app pool name |
-| `-PhysicalPath` | `C:\inetpub\PipelineBuilder` | Where the app is installed |
+| `-Environment` | the one installed, else `Prod` | `Test`, `Preprod`, `Prod` or another name. Written in `web.config`; the settings go in `appsettings.<environment>.json` |
+| `-PhysicalPath` | `C:\inetpub\PipelineBuilder` | Where the app is installed. An empty folder or the app's own folder. |
 | `-HostName` | none | DNS name in the binding, e.g. `pipelines.contoso.local` |
 | `-Port` | `80` | Port of the binding |
 | `-CertificateThumbprint` | none | Certificate in *LocalMachine\My*. When set, the binding uses HTTPS. |
@@ -133,11 +140,11 @@ Open the address in a browser on a domain PC. You should see the wizard, with **
 
 ### 2.7 Update to a new version
 
-Download the zip again (2.2), extract it and run the script again (2.3). It suggests the folder the site already uses. Your settings in `appsettings.Production.json` are kept. To move a site from HTTP to HTTPS, run it again and pick the certificate.
+Download the zip again (2.2), extract it and run the script again (2.3). It suggests the folder the site already uses. It suggests the environment it has, and your settings in `appsettings.<environment>.json` are kept. To move a site from HTTP to HTTPS, run it again and pick the certificate.
 
 ### 2.8 Configuration
 
-Settings go in `appsettings.Production.json` in the install folder (`C:\inetpub\PipelineBuilder`), or in environment variables on the app pool. Restart the app pool after changing them: `Restart-WebAppPool PipelineBuilder`.
+Settings go in the environment's own file in the install folder, e.g. `appsettings.Prod.json` in `C:\inetpub\PipelineBuilder`, or in environment variables on the app pool. The environment is the `ASPNETCORE_ENVIRONMENT` value in `web.config` there. Restart the app pool after changing them: `Restart-WebAppPool PipelineBuilder`.
 
 ```json
 {

@@ -15,7 +15,8 @@
          extracted to: the ready-built app, or the source code, built when the .NET 10 SDK is installed;
       5. creates or updates the app pool (No Managed Code), the website and its binding (HTTPS with a certificate);
       6. turns on Windows Authentication and turns off anonymous access for the site;
-      7. optionally limits access to Active Directory groups (appsettings.Production.json).
+      7. writes the environment (e.g. Test, Preprod or Prod) in web.config as ASPNETCORE_ENVIRONMENT, and keeps
+         that environment's settings in appsettings.<environment>.json, with the AD groups that may use the app.
 
     Download the ready-built app, extract it and run this script from there:
         https://github.com/jimocanin85-commits/PipelineBuilder/releases/latest/download/PipelineBuilder-iis.zip
@@ -36,6 +37,9 @@ param(
     [string] $SiteName = 'PipelineBuilder',
     [string] $AppPoolName = 'PipelineBuilder',
     [string] $PhysicalPath = 'C:\inetpub\PipelineBuilder',
+    # The environment this server is, e.g. Test, Preprod or Prod. Written in web.config; the app then also reads
+    # appsettings.<environment>.json. Empty: the one already installed, else Prod.
+    [string] $Environment = '',
     [string] $HostName = '',
     [int] $Port = 80,
     # Thumbprint of a certificate in LocalMachine\My. When set, the binding uses HTTPS.
@@ -171,6 +175,67 @@ function Read-Answer([string] $Question, [string] $Default) {
     if ([string]::IsNullOrWhiteSpace($answer)) { $Default } else { $answer.Trim() }
 }
 
+# Lets the folder be picked in a window; typed instead when there is no desktop or the answers are piped in.
+function Select-Folder([string] $Question, [string] $Default) {
+    if (-not [Console]::IsInputRedirected) {
+        try {
+            Add-Type -AssemblyName System.Windows.Forms
+            $dialog = New-Object System.Windows.Forms.FolderBrowserDialog
+            $dialog.Description = "$Question. A folder with other files in it gets a new folder for the app."
+            $dialog.ShowNewFolderButton = $true
+            $start = $Default
+            while ($start -and -not (Test-Path $start)) { $start = Split-Path $start -Parent }
+            if ($start) { $dialog.SelectedPath = $start }
+            $owner = New-Object System.Windows.Forms.Form -Property @{ TopMost = $true }
+            Write-Host "$Question`: pick it in the window that opened."
+            $result = $dialog.ShowDialog($owner)
+            $owner.Dispose()
+            if ($result -eq [System.Windows.Forms.DialogResult]::OK) {
+                Write-Host "  $($dialog.SelectedPath)"
+                return $dialog.SelectedPath
+            }
+            Write-Host 'No folder picked in the window, so type it instead.'
+        }
+        catch {
+            # No desktop, e.g. Server Core.
+        }
+    }
+    Read-Answer $Question $Default
+}
+
+# The environment written in the web.config in $Folder, or ''.
+function Get-AppEnvironment([string] $Folder) {
+    $path = Join-Path $Folder 'web.config'
+    if (-not (Test-Path $path)) { return '' }
+    $variable = ([xml](Get-Content $path -Raw)).SelectSingleNode("//aspNetCore/environmentVariables/environmentVariable[@name='ASPNETCORE_ENVIRONMENT']")
+    if ($variable) { $variable.GetAttribute('value') } else { '' }
+}
+
+# Writes the environment in the web.config in $Folder, so the app runs as that environment.
+function Set-AppEnvironment([string] $Folder, [string] $Name) {
+    $path = Join-Path $Folder 'web.config'
+    [xml] $config = Get-Content $path -Raw
+    $aspNetCore = $config.SelectSingleNode('//aspNetCore')
+    if (-not $aspNetCore) { throw "The web.config in $Folder has no aspNetCore section." }
+    $variables = $aspNetCore.SelectSingleNode('environmentVariables')
+    if (-not $variables) { $variables = $aspNetCore.AppendChild($config.CreateElement('environmentVariables')) }
+    $variable = $variables.SelectSingleNode("environmentVariable[@name='ASPNETCORE_ENVIRONMENT']")
+    if (-not $variable) {
+        $variable = $variables.AppendChild($config.CreateElement('environmentVariable'))
+        $variable.SetAttribute('name', 'ASPNETCORE_ENVIRONMENT')
+    }
+    $variable.SetAttribute('value', $Name)
+    $config.Save($path)
+}
+
+# Test, Preprod and Prod written the usual way; any other name as typed.
+function Format-Environment([string] $Name) {
+    $known = 'Test', 'Preprod', 'Prod' | Where-Object { $_ -eq $Name.Trim() }
+    if ($known) { return $known }
+    if ($Name.Trim() -notmatch '^[A-Za-z][A-Za-z0-9]*$') { throw "'$Name' is not an environment name: use letters and digits, e.g. Test, Preprod or Prod." }
+    $Name.Trim()
+}
+
 # Certificates that can serve HTTPS: in LocalMachine\My, with a private key, not expired.
 function Get-HttpsCertificates {
     @(Get-ChildItem Cert:\LocalMachine\My | Where-Object { $_.HasPrivateKey -and $_.NotAfter -gt (Get-Date) } | Sort-Object NotAfter -Descending)
@@ -181,11 +246,16 @@ function Read-Settings {
         $script:SiteName = Read-Answer 'Website name in IIS' $SiteName
     }
     if (-not $script:Bound.ContainsKey('AppPoolName')) { $script:AppPoolName = $script:SiteName }
+    # When updating, the folder and the environment the site already has.
+    $existing = Get-Website -Name $script:SiteName
+    $folder = if ($existing) { [Environment]::ExpandEnvironmentVariables($existing.physicalPath) } else { "C:\inetpub\$($script:SiteName)" }
+    if (-not $script:Bound.ContainsKey('Environment')) {
+        $current = if ($existing) { Get-AppEnvironment $folder } else { '' }
+        $script:Environment = Format-Environment (Read-Answer 'Environment: Test, Preprod or Prod' $(if ($current) { $current } else { 'Prod' }))
+    }
     if (-not $script:Bound.ContainsKey('PhysicalPath')) {
-        # When updating, the folder the site already uses.
-        $existing = Get-Website -Name $script:SiteName
-        $folder = if ($existing) { [Environment]::ExpandEnvironmentVariables($existing.physicalPath) } else { "C:\inetpub\$($script:SiteName)" }
-        $script:PhysicalPath = Read-Answer 'Folder to install the app in' $folder
+        $script:PhysicalPath = Select-Folder 'Folder to install the app in' $folder
+        $script:FolderWasAsked = $true
     }
     if (-not ($script:Bound.ContainsKey('CertificateThumbprint') -or $script:Bound.ContainsKey('Port') -or $script:Bound.ContainsKey('HostName'))) {
         $certificates = Get-HttpsCertificates
@@ -241,6 +311,22 @@ Assert-HostingBundle
 Import-Module WebAdministration
 
 if ($script:CanAsk) { Read-Settings }
+
+# Without an answer: the environment already installed, else Prod.
+if (-not $Environment) { $Environment = Get-AppEnvironment $PhysicalPath }
+$Environment = Format-Environment $(if ($Environment) { $Environment } else { 'Prod' })
+
+# The app's folder is made an exact copy of the app, so a folder that holds other things is never used as it is:
+# a picked folder gets a new folder for the app in it, and a given one stops the script.
+$PhysicalPath = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($PhysicalPath)
+$holdsOther = (Test-Path $PhysicalPath) -and -not (Test-Path (Join-Path $PhysicalPath 'PipelineBuilder.Web.dll')) -and
+    [bool](Get-ChildItem $PhysicalPath -Force | Select-Object -First 1)
+if ($holdsOther) {
+    if (-not $script:FolderWasAsked) { throw "$PhysicalPath already holds other files, which installing would delete. Choose an empty folder or the app's own folder." }
+    $PhysicalPath = Join-Path $PhysicalPath $SiteName
+    Write-Host "That folder holds other files, so the app goes in $PhysicalPath" -ForegroundColor Yellow
+}
+Write-Host "Installing as environment $Environment in $PhysicalPath"
 
 # Values as one string (from PowerShell 7, or typed): 'A, B' is two groups. A copied thumbprint can hold spaces or hidden characters.
 $AllowedGroups = @($AllowedGroups | ForEach-Object { $_ -split ',' } | ForEach-Object { $_.Trim() } | Where-Object { $_ })
@@ -300,12 +386,18 @@ else {
 }
 if ($PublishFolder) { Write-Host "Installing the app from $PublishFolder" }
 
-# Files: stop the pool while copying so no files are locked.
+# Files: stop the pool while copying so no files are locked. The environments' own settings are kept.
 New-Item -ItemType Directory -Force -Path $PhysicalPath | Out-Null
+if ($PublishFolder -and $PublishFolder.TrimEnd('\') -eq $PhysicalPath.TrimEnd('\')) {
+    Write-Host "The app is already in $PhysicalPath, so nothing is copied."
+    $PublishFolder = $null
+}
 if ($PublishFolder) {
+    # The extracted app says its environment too, so its web.config matches the installed one.
+    Set-AppEnvironment $PublishFolder $Environment
     if ((Get-WebAppPoolState -Name $AppPoolName).Value -eq 'Started') { Stop-WebAppPool -Name $AppPoolName }
     Write-Host "Copying $PublishFolder to $PhysicalPath"
-    robocopy $PublishFolder $PhysicalPath /MIR /XF appsettings.Production.json /NFL /NDL /NP | Out-Host
+    robocopy $PublishFolder $PhysicalPath /MIR /XF 'appsettings.*.json' /NFL /NDL /NP | Out-Host
     if ($LASTEXITCODE -ge 8) { throw "robocopy failed with exit code $LASTEXITCODE" }
     $global:LASTEXITCODE = 0
     if (-not (Test-Path (Join-Path $PhysicalPath $app))) { throw "The app was not copied to $PhysicalPath." }
@@ -317,12 +409,28 @@ $rule = New-Object Security.AccessControl.FileSystemAccessRule("IIS AppPool\$App
 $acl.SetAccessRule($rule)
 Set-Acl $PhysicalPath $acl
 
-# Optional group restriction, read by the app from appsettings.Production.json.
-if ($AllowedGroups.Count -gt 0) {
-    $settings = @{ Authentication = @{ Mode = 'Windows'; AllowedGroups = $AllowedGroups } } | ConvertTo-Json -Depth 4
-    Set-Content -Path (Join-Path $PhysicalPath 'appsettings.Production.json') -Value $settings -Encoding UTF8
-    Write-Host "Access limited to: $($AllowedGroups -join ', ')"
+# The environment: in web.config, so the app runs as it, and its own settings file next to it.
+Set-AppEnvironment $PhysicalPath $Environment
+$settingsFile = Join-Path $PhysicalPath "appsettings.$Environment.json"
+$earlier = Join-Path $PhysicalPath 'appsettings.Production.json'
+if (-not (Test-Path $settingsFile) -and $Environment -ne 'Production' -and (Test-Path $earlier)) {
+    # Installed before there were environments: those settings become this environment's.
+    Move-Item $earlier $settingsFile
 }
+$settings = if (Test-Path $settingsFile) { Get-Content $settingsFile -Raw | ConvertFrom-Json } else { $null }
+if (-not $settings) { $settings = New-Object psobject }
+if (-not $settings.PSObject.Properties['Authentication']) { $settings | Add-Member -NotePropertyName Authentication -NotePropertyValue (New-Object psobject) }
+$authentication = $settings.Authentication
+# Typed groups replace the ones in the file; none typed keeps them.
+$values = [ordered]@{ Mode = 'Windows' }
+if ($AllowedGroups.Count -gt 0 -or -not $authentication.PSObject.Properties['AllowedGroups']) { $values.AllowedGroups = [string[]]$AllowedGroups }
+foreach ($name in $values.Keys) {
+    if ($authentication.PSObject.Properties[$name]) { $authentication.$name = $values[$name] }
+    else { $authentication | Add-Member -NotePropertyName $name -NotePropertyValue $values[$name] }
+}
+Set-Content -Path $settingsFile -Value ($settings | ConvertTo-Json -Depth 10) -Encoding UTF8
+$groups = @($authentication.AllowedGroups)
+Write-Host "Environment $Environment, settings in $settingsFile. $(if ($groups.Count) { "Access limited to: $($groups -join ', ')" } else { 'Every domain user may use it.' })"
 
 # Website and binding.
 # With a host name, HTTPS uses SNI, so other sites on the server can have their own certificate on 443.
